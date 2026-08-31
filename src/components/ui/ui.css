@@ -202,9 +202,13 @@
 }
 
 .art__img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* Fades in over the generated cover once the real one has decoded. */
+  transition: opacity 620ms var(--e-out);
 }
 
 .art__fallback {

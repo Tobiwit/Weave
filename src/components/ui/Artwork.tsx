@@ -23,9 +23,10 @@ function hueFrom(seed: string, salt: number): number {
 /**
  * Album art with a generated fallback.
  *
- * Missing covers are common offline and across providers, so the fallback is a
- * deterministic woven gradient rather than a grey placeholder: it still gives
- * the song a visual identity.
+ * The generated cover is always painted underneath, so a song has a visual
+ * identity immediately. A real cover fades in over it once it loads, which is
+ * what makes artwork arriving mid-analysis feel like part of the sequence
+ * rather than a layout jump.
  */
 export function Artwork({
   src,
@@ -35,12 +36,18 @@ export function Artwork({
   radius,
   className,
 }: ArtworkProps) {
-  const [failed, setFailed] = useState(false);
-  const showFallback = !src || failed;
+  // One piece of state keyed by the source it describes. A new src therefore
+  // reads as unloaded during render, with no effect needed to reset it, so the
+  // fade replays instead of one cover snapping over another.
+  const [status, setStatus] = useState<{ src: string; ok: boolean } | null>(null);
+  const current = status && status.src === src ? status : null;
+  const loaded = current?.ok === true;
+  const failed = current?.ok === false;
 
   const hueA = hueFrom(seed, 1);
   const hueB = (hueA + 60 + (hueFrom(seed, 2) % 120)) % 360;
   const dimension = typeof size === 'number' ? `${size}px` : size;
+  const showImage = Boolean(src) && !failed;
 
   return (
     <div
@@ -49,21 +56,23 @@ export function Artwork({
         width: dimension,
         height: dimension,
         borderRadius: radius,
-        background: showFallback
-          ? `linear-gradient(140deg, hsl(${hueA} 62% 46%), hsl(${hueB} 54% 26%) 62%, hsl(${(hueB + 30) % 360} 40% 14%))`
-          : undefined,
+        background: `linear-gradient(140deg, hsl(${hueA} 62% 46%), hsl(${hueB} 54% 26%) 62%, hsl(${(hueB + 30) % 360} 40% 14%))`,
       }}
+      role={alt ? 'img' : undefined}
+      aria-label={alt || undefined}
     >
-      {showFallback ? (
-        <div className="art__fallback" role={alt ? 'img' : undefined} aria-label={alt || undefined} />
-      ) : (
+      <div className="art__fallback" aria-hidden="true" />
+
+      {showImage && (
         <img
           className="art__img"
           src={src}
-          alt={alt}
+          alt=""
           loading="lazy"
           decoding="async"
-          onError={() => setFailed(true)}
+          style={{ opacity: loaded ? 1 : 0 }}
+          onLoad={() => src && setStatus({ src, ok: true })}
+          onError={() => src && setStatus({ src, ok: false })}
         />
       )}
     </div>

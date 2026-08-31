@@ -53,14 +53,15 @@ src/
   types/           the shared data model
   db/              Dexie database and repositories
   services/        one adapter per external concern, behind an interface
-    search/  metadata/  tags/  lyrics/  audio/  embedding/  projection/  spotify/
+    search/  metadata/  tags/  lyrics/  audio/  artwork/
+    embedding/  projection/  spotify/
   features/
     analysis/      the pipeline, descriptor ranking, stage visuals
     matching/      pure vector maths, scoring, explanations
     playlists/     playlist vectors, insights, vector maintenance
     mood/          Song Profile -> visual parameters
     universe/      projection and layout
-  components/      background, flow, layout, playlist, ui, brand, pwa
+  components/      background, cloud, flow, layout, playlist, ui, brand, pwa
   pages/           one directory-level component per route
 ```
 
@@ -79,11 +80,24 @@ Two rules hold the architecture together:
 identify -> metadata -> community -> lyrics -> interpret -> fingerprint -> complete
 ```
 
-It streams real stage transitions to the UI, which animates against them. There
-is no simulated progress anywhere; if the work finishes quickly the sequence
-finishes quickly. Only failure to establish the song's identity aborts the run.
-Every other missing signal adds a plain-language notice and the pipeline
-continues.
+Cover art is fetched first, inside `identify`, so the song has a face for the
+rest of the run. It comes from the iTunes Search API, which needs no key and
+sends CORS headers; results are cached (including misses) and written back to
+the song, so covers also fill in across the library. It is never a blocker — on
+failure the generated cover stands in.
+
+The UI animates against real stage transitions. Only failure to establish the
+song's identity aborts the run; every other missing signal adds a
+plain-language notice and the pipeline continues.
+
+**On pacing:** with embeddings cached an analysis can finish in well under a
+second, which leaves nothing readable on screen. Completed steps are therefore
+released for display one at a time, each held for as long as its own content
+takes to read (roughly 0.7-2.2s, scaling with how many terms it surfaced), for
+about 8s end to end. The pipeline is never delayed or reordered and no step
+appears before it has genuinely finished; only the *display* of results that
+already exist is paced. The constants live in `STEP_PACING` in
+`src/features/analysis/analysisSteps.ts`.
 
 Runs are shared through `analysisRegistry.ts`, so a component remounting (under
 StrictMode, for instance) attaches to the existing run rather than starting a
@@ -140,12 +154,19 @@ its `MoodVisualState`, so similar songs produce visually related environments,
 and one canvas persists across routes so the environment evolves rather than
 cutting between scenes.
 
-`FlowField` is the reusable thread system: irregular cubic paths with gradient
-strokes, slow deformation and optional motes. It takes only geometry and
-strength, so pages compose it differently — signals arriving at a song, or a
-song leaning toward playlist regions.
+`PointCloud` carries the analysis: around 1,700 points on a spherical shell,
+rotating in 3D with differential speed by latitude and a slow tilt, drawn as
+pre-tinted glow sprites with additive blending — so there is no per-point
+gradient work and no depth sorting. It is split across two canvases, one behind
+the artwork and one in front, so points genuinely pass around the cover. Each
+signal source owns a stream of points that flies in and joins the shell as that
+stage completes, and the cloud tightens as the reading resolves.
 
-Both animate against refs; React does not re-render per frame.
+`FlowField` is the thread system used for the match reveal: irregular cubic
+paths with gradient strokes, slow deformation and optional motes. It takes only
+geometry and strength, so pages compose it differently.
+
+All three animate against refs; React does not re-render per frame.
 
 **Entrance reveals are CSS keyframes, not JS animations.** Their end state is
 the visible state, so a throttled or stalled frame loop can never leave content

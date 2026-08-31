@@ -1,0 +1,32 @@
+/*
+  Absolutely filling the stage rather than relying on height: 100%, which
+  collapses to the content height when the parent's height comes from flex-grow
+  rather than from a definite value.
+*/
+.cloud {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+}
+
+.cloud__layer {
+  position: absolute;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+}
+
+/* The front half sits above the artwork, so points sweep across it. */
+.cloud__layer--front {
+  z-index: 2;
+}
+
+.cloud__center {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

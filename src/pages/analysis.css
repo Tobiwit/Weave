@@ -6,12 +6,6 @@
   overflow: hidden;
 }
 
-.analysis__flow {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-}
-
 .analysis__scene {
   position: relative;
   z-index: 1;
@@ -19,14 +13,13 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  padding: calc(var(--sat) + var(--s-4)) calc(var(--gutter) + var(--sar))
-    calc(var(--sab) + var(--s-6)) calc(var(--gutter) + var(--sal));
+  padding: calc(var(--sat) + var(--s-3)) calc(var(--gutter) + var(--sar))
+    calc(var(--sab) + var(--s-5)) calc(var(--gutter) + var(--sal));
 }
 
 .analysis__top {
   display: flex;
   align-items: center;
-  gap: var(--s-4);
   flex: none;
 }
 
@@ -49,71 +42,12 @@
   background: rgba(255, 255, 255, 0.07);
 }
 
-/* ------------------------------ Phases ---------------------------------- */
+/* ------------------------------- Stage ---------------------------------- */
 
-.phases {
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  flex: 1;
-  justify-content: flex-end;
-}
-
-.phases__item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--c-text-4);
-  font-size: var(--t-micro);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  transition: color var(--d-ui) var(--e-out);
-}
-
-.phases__dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0.6;
-  transition: transform var(--d-ui) var(--e-out), opacity var(--d-ui) var(--e-out);
-}
-
-.phases__item--done {
-  color: var(--c-text-3);
-}
-
-.phases__item--active {
-  color: var(--c-text);
-}
-
-.phases__item--active .phases__dot {
-  transform: scale(1.7);
-  opacity: 1;
-  box-shadow: 0 0 12px rgba(226, 107, 208, 0.7);
-}
-
-/* Labels are decoration on narrow screens; the dots carry the progress. */
-.phases__label {
-  display: none;
-}
-
-@media (min-width: 420px) {
-  .phases__label {
-    display: inline;
-  }
-}
-
-/* ------------------------------ Centre ---------------------------------- */
-
-.analysis__center {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--s-5);
-  min-height: 0;
+.analysis__stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 230px;
 }
 
 .analysis__art {
@@ -125,86 +59,192 @@
   transition: transform 1100ms var(--e-out);
 }
 
-/* The song contracts slightly as the reading settles, before the fingerprint. */
+/* The song draws in on itself once the reading has settled. */
 .analysis__art--settled {
-  transform: scale(0.9);
+  transform: scale(0.92);
 }
 
 .analysis__halo {
   position: absolute;
-  inset: -46%;
+  inset: -55%;
   border-radius: 50%;
-  filter: blur(26px);
+  filter: blur(24px);
   transition: background 1200ms var(--e-inout);
   pointer-events: none;
 }
 
 .analysis__identity {
+  flex: none;
   text-align: center;
-  max-width: 22rem;
+  margin-bottom: var(--s-5);
 }
 
 .analysis__title {
   margin-bottom: 2px;
 }
 
-/* ------------------------------ Signals --------------------------------- */
+/* ------------------------------- Steps ---------------------------------- */
 
-.signals {
+.analysis__steps {
+  flex: 0 1 auto;
+  min-height: 0;
+  padding-bottom: var(--s-2);
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+}
+
+.step {
+  position: relative;
+  display: flex;
+  gap: var(--s-4);
+  min-height: 44px;
+  padding-bottom: var(--s-3);
+}
+
+.step__rail {
+  position: relative;
   flex: none;
+  width: 10px;
+  display: flex;
+  justify-content: center;
+}
+
+/* The spine connecting one step to the next. */
+.step:not(.step--last) .step__rail::after {
+  content: '';
+  position: absolute;
+  top: 14px;
+  bottom: -6px;
+  width: 1px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.16),
+    rgba(255, 255, 255, 0.05)
+  );
+}
+
+.step__dot {
+  position: relative;
+  z-index: 1;
+  width: 7px;
+  height: 7px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  transition: background-color var(--d-ui) var(--e-out),
+    box-shadow var(--d-ui) var(--e-out), transform var(--d-ui) var(--e-out);
+}
+
+.step__body {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.step__label {
+  font-size: var(--t-micro);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--c-text-4);
+  transition: color var(--d-ui) var(--e-out);
+}
+
+.step__detail {
+  font-size: 0.9375rem;
+  letter-spacing: -0.012em;
+  color: var(--c-text-2);
+  line-height: 1.4;
+}
+
+.step__terms {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: var(--s-2) var(--s-3);
-  min-height: 108px;
-  padding: var(--s-4) 0;
-  align-content: center;
-}
-
-.signals__term {
+  gap: 0 var(--s-3);
   font-size: 0.9375rem;
-  letter-spacing: -0.01em;
-  color: var(--c-text-2);
-  white-space: nowrap;
-}
-
-.signals__term--metadata {
-  color: rgba(154, 166, 255, 0.86);
-}
-
-.signals__term--community {
-  color: var(--c-text-2);
-}
-
-.signals__term--lyrics {
-  color: rgba(255, 194, 122, 0.8);
-  font-style: italic;
-}
-
-.signals--merged .signals__term {
+  letter-spacing: -0.012em;
   color: var(--c-text);
-  font-size: 1.0625rem;
+  line-height: 1.45;
 }
 
-.signals__waiting {
-  opacity: 0.7;
+/* A hairline separator between terms, without putting dots in the markup. */
+.step__term + .step__term::before {
+  content: '·';
+  margin-right: var(--s-3);
+  color: var(--c-text-4);
 }
 
-/* ------------------------------ Caption --------------------------------- */
+/* ---- states ---- */
 
-.analysis__caption {
-  flex: none;
-  text-align: center;
-  min-height: 3.2em;
+.step--waiting .step__detail,
+.step--waiting .step__label {
+  color: var(--c-text-4);
 }
+
+.step--active .step__label {
+  color: var(--c-text-2);
+}
+
+.step--active .step__detail {
+  color: var(--c-text-3);
+}
+
+.step--active .step__dot {
+  background: var(--c-periwinkle);
+  animation: step-pulse 1600ms var(--e-inout) infinite;
+}
+
+.step--done .step__label {
+  color: var(--c-text-3);
+}
+
+.step--done .step__dot {
+  background: var(--c-text);
+  box-shadow: 0 0 10px rgba(247, 244, 238, 0.35);
+}
+
+.step--missing .step__dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(255, 194, 122, 0.55);
+}
+
+.step--missing .step__detail {
+  color: var(--c-text-3);
+}
+
+@keyframes step-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 4px rgba(154, 166, 255, 0.14);
+  }
+  50% {
+    transform: scale(1.24);
+    box-shadow: 0 0 0 7px rgba(154, 166, 255, 0.05);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step--active .step__dot {
+    animation: none;
+  }
+}
+
+:root[data-reduced-motion='true'] .step--active .step__dot {
+  animation: none;
+}
+
+/* ------------------------------ Notices --------------------------------- */
 
 .analysis__notice {
-  margin-top: var(--s-2);
+  flex: none;
+  margin-top: var(--s-3);
   color: var(--c-text-4);
-  max-width: 32ch;
-  margin-left: auto;
-  margin-right: auto;
+  max-width: 40ch;
   line-height: 1.4;
 }
 
@@ -216,20 +256,31 @@
   align-items: flex-start;
   justify-content: center;
   gap: var(--s-4);
-  height: 100%;
 }
 
 .analysis__errorBody {
   max-width: 28ch;
 }
 
-@media (min-width: 900px) {
-  .analysis__scene {
-    max-width: 760px;
-    margin: 0 auto;
+/* Short viewports give the stage less room so the steps stay readable. */
+@media (max-height: 680px) {
+  .analysis__stage {
+    min-height: 150px;
   }
 
-  .signals {
-    min-height: 130px;
+  .analysis__identity {
+    margin-bottom: var(--s-4);
+  }
+}
+
+@media (min-width: 900px) {
+  .analysis__scene {
+    max-width: 620px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .analysis__stage {
+    min-height: 280px;
   }
 }

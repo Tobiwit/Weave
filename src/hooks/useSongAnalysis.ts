@@ -56,5 +56,7 @@ export function useSongAnalysis(songId: string | undefined): UseSongAnalysisResu
     };
   }, [songId]);
 
-  return { state, song, error };
+  // The run enriches the song as it goes, most visibly with cover art, so the
+  // freshest copy wins over the one first loaded from storage.
+  return { state, song: state?.song ?? song, error };
 }

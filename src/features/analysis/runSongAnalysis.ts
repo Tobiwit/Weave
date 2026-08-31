@@ -1,4 +1,5 @@
 import { saveSongProfile, upsertSong } from '../../db/repositories';
+import { fetchArtwork } from '../../services/artwork';
 import { fetchAudioFeatures, measuredFieldsFrom } from '../../services/audio';
 import { embeddingService, subscribeToEmbeddingProgress } from '../../services/embedding';
 import { fetchLyrics } from '../../services/lyrics';
@@ -75,6 +76,25 @@ class AnalysisRun {
     }
     await upsertSong(song).catch(() => undefined);
     this.recordSource({ kind: 'metadata', provider: song.source ?? 'search', ok: true });
+
+    // Cover art is fetched first so the song has a face for the rest of the
+    // run. It is a nicety, never a blocker: on failure the generated cover
+    // stands in and nothing downstream notices.
+    if (!song.artworkUrl) {
+      const { artwork, providerId } = await fetchArtwork(song, signal);
+      if (artwork) {
+        song = {
+          ...song,
+          artworkUrl: artwork.url,
+          album: song.album ?? artwork.album,
+          year: song.year ?? artwork.year,
+        };
+        this.recordSource({ kind: 'metadata', provider: providerId, ok: true });
+        await upsertSong(song).catch(() => undefined);
+        this.emit({ song });
+      }
+    }
+
     this.completeStage('identify');
     throwIfAborted();
 
