@@ -1,0 +1,241 @@
+@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  background: var(--c-void);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--t-body);
+  line-height: var(--lh-body);
+  color: var(--c-text);
+  background: var(--c-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
+  /* The mood background owns the backdrop; nothing here should scroll it. */
+  overflow: hidden;
+}
+
+#root {
+  position: relative;
+  isolation: isolate;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+figure {
+  margin: 0;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: var(--lh-snug);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+:focus-visible {
+  outline: 2px solid var(--c-periwinkle);
+  outline-offset: 3px;
+  border-radius: var(--r-sm);
+}
+
+::selection {
+  background: rgba(169, 123, 255, 0.35);
+}
+
+/* ---------- Utility primitives ---------- */
+
+.u-hero {
+  font-size: var(--t-hero);
+  line-height: var(--lh-tight);
+  letter-spacing: -0.035em;
+  font-weight: 400;
+}
+
+.u-title {
+  font-size: var(--t-title);
+  letter-spacing: -0.03em;
+  font-weight: 400;
+}
+
+.u-section {
+  font-size: var(--t-section);
+  letter-spacing: -0.02em;
+  font-weight: 450;
+}
+
+.u-meta {
+  font-size: var(--t-meta);
+  color: var(--c-text-3);
+  letter-spacing: 0.01em;
+}
+
+.u-eyebrow {
+  font-size: var(--t-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--c-text-3);
+  font-weight: 500;
+}
+
+.u-dim {
+  color: var(--c-text-2);
+}
+
+.u-gradient-text {
+  background: var(--grad-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.u-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* A soft translucent plane, not a dashboard card. */
+.u-plane {
+  background: var(--c-surface);
+  border: 1px solid var(--c-hairline);
+  border-radius: var(--r-lg);
+  backdrop-filter: var(--blur-surface);
+  -webkit-backdrop-filter: var(--blur-surface);
+  box-shadow: var(--elev-2);
+}
+
+.u-scroll {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+
+.u-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.u-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: var(--r-pill);
+}
+
+.u-noscrollbar {
+  scrollbar-width: none;
+}
+
+.u-noscrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------- Entrance reveals ----------
+   These run as CSS keyframes rather than JS animations on purpose. Their end
+   state is the visible state, so if a frame loop is ever throttled or stalled
+   the content still ends up on screen. JS animation is reserved for presence
+   and gesture work, where a stall is recoverable. */
+
+@keyframes u-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.u-rise {
+  animation: u-rise 520ms var(--e-out) both;
+  animation-delay: var(--rise-delay, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .u-rise {
+    animation: none;
+  }
+}
+
+/* The in-app override, which the media query above cannot see. */
+:root[data-reduced-motion='true'] .u-rise,
+:root[data-reduced-motion='true'] .shell__page,
+:root[data-reduced-motion='true'] .result__review,
+:root[data-reduced-motion='true'] .analysis__art {
+  animation: none;
+}
+
+:root[data-reduced-motion='true'] *,
+:root[data-reduced-motion='true'] *::before,
+:root[data-reduced-motion='true'] *::after {
+  transition-duration: 0.01ms !important;
+}

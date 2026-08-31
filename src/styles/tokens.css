@@ -1,0 +1,104 @@
+:root {
+  /* ---------- Core neutrals ---------- */
+  --c-void: #07070a;
+  --c-bg: #0d1020;
+  --c-bg-2: #131729;
+  --c-surface: rgba(255, 255, 255, 0.08);
+  --c-surface-strong: rgba(255, 255, 255, 0.13);
+  --c-hairline: rgba(255, 255, 255, 0.1);
+  --c-hairline-strong: rgba(255, 255, 255, 0.18);
+
+  --c-text: #f7f4ee;
+  --c-text-2: rgba(247, 244, 238, 0.68);
+  --c-text-3: rgba(247, 244, 238, 0.42);
+  --c-text-4: rgba(247, 244, 238, 0.24);
+
+  /* ---------- Accent family (used sparingly, mostly via gradients) ---------- */
+  --c-periwinkle: #9aa6ff;
+  --c-violet: #a97bff;
+  --c-magenta: #e26bd0;
+  --c-coral: #ff8f7a;
+  --c-amber: #ffc27a;
+
+  --grad-brand: linear-gradient(
+    118deg,
+    var(--c-coral) 0%,
+    var(--c-magenta) 34%,
+    var(--c-violet) 66%,
+    var(--c-periwinkle) 100%
+  );
+  --grad-brand-soft: linear-gradient(
+    118deg,
+    rgba(255, 143, 122, 0.85) 0%,
+    rgba(226, 107, 208, 0.8) 38%,
+    rgba(154, 166, 255, 0.8) 100%
+  );
+
+  /* ---------- Type ---------- */
+  --font-sans: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text',
+    'Segoe UI', system-ui, sans-serif;
+
+  --t-hero: clamp(2rem, 8.2vw, 2.75rem);
+  --t-title: clamp(1.65rem, 6.2vw, 2.125rem);
+  --t-section: 1.3125rem;
+  --t-body: 1rem;
+  --t-meta: 0.8125rem;
+  --t-micro: 0.6875rem;
+
+  --lh-tight: 1.08;
+  --lh-snug: 1.28;
+  --lh-body: 1.55;
+
+  /* ---------- Space ---------- */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-7: 32px;
+  --s-8: 40px;
+  --s-9: 56px;
+  --s-10: 80px;
+
+  --gutter: 20px;
+  --content-max: 1140px;
+  --nav-h: 62px;
+
+  /* ---------- Radius ---------- */
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 22px;
+  --r-xl: 30px;
+  --r-pill: 999px;
+
+  /* ---------- Depth (transparency over shadow) ---------- */
+  --elev-1: 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  --elev-2: 0 18px 44px -24px rgba(0, 0, 0, 0.9),
+    0 1px 0 rgba(255, 255, 255, 0.07) inset;
+  --elev-float: 0 24px 60px -28px rgba(0, 0, 0, 0.95),
+    0 1px 0 rgba(255, 255, 255, 0.08) inset;
+
+  --blur-surface: blur(18px) saturate(1.25);
+
+  /* ---------- Motion ---------- */
+  --e-out: cubic-bezier(0.16, 0.84, 0.28, 1);
+  --e-inout: cubic-bezier(0.62, 0.02, 0.2, 1);
+  --d-micro: 220ms;
+  --d-ui: 400ms;
+  --d-bg: 1100ms;
+  --d-reveal: 1200ms;
+
+  /* ---------- Safe areas ---------- */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+@media (min-width: 768px) {
+  :root {
+    --gutter: 32px;
+    --t-section: 1.4375rem;
+  }
+}

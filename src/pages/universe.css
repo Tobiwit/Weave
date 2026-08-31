@@ -1,0 +1,148 @@
+.universe {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.universe__head {
+  flex: none;
+  padding: calc(var(--sat) + var(--s-6)) calc(var(--gutter) + var(--sar)) var(--s-3)
+    calc(var(--gutter) + var(--sal));
+}
+
+.universe__canvas {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  touch-action: none;
+  cursor: grab;
+  overflow: hidden;
+}
+
+.universe__canvas:active {
+  cursor: grabbing;
+}
+
+.universe__svg {
+  display: block;
+  user-select: none;
+}
+
+.universe__node {
+  cursor: pointer;
+}
+
+.universe__node circle {
+  transition: r var(--d-ui) var(--e-out), opacity var(--d-ui) var(--e-out);
+}
+
+.universe__label {
+  fill: var(--c-text);
+  letter-spacing: -0.02em;
+  paint-order: stroke;
+  stroke: rgba(7, 7, 10, 0.75);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.universe__region,
+.universe__link,
+.universe__song {
+  transition: opacity var(--d-ui) var(--e-out);
+}
+
+.universe__loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+/* Sits over the canvas rather than beside the heading, which is tight on a
+   narrow screen and would collide with a longer playlist name. */
+.universe__controls {
+  position: absolute;
+  right: calc(var(--gutter) + var(--sar));
+  bottom: calc(var(--nav-h) + var(--sab) + var(--s-3));
+  z-index: 2;
+}
+
+.universe__panel {
+  position: absolute;
+  z-index: 3;
+  left: calc(var(--gutter) + var(--sal));
+  right: calc(var(--gutter) + var(--sar));
+  bottom: calc(var(--nav-h) + var(--sab) + var(--s-3));
+  max-width: 460px;
+  margin: 0 auto;
+  padding: var(--s-5);
+  border-radius: var(--r-lg);
+  background: rgba(13, 16, 32, 0.86);
+  border: 1px solid var(--c-hairline);
+  backdrop-filter: var(--blur-surface);
+  -webkit-backdrop-filter: var(--blur-surface);
+  box-shadow: var(--elev-float);
+}
+
+.universe__panelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  margin-bottom: var(--s-2);
+}
+
+.universe__panelDesc {
+  margin-bottom: var(--s-4);
+}
+
+.universe__overlap {
+  font-size: var(--t-meta);
+  color: var(--c-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.universe__neighbours {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.universe__neighbours li {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9375rem;
+  color: var(--c-text-2);
+}
+
+.universe__neighbourScore {
+  color: var(--c-text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.universe__pairRow {
+  margin-bottom: var(--s-3);
+  font-size: 0.9375rem;
+  color: var(--c-text-2);
+  line-height: 1.45;
+}
+
+.universe__pairRow .u-eyebrow {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.universe--empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-4);
+  justify-content: center;
+}
+
+@media (min-width: 900px) {
+  .universe__head {
+    padding-top: calc(var(--sat) + var(--s-7));
+  }
+}

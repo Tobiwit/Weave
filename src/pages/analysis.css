@@ -1,0 +1,235 @@
+.analysis {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.analysis__flow {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.analysis__scene {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: calc(var(--sat) + var(--s-4)) calc(var(--gutter) + var(--sar))
+    calc(var(--sab) + var(--s-6)) calc(var(--gutter) + var(--sal));
+}
+
+.analysis__top {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  flex: none;
+}
+
+.analysis__cancel {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  margin-left: -8px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--c-text-3);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.analysis__cancel:hover {
+  color: var(--c-text);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* ------------------------------ Phases ---------------------------------- */
+
+.phases {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.phases__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--c-text-4);
+  font-size: var(--t-micro);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: color var(--d-ui) var(--e-out);
+}
+
+.phases__dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.6;
+  transition: transform var(--d-ui) var(--e-out), opacity var(--d-ui) var(--e-out);
+}
+
+.phases__item--done {
+  color: var(--c-text-3);
+}
+
+.phases__item--active {
+  color: var(--c-text);
+}
+
+.phases__item--active .phases__dot {
+  transform: scale(1.7);
+  opacity: 1;
+  box-shadow: 0 0 12px rgba(226, 107, 208, 0.7);
+}
+
+/* Labels are decoration on narrow screens; the dots carry the progress. */
+.phases__label {
+  display: none;
+}
+
+@media (min-width: 420px) {
+  .phases__label {
+    display: inline;
+  }
+}
+
+/* ------------------------------ Centre ---------------------------------- */
+
+.analysis__center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-5);
+  min-height: 0;
+}
+
+.analysis__art {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: u-rise 900ms var(--e-out) both;
+  transition: transform 1100ms var(--e-out);
+}
+
+/* The song contracts slightly as the reading settles, before the fingerprint. */
+.analysis__art--settled {
+  transform: scale(0.9);
+}
+
+.analysis__halo {
+  position: absolute;
+  inset: -46%;
+  border-radius: 50%;
+  filter: blur(26px);
+  transition: background 1200ms var(--e-inout);
+  pointer-events: none;
+}
+
+.analysis__identity {
+  text-align: center;
+  max-width: 22rem;
+}
+
+.analysis__title {
+  margin-bottom: 2px;
+}
+
+/* ------------------------------ Signals --------------------------------- */
+
+.signals {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2) var(--s-3);
+  min-height: 108px;
+  padding: var(--s-4) 0;
+  align-content: center;
+}
+
+.signals__term {
+  font-size: 0.9375rem;
+  letter-spacing: -0.01em;
+  color: var(--c-text-2);
+  white-space: nowrap;
+}
+
+.signals__term--metadata {
+  color: rgba(154, 166, 255, 0.86);
+}
+
+.signals__term--community {
+  color: var(--c-text-2);
+}
+
+.signals__term--lyrics {
+  color: rgba(255, 194, 122, 0.8);
+  font-style: italic;
+}
+
+.signals--merged .signals__term {
+  color: var(--c-text);
+  font-size: 1.0625rem;
+}
+
+.signals__waiting {
+  opacity: 0.7;
+}
+
+/* ------------------------------ Caption --------------------------------- */
+
+.analysis__caption {
+  flex: none;
+  text-align: center;
+  min-height: 3.2em;
+}
+
+.analysis__notice {
+  margin-top: var(--s-2);
+  color: var(--c-text-4);
+  max-width: 32ch;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.4;
+}
+
+/* ------------------------------- Error ---------------------------------- */
+
+.analysis--error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--s-4);
+  height: 100%;
+}
+
+.analysis__errorBody {
+  max-width: 28ch;
+}
+
+@media (min-width: 900px) {
+  .analysis__scene {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+
+  .signals {
+    min-height: 130px;
+  }
+}

@@ -1,0 +1,207 @@
+.shell {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.shell__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.shell__main {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+}
+
+.shell__main::-webkit-scrollbar {
+  display: none;
+}
+
+.shell--no-nav .shell__main {
+  padding-bottom: var(--sab);
+}
+
+/* The route wrapper is a column so full-height scenes can claim the viewport
+   while ordinary pages still grow past it and scroll. */
+.shell__page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  min-width: 0;
+  animation: page-enter 420ms var(--e-out) both;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell__page {
+    animation: none;
+  }
+}
+
+/* Page content sits inside the safe area and clears the floating navigation. */
+.page {
+  position: relative;
+  min-height: 100%;
+  /*
+    An explicit width is load-bearing: without it this stretched flex item
+    cannot shrink below the min-content width of its own contents, and a single
+    line of nowrap text would push the whole page wider than the viewport.
+  */
+  width: 100%;
+  padding: calc(var(--sat) + var(--s-6)) calc(var(--gutter) + var(--sar))
+    calc(var(--nav-h) + var(--sab) + var(--s-9)) calc(var(--gutter) + var(--sal));
+  margin: 0 auto;
+  max-width: var(--content-max);
+}
+
+.page--flush {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.page--full {
+  padding: 0;
+  max-width: none;
+  flex: 1;
+  min-height: 0;
+}
+
+.page {
+  flex: 1;
+}
+
+/* ------------------------------- Nav ------------------------------------ */
+
+.nav {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  padding: 0 calc(var(--gutter) + var(--sar)) calc(var(--s-3) + var(--sab))
+    calc(var(--gutter) + var(--sal));
+  pointer-events: none;
+}
+
+.nav__inner {
+  pointer-events: auto;
+  display: flex;
+  align-items: stretch;
+  gap: var(--s-1);
+  max-width: 420px;
+  margin: 0 auto;
+  padding: var(--s-1);
+  border-radius: var(--r-pill);
+  background: rgba(13, 16, 32, 0.72);
+  border: 1px solid var(--c-hairline);
+  backdrop-filter: blur(22px) saturate(1.4);
+  -webkit-backdrop-filter: blur(22px) saturate(1.4);
+  box-shadow: 0 20px 46px -22px rgba(0, 0, 0, 0.95);
+}
+
+.nav__item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 50px;
+  border-radius: var(--r-pill);
+  color: var(--c-text-3);
+  transition: color var(--d-micro) var(--e-out),
+    background-color var(--d-micro) var(--e-out);
+}
+
+.nav__item--active {
+  color: var(--c-text);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.nav__icon {
+  display: flex;
+}
+
+.nav__label {
+  font-size: 0.6875rem;
+  letter-spacing: 0.02em;
+}
+
+/* ---------------------------- Page header ------------------------------- */
+
+.page-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin-bottom: var(--s-6);
+}
+
+.page-head__back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  margin-left: -8px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--c-text-2);
+  cursor: pointer;
+  transition: background-color var(--d-micro) var(--e-out);
+}
+
+.page-head__back:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--c-text);
+}
+
+.page-head__title {
+  flex: 1;
+  min-width: 0;
+}
+
+/* --------------------------- Brand header ------------------------------- */
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.brand__name {
+  font-size: var(--t-meta);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--c-text-3);
+}
+
+@media (min-width: 900px) {
+  .nav {
+    padding-bottom: var(--s-5);
+  }
+
+  .nav__inner {
+    max-width: 460px;
+  }
+}

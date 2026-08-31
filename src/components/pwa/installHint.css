@@ -1,0 +1,49 @@
+.install-hint {
+  position: fixed;
+  z-index: 50;
+  left: calc(var(--gutter) + var(--sal));
+  right: calc(var(--gutter) + var(--sar));
+  bottom: calc(var(--nav-h) + var(--sab) + var(--s-4));
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  max-width: 420px;
+  margin: 0 auto;
+  padding: var(--s-4) var(--s-4) var(--s-4) var(--s-5);
+  border-radius: var(--r-lg);
+  background: rgba(19, 23, 41, 0.86);
+  border: 1px solid var(--c-hairline);
+  backdrop-filter: var(--blur-surface);
+  -webkit-backdrop-filter: var(--blur-surface);
+  box-shadow: var(--elev-float);
+}
+
+.install-hint__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.install-hint__title {
+  font-size: 0.9375rem;
+  letter-spacing: -0.015em;
+  margin-bottom: 2px;
+}
+
+.install-hint__close {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  margin: -4px -4px 0 0;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--c-text-3);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.install-hint__close:hover {
+  color: var(--c-text);
+  background: rgba(255, 255, 255, 0.08);
+}

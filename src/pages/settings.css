@@ -1,0 +1,40 @@
+.settings__section {
+  margin-bottom: var(--s-7);
+}
+
+.settings__section > .u-eyebrow {
+  margin-bottom: var(--s-2);
+}
+
+.settings__hint {
+  margin-bottom: var(--s-4);
+  max-width: 42ch;
+  line-height: 1.5;
+}
+
+.settings__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.settings__warning {
+  margin-top: var(--s-3);
+  color: var(--c-amber);
+  opacity: 0.85;
+}
+
+.settings__about {
+  padding-top: var(--s-5);
+  border-top: 1px solid var(--c-hairline);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-3);
+}
+
+@media (min-width: 768px) {
+  .settings {
+    max-width: 620px;
+  }
+}

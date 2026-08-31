@@ -1,0 +1,69 @@
+.pl-edit__nameLabel {
+  display: block;
+  margin-bottom: var(--s-2);
+}
+
+.pl-edit__name {
+  width: 100%;
+  padding: 0 0 var(--s-3);
+  border: 0;
+  border-bottom: 1px solid var(--c-hairline);
+  background: transparent;
+  font-size: var(--t-title);
+  letter-spacing: -0.03em;
+  outline: none;
+  transition: border-color var(--d-micro) var(--e-out);
+}
+
+.pl-edit__name:focus {
+  border-bottom-color: rgba(154, 166, 255, 0.6);
+}
+
+.pl-edit__name::placeholder {
+  color: var(--c-text-4);
+}
+
+.pl-edit__section {
+  margin-top: var(--s-8);
+}
+
+.pl-edit__sectionTitle {
+  margin-bottom: var(--s-1);
+}
+
+.pl-edit__hint {
+  margin-bottom: var(--s-4);
+  max-width: 34ch;
+}
+
+.pl-edit__examples {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: var(--s-3);
+}
+
+.pl-edit__remove {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--c-text-3);
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.pl-edit__remove:hover {
+  color: var(--c-text);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.pl-edit__cta {
+  margin-top: var(--s-8);
+}
+
+@media (min-width: 768px) {
+  .pl-edit {
+    max-width: 640px;
+  }
+}
