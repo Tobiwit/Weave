@@ -33,7 +33,13 @@ export default function AnalysisPage() {
   const convergence = cloudConvergence(state);
   const speed = cloudSpeed(state);
 
-  useMoodEnvironment(mood, { resolution, transitionMs: 1400 });
+  // The point cloud is the subject here and the field is also made of dots, so
+  // the field runs coarse and dim to stay clearly behind it.
+  useMoodEnvironment(mood, {
+    resolution: resolution * 0.62,
+    quality: 0.45,
+    transitionMs: 1400,
+  });
 
   // Completed stages are held back only long enough to be read. Each step holds
   // for as long as its own content takes; the work itself is never delayed.

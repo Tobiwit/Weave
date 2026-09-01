@@ -126,7 +126,7 @@
 
 .chip__mark {
   font-size: 0.7em;
-  color: var(--c-magenta);
+  color: var(--c-periwinkle);
   line-height: 1;
 }
 
@@ -371,77 +371,119 @@
 
 /* ------------------------------- Slider --------------------------------- */
 
-.slider {
+.tick {
   display: block;
 }
 
-.slider__head {
+.tick__head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--s-3);
-  margin-bottom: var(--s-2);
+  gap: var(--s-4);
+  margin-bottom: var(--s-3);
 }
 
-.slider__label {
+.tick__label {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
   font-size: var(--t-meta);
   color: var(--c-text-2);
-}
-
-.slider__value {
-  font-size: var(--t-meta);
-  color: var(--c-text-3);
-  font-variant-numeric: tabular-nums;
-}
-
-.slider__input {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 28px;
-  background: transparent;
   cursor: pointer;
 }
 
-.slider__input::-webkit-slider-runnable-track {
-  height: 3px;
-  border-radius: var(--r-pill);
-  background: linear-gradient(
-    90deg,
-    var(--c-periwinkle) 0%,
-    var(--c-magenta) var(--slider-fill, 50%),
-    rgba(255, 255, 255, 0.14) var(--slider-fill, 50%)
-  );
+.tick__hint {
+  color: var(--c-text-4);
+  font-size: var(--t-micro);
 }
 
-.slider__input::-moz-range-track {
-  height: 3px;
-  border-radius: var(--r-pill);
-  background: linear-gradient(
-    90deg,
-    var(--c-periwinkle) 0%,
-    var(--c-magenta) var(--slider-fill, 50%),
-    rgba(255, 255, 255, 0.14) var(--slider-fill, 50%)
-  );
+.tick__value {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  font-size: var(--t-meta);
+  color: var(--c-text);
 }
 
-.slider__input::-webkit-slider-thumb {
+.tick__measured {
+  font-size: var(--t-micro);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--c-cyan);
+  opacity: 0.85;
+}
+
+.tick__track {
+  position: relative;
+  height: 28px;
+  display: flex;
+  align-items: center;
+}
+
+/*
+  One fill, masked into ticks. The filled and unfilled halves therefore share a
+  single element and can never drift out of alignment with each other.
+*/
+.tick__marks {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    var(--c-blue) 0%,
+    var(--c-violet) calc(var(--tick-fill) * 0.6),
+    var(--c-periwinkle) var(--tick-fill),
+    oklch(1 0 0 / 0.16) var(--tick-fill),
+    oklch(1 0 0 / 0.16) 100%
+  );
+  -webkit-mask-image: repeating-linear-gradient(
+    90deg,
+    #000 0 2px,
+    transparent 2px 7px
+  );
+  mask-image: repeating-linear-gradient(90deg, #000 0 2px, transparent 2px 7px);
+}
+
+.tick__thumb {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  left: clamp(1px, var(--tick-fill), calc(100% - 3px));
+  width: 2px;
+  border-radius: 1px;
+  background: var(--c-text);
+  box-shadow: 0 0 14px oklch(0.79 0.13 268 / 0.9);
+  pointer-events: none;
+}
+
+/* The real control, invisible but fully functional: drag, keyboard, a11y. */
+.tick__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
   -webkit-appearance: none;
   appearance: none;
-  width: 18px;
-  height: 18px;
-  margin-top: -7.5px;
-  border-radius: 50%;
-  background: var(--c-text);
-  box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.9);
+  background: transparent;
 }
 
-.slider__input::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
+.tick__input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 32px;
+  height: 32px;
+}
+
+.tick__input::-moz-range-thumb {
+  width: 32px;
+  height: 32px;
   border: 0;
-  border-radius: 50%;
-  background: var(--c-text);
+}
+
+.tick__track:has(.tick__input:focus-visible) .tick__marks {
+  outline: 2px solid var(--c-blue);
+  outline-offset: 4px;
 }
 
 /* ---------------------------- ScoreNumber ------------------------------- */

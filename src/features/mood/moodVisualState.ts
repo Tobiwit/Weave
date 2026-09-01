@@ -5,8 +5,8 @@ import type { MoodVisualState, Playlist, SongProfile } from '../../types';
  * brand, deliberately low-information so it implies no particular mood.
  */
 export const NEUTRAL_MOOD: MoodVisualState = {
-  hueA: 236,
-  hueB: 262,
+  hueA: 237,
+  hueB: 249,
   warmth: 0.12,
   density: 0.4,
   softness: 0.78,
@@ -21,62 +21,67 @@ type MoodPreset = Partial<MoodVisualState>;
 /**
  * Controlled visual dimensions per mood. Every song stays inside the same
  * material system; only these dials move.
+ *
+ * Hues are deliberately confined to a narrow blue-to-violet band (roughly
+ * 228-300). Letting warm moods run into magenta and amber made every song look
+ * like a different app; warmth is carried by saturation and by where the light
+ * sits, not by leaving the family.
  */
 const MOOD_PRESETS: Record<string, MoodPreset> = {
   dreamy: {
-    hueA: 238, hueB: 276, warmth: 0.16, density: 0.36, softness: 0.94,
+    hueA: 238, hueB: 256, warmth: 0.16, density: 0.36, softness: 0.94,
     curvature: 0.62, motion: 0.22, contrast: 0.26, turbulence: 0.2,
   },
   bittersweet: {
-    hueA: 258, hueB: 332, warmth: 0.44, density: 0.52, softness: 0.72,
+    hueA: 247, hueB: 283, warmth: 0.44, density: 0.52, softness: 0.72,
     curvature: 0.55, motion: 0.34, contrast: 0.44, turbulence: 0.38,
   },
   euphoric: {
-    hueA: 288, hueB: 342, warmth: 0.62, density: 0.74, softness: 0.5,
+    hueA: 262, hueB: 288, warmth: 0.62, density: 0.74, softness: 0.5,
     curvature: 0.44, motion: 0.72, contrast: 0.68, turbulence: 0.52,
   },
   melancholic: {
-    hueA: 224, hueB: 250, warmth: 0.08, density: 0.3, softness: 0.86,
+    hueA: 231, hueB: 244, warmth: 0.08, density: 0.3, softness: 0.86,
     curvature: 0.7, motion: 0.16, contrast: 0.2, turbulence: 0.18,
   },
   playful: {
-    hueA: 296, hueB: 20, warmth: 0.66, density: 0.6, softness: 0.55,
+    hueA: 266, hueB: 300, warmth: 0.66, density: 0.6, softness: 0.55,
     curvature: 0.78, motion: 0.62, contrast: 0.58, turbulence: 0.62,
   },
   confident: {
-    hueA: 268, hueB: 322, warmth: 0.5, density: 0.58, softness: 0.42,
+    hueA: 252, hueB: 279, warmth: 0.5, density: 0.58, softness: 0.42,
     curvature: 0.34, motion: 0.46, contrast: 0.72, turbulence: 0.24,
   },
   sensual: {
-    hueA: 300, hueB: 348, warmth: 0.58, density: 0.5, softness: 0.8,
+    hueA: 268, hueB: 291, warmth: 0.58, density: 0.5, softness: 0.8,
     curvature: 0.66, motion: 0.28, contrast: 0.42, turbulence: 0.3,
   },
   calm: {
-    hueA: 220, hueB: 244, warmth: 0.14, density: 0.26, softness: 0.9,
+    hueA: 229, hueB: 241, warmth: 0.14, density: 0.26, softness: 0.9,
     curvature: 0.5, motion: 0.14, contrast: 0.18, turbulence: 0.12,
   },
   anxious: {
-    hueA: 246, hueB: 288, warmth: 0.2, density: 0.66, softness: 0.4,
+    hueA: 242, hueB: 262, warmth: 0.2, density: 0.66, softness: 0.4,
     curvature: 0.3, motion: 0.6, contrast: 0.56, turbulence: 0.82,
   },
   cathartic: {
-    hueA: 252, hueB: 356, warmth: 0.54, density: 0.7, softness: 0.6,
+    hueA: 245, hueB: 295, warmth: 0.54, density: 0.7, softness: 0.6,
     curvature: 0.58, motion: 0.6, contrast: 0.66, turbulence: 0.58,
   },
   defiant: {
-    hueA: 262, hueB: 14, warmth: 0.5, density: 0.72, softness: 0.36,
+    hueA: 249, hueB: 300, warmth: 0.5, density: 0.72, softness: 0.36,
     curvature: 0.26, motion: 0.66, contrast: 0.78, turbulence: 0.5,
   },
   romantic: {
-    hueA: 286, hueB: 340, warmth: 0.6, density: 0.44, softness: 0.84,
+    hueA: 261, hueB: 287, warmth: 0.6, density: 0.44, softness: 0.84,
     curvature: 0.68, motion: 0.26, contrast: 0.36, turbulence: 0.22,
   },
   angry: {
-    hueA: 258, hueB: 6, warmth: 0.56, density: 0.8, softness: 0.3,
+    hueA: 247, hueB: 300, warmth: 0.56, density: 0.8, softness: 0.3,
     curvature: 0.22, motion: 0.78, contrast: 0.82, turbulence: 0.74,
   },
   nostalgic: {
-    hueA: 250, hueB: 30, warmth: 0.52, density: 0.42, softness: 0.82,
+    hueA: 244, hueB: 300, warmth: 0.52, density: 0.42, softness: 0.82,
     curvature: 0.64, motion: 0.24, contrast: 0.34, turbulence: 0.28,
   },
 };
@@ -209,8 +214,8 @@ export function moodStateFromProfile(profile: SongProfile): MoodVisualState {
   }
 
   const seed = hashSeed(profile.songId);
-  state.hueA += (seed - 0.5) * 12;
-  state.hueB += (seed - 0.5) * 16;
+  state.hueA += (seed - 0.5) * 8;
+  state.hueB += (seed - 0.5) * 10;
   state.curvature += (seed - 0.5) * 0.1;
 
   return normalise(state);
@@ -231,8 +236,8 @@ export function moodStateFromPlaylist(playlist: Playlist): MoodVisualState {
   }
 
   const seed = hashSeed(playlist.id + playlist.name);
-  state.hueA += (seed - 0.5) * 26;
-  state.hueB += (seed - 0.5) * 34;
+  state.hueA += (seed - 0.5) * 16;
+  state.hueB += (seed - 0.5) * 20;
   state.curvature += (seed - 0.5) * 0.24;
   state.density += (seed - 0.5) * 0.16;
   return normalise(state);

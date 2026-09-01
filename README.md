@@ -148,31 +148,65 @@ helped define. The same utility underpins the future Playlist Audit feature.
 ## The visual system
 
 The background is not decoration; it is part of the interpretation.
-`MoodFieldRenderer` draws bundles of fibres to a canvas, blended additively and
-softened by a GPU-composited CSS blur. A Song Profile maps deterministically to
-its `MoodVisualState`, so similar songs produce visually related environments,
-and one canvas persists across routes so the environment evolves rather than
-cutting between scenes.
 
-`PointCloud` carries the analysis: around 1,700 points on a spherical shell,
-rotating in 3D with differential speed by latitude and a slow tilt, drawn as
-pre-tinted glow sprites with additive blending — so there is no per-point
+`BloomFieldRenderer` paints large soft lights drifting through a near-black
+volume: no pattern, no texture, no visible structure. That is deliberate. An
+earlier version tiled a halftone moiré across the whole screen and it read as
+noise competing with the type — the background carries depth and colour, and
+any structured element on the page has to be the only structured thing there.
+The canvas renders at about a fifth of display size under a heavy blur, so the
+whole field costs a few thousand pixels a frame.
+
+Colour is one narrow family: electric blue into periwinkle with violet at the
+far edge. Mood hues are confined to roughly 228-300 degrees. Letting warm moods
+run out into magenta and amber made every song look like a different app, so
+warmth is carried by saturation and by where the light sits instead. A Song
+Profile still maps deterministically to its `MoodVisualState`, and one canvas
+persists across routes so the environment evolves rather than cutting between
+scenes.
+
+`PointCloud` carries the analysis and the match reveal: around 1,700 points on a
+spherical shell, rotating in 3D with differential speed by latitude and a slow
+tilt, drawn as pre-tinted glow sprites with additive blending — no per-point
 gradient work and no depth sorting. It is split across two canvases, one behind
 the artwork and one in front, so points genuinely pass around the cover. Each
-signal source owns a stream of points that flies in and joins the shell as that
-stage completes, and the cloud tightens as the reading resolves.
+signal source owns a stream that flies in and joins the shell as its stage
+completes, and the cloud tightens as the reading resolves.
 
-`FlowField` is the thread system used for the match reveal: irregular cubic
-paths with gradient strokes, slow deformation and optional motes. It takes only
-geometry and strength, so pages compose it differently.
+Both are dot systems, deliberately: the coarse screen sits behind, the fine
+cloud in front, and they read as two layers of one material. Where a screen
+shows both, the field runs coarse and dim so the cloud stays the subject.
 
-All three animate against refs; React does not re-render per frame.
+There are no connector lines anywhere. Drawing a thread from a song to each
+playlist turns an atmosphere into a network diagram, so attraction is carried by
+how much of the field arrives and how tightly it gathers instead.
+
+Both animate against refs; React does not re-render per frame.
 
 **Entrance reveals are CSS keyframes, not JS animations.** Their end state is
 the visible state, so a throttled or stalled frame loop can never leave content
 stranded invisible. JS animation is reserved for presence and gesture work,
 where a stall is recoverable. `prefers-reduced-motion` is respected throughout,
 and can also be forced in Settings.
+
+## Reading the fingerprint
+
+The review screen is written, not filled in. The mood is the headline; the other
+facets read as sentences; the only controls visible at rest are the two
+continuous qualities. Tapping any line turns those same words into controls in
+place — no modal, and the words never move somewhere else to be edited.
+
+The two continuous readings are named rather than numbered, because a percentage
+would imply precision the reading does not have:
+
+- **Energy** — pace and drive, how much the song moves.
+  Still · Gentle · Steady · Driving · Relentless
+- **Intensity** — emotional weight, how much it asks of you.
+  Understated · Restrained · Balanced · Heightened · Overwhelming
+
+They are deliberately decoupled: a hushed song can be overwhelming and a fast
+one weightless, so energy contributes only about a fifth of intensity, enough to
+stop the two contradicting each other outright.
 
 ## Local-first
 

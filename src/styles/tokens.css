@@ -1,51 +1,57 @@
 :root {
-  /* ---------- Core neutrals ---------- */
-  --c-void: #07070a;
-  --c-bg: #0d1020;
-  --c-bg-2: #131729;
-  --c-surface: rgba(255, 255, 255, 0.08);
-  --c-surface-strong: rgba(255, 255, 255, 0.13);
-  --c-hairline: rgba(255, 255, 255, 0.1);
-  --c-hairline-strong: rgba(255, 255, 255, 0.18);
+  /* ---------- Surfaces ----------
+     A deep indigo-black that keeps a trace of blue rather than going neutral,
+     so the accents read as light emitted by the surface, not painted onto it. */
+  --c-void: oklch(0.11 0.035 278);
+  --c-bg: oklch(0.155 0.05 276);
+  --c-bg-2: oklch(0.215 0.055 275);
 
-  --c-text: #f7f4ee;
-  --c-text-2: rgba(247, 244, 238, 0.68);
-  --c-text-3: rgba(247, 244, 238, 0.42);
-  --c-text-4: rgba(247, 244, 238, 0.24);
+  --c-surface: oklch(1 0 0 / 0.07);
+  --c-surface-strong: oklch(1 0 0 / 0.13);
+  --c-hairline: oklch(1 0 0 / 0.11);
+  --c-hairline-strong: oklch(1 0 0 / 0.2);
 
-  /* ---------- Accent family (used sparingly, mostly via gradients) ---------- */
-  --c-periwinkle: #9aa6ff;
-  --c-violet: #a97bff;
-  --c-magenta: #e26bd0;
-  --c-coral: #ff8f7a;
-  --c-amber: #ffc27a;
+  /* ---------- Ink ----------
+     Measured against --c-bg, not estimated. Every step carries text somewhere
+     in the interface, including the small uppercase facet labels, so all four
+     clear 4.5:1 rather than leaving the quietest one decorative. */
+  --c-text: oklch(0.98 0.006 270); /* 18.5:1 */
+  --c-text-2: oklch(0.8 0.02 272); /* 10.5:1 */
+  --c-text-3: oklch(0.68 0.03 274); /*  6.7:1 */
+  --c-text-4: oklch(0.58 0.032 276); /*  4.6:1 */
+
+  /* ---------- Accent ----------
+     One family: electric blue into periwinkle, with violet as the far edge.
+     Deliberately narrow. A wider spread across magenta and pink read as a
+     generic AI gradient and fought the calm the surface is meant to hold.
+     Accent carries state, selection and the light in the field, never
+     decoration on inactive things. */
+  --c-blue: oklch(0.66 0.2 262);
+  --c-periwinkle: oklch(0.79 0.13 268);
+  --c-violet: oklch(0.66 0.19 288);
+  --c-ice: oklch(0.88 0.07 250);
+  --c-cyan: oklch(0.84 0.12 220);
+  --c-amber: oklch(0.83 0.13 78);
 
   --grad-brand: linear-gradient(
     118deg,
-    var(--c-coral) 0%,
-    var(--c-magenta) 34%,
-    var(--c-violet) 66%,
+    var(--c-blue) 0%,
+    var(--c-violet) 60%,
     var(--c-periwinkle) 100%
-  );
-  --grad-brand-soft: linear-gradient(
-    118deg,
-    rgba(255, 143, 122, 0.85) 0%,
-    rgba(226, 107, 208, 0.8) 38%,
-    rgba(154, 166, 255, 0.8) 100%
   );
 
   /* ---------- Type ---------- */
   --font-sans: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text',
     'Segoe UI', system-ui, sans-serif;
 
-  --t-hero: clamp(2rem, 8.2vw, 2.75rem);
-  --t-title: clamp(1.65rem, 6.2vw, 2.125rem);
+  --t-hero: 2.25rem;
+  --t-title: 1.75rem;
   --t-section: 1.3125rem;
   --t-body: 1rem;
   --t-meta: 0.8125rem;
   --t-micro: 0.6875rem;
 
-  --lh-tight: 1.08;
+  --lh-tight: 1.06;
   --lh-snug: 1.28;
   --lh-body: 1.55;
 
@@ -66,28 +72,36 @@
   --nav-h: 62px;
 
   /* ---------- Radius ---------- */
-  --r-sm: 10px;
-  --r-md: 16px;
-  --r-lg: 22px;
-  --r-xl: 30px;
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
   --r-pill: 999px;
 
-  /* ---------- Depth (transparency over shadow) ---------- */
-  --elev-1: 0 1px 0 rgba(255, 255, 255, 0.06) inset;
-  --elev-2: 0 18px 44px -24px rgba(0, 0, 0, 0.9),
-    0 1px 0 rgba(255, 255, 255, 0.07) inset;
-  --elev-float: 0 24px 60px -28px rgba(0, 0, 0, 0.95),
-    0 1px 0 rgba(255, 255, 255, 0.08) inset;
+  /* ---------- Depth ---------- */
+  --elev-1: 0 1px 0 oklch(1 0 0 / 0.06) inset;
+  --elev-2: 0 18px 44px -24px oklch(0 0 0 / 0.9),
+    0 1px 0 oklch(1 0 0 / 0.07) inset;
+  --elev-float: 0 24px 60px -28px oklch(0 0 0 / 0.95),
+    0 1px 0 oklch(1 0 0 / 0.08) inset;
 
-  --blur-surface: blur(18px) saturate(1.25);
+  --blur-surface: blur(20px) saturate(1.3);
 
   /* ---------- Motion ---------- */
   --e-out: cubic-bezier(0.16, 0.84, 0.28, 1);
   --e-inout: cubic-bezier(0.62, 0.02, 0.2, 1);
-  --d-micro: 220ms;
-  --d-ui: 400ms;
+  --d-micro: 180ms;
+  --d-ui: 260ms;
   --d-bg: 1100ms;
-  --d-reveal: 1200ms;
+  --d-reveal: 900ms;
+
+  /* ---------- Layers ---------- */
+  --z-field: 0;
+  --z-content: 1;
+  --z-nav: 20;
+  --z-hint: 30;
+  --z-scrim: 40;
+  --z-sheet: 50;
 
   /* ---------- Safe areas ---------- */
   --sat: env(safe-area-inset-top, 0px);
@@ -99,6 +113,8 @@
 @media (min-width: 768px) {
   :root {
     --gutter: 32px;
+    --t-hero: 2.75rem;
+    --t-title: 2rem;
     --t-section: 1.4375rem;
   }
 }

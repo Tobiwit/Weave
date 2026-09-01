@@ -5,8 +5,31 @@
 .result__reveal {
   position: fixed;
   inset: 0;
-  z-index: 0;
+  z-index: var(--z-field);
   pointer-events: none;
+  animation: reveal-in 700ms var(--e-out) both;
+}
+
+.result__reveal--settling {
+  animation: reveal-out 1200ms var(--e-out) both;
+}
+
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes reveal-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 .result__review {
@@ -17,7 +40,7 @@
   display: flex;
   align-items: center;
   gap: var(--s-4);
-  margin-bottom: var(--s-7);
+  margin-bottom: var(--s-5);
 }
 
 .result__identity {
@@ -31,73 +54,311 @@
 
 /* ---------------------------- Fingerprint ------------------------------- */
 
-.fingerprint {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-6);
-}
-
-.fingerprint__section {
-  display: block;
-}
-
-.fingerprint__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--s-3);
-  margin-bottom: var(--s-3);
-}
-
-.fingerprint__hint {
-  color: var(--c-text-4);
-}
-
-.fingerprint__sliders {
+.fp {
   display: flex;
   flex-direction: column;
   gap: var(--s-4);
-  max-width: 420px;
 }
 
-.fingerprint__measured {
-  margin-top: var(--s-3);
+.result__preface {
+  margin-bottom: var(--s-4);
+  font-size: 1.0625rem;
+  letter-spacing: -0.02em;
   color: var(--c-text-3);
 }
 
-.fingerprint__add {
-  display: inline-flex;
+/* ---- Mood: the headline finding ---- */
+
+.fp__mood {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
 }
 
-.fingerprint__input {
-  min-height: 34px;
-  width: 11rem;
-  padding: 0 var(--s-4);
-  border-radius: var(--r-pill);
-  border: 1px solid rgba(226, 107, 208, 0.4);
-  background: rgba(226, 107, 208, 0.08);
-  font-size: var(--t-meta);
-  outline: none;
-}
-
-.fingerprint__input::placeholder {
+.fp__moodLabel {
+  font-size: var(--t-micro);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
   color: var(--c-text-4);
 }
 
-.fingerprint__sheetFoot {
-  margin-top: var(--s-5);
+.fp__moodWord {
+  font-size: clamp(2.25rem, 11.5vw, 3rem);
+  line-height: 1;
+  letter-spacing: -0.045em;
+  font-weight: 300;
+  color: var(--c-text);
+  /* A hairline the width of the word, so it reads as tappable without a box. */
+  border-bottom: 1px solid oklch(1 0 0 / 0.16);
+  padding-bottom: 4px;
+  transition: border-color var(--d-micro) var(--e-out),
+    color var(--d-micro) var(--e-out);
+}
+
+.fp__mood:hover .fp__moodWord,
+.fp__mood--open .fp__moodWord {
+  border-bottom-color: var(--c-periwinkle);
+}
+
+.fp__moods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-4);
+  margin-top: calc(var(--s-3) * -1);
+}
+
+.fp__moodOption {
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--c-text-3);
+  font-size: 1.0625rem;
+  letter-spacing: -0.02em;
+  cursor: pointer;
+  transition: color var(--d-micro) var(--e-out);
+}
+
+.fp__moodOption:hover {
+  color: var(--c-text);
+}
+
+.fp__moodOption--on {
+  color: var(--c-periwinkle);
+}
+
+/* ---- Facets: sentences until touched ---- */
+
+.facet__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-4);
+  margin-bottom: var(--s-2);
+}
+
+.facet__label {
+  font-size: var(--t-micro);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--c-text-4);
+  font-weight: 500;
+}
+
+/*
+  Quiet, but always present. Hiding this until hover would make the primary
+  edit affordance invisible on a touch device, which is where this screen
+  mostly lives.
+*/
+.facet__toggle {
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: var(--c-text-4);
+  font-size: var(--t-micro);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color var(--d-micro) var(--e-out);
+}
+
+.facet:hover .facet__toggle,
+.facet:focus-within .facet__toggle {
+  color: var(--c-text-2);
+}
+
+.facet--editing .facet__toggle {
+  color: var(--c-periwinkle);
+}
+
+/*
+  A wrapping flex row rather than inline text: the terms carry no whitespace
+  between them in the markup, so as inline content the browser would treat the
+  whole line as one unbreakable word and let it overflow.
+*/
+.facet__reading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.4em;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font-size: 1.1875rem;
+  line-height: 1.4;
+  letter-spacing: -0.022em;
+  color: var(--c-text);
+}
+
+.facet--muted .facet__reading {
+  font-size: 1rem;
+  color: var(--c-text-2);
+}
+
+.facet__sep {
+  color: var(--c-text-4);
+}
+
+.facet__word--mine::after {
+  content: '✦';
+  margin-left: 0.28em;
+  font-size: 0.5em;
+  vertical-align: 0.5em;
+  color: var(--c-periwinkle);
+}
+
+.facet__empty {
+  color: var(--c-text-4);
+  font-style: italic;
+}
+
+.facet__editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.facet__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-3);
+}
+
+.facet__term {
+  padding: 4px 0;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  font-size: 1.0625rem;
+  letter-spacing: -0.02em;
+  cursor: pointer;
+  transition: color var(--d-micro) var(--e-out),
+    border-color var(--d-micro) var(--e-out);
+}
+
+.facet__term--on {
+  color: var(--c-text);
+  border-bottom-color: oklch(1 0 0 / 0.22);
+}
+
+.facet__term--on:hover {
+  color: var(--c-text-3);
+  border-bottom-color: transparent;
+}
+
+.facet__term--mine {
+  color: var(--c-periwinkle);
+}
+
+.facet__term--off {
+  color: var(--c-text-4);
+  text-decoration: line-through;
+}
+
+.facet__term--off:hover {
+  color: var(--c-text-2);
+  text-decoration: none;
+}
+
+.facet__add {
+  display: block;
+}
+
+.facet__input {
+  width: 100%;
+  padding: 6px 0;
+  border: 0;
+  border-bottom: 1px solid oklch(1 0 0 / 0.14);
+  background: transparent;
+  font-size: 1.0625rem;
+  letter-spacing: -0.02em;
+  outline: none;
+  transition: border-color var(--d-micro) var(--e-out);
+}
+
+.facet__input:focus {
+  border-bottom-color: var(--c-periwinkle);
+}
+
+.facet__input::placeholder {
+  color: var(--c-text-4);
+}
+
+/* ---- Feel ---- */
+
+.fp__feel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  padding-top: var(--s-1);
+}
+
+.fp__measured {
+  font-size: var(--t-meta);
+  color: var(--c-cyan);
+  opacity: 0.85;
+}
+
+.fp__signals {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.fp__signalsToggle {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--c-text-4);
+  font-size: var(--t-meta);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: oklch(1 0 0 / 0.16);
+}
+
+.fp__signalsToggle:hover {
+  color: var(--c-text-2);
+}
+
+.fp__signalsList {
+  font-size: var(--t-meta);
+  line-height: 1.6;
+  color: var(--c-text-3);
 }
 
 /* -------------------------------- CTA ----------------------------------- */
 
+/*
+  Sticky rather than in-flow: a long reading can still scroll, but the primary
+  action is never the thing that falls off the bottom of the screen.
+*/
 .result__cta {
-  margin-top: var(--s-8);
-  padding-top: var(--s-6);
-  border-top: 1px solid var(--c-hairline);
+  position: sticky;
+  bottom: 0;
+  z-index: var(--z-content);
+  margin-top: var(--s-5);
+  padding: var(--s-4) 0 var(--s-2);
+  background: linear-gradient(
+    180deg,
+    transparent,
+    var(--c-void) 22%,
+    var(--c-void)
+  );
 }
 
 .result__confirm {
-  margin-bottom: var(--s-4);
+  margin-bottom: var(--s-3);
   font-size: 1.0625rem;
   letter-spacing: -0.015em;
 }

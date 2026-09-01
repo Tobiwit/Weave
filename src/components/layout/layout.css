@@ -69,8 +69,13 @@
     line of nowrap text would push the whole page wider than the viewport.
   */
   width: 100%;
+  /*
+    The navigation is a sibling flex item, not an overlay, so it already has its
+    own space. Reserving its height here too cost every screen ~100px of dead
+    room at the bottom and pushed primary actions off the fold.
+  */
   padding: calc(var(--sat) + var(--s-6)) calc(var(--gutter) + var(--sar))
-    calc(var(--nav-h) + var(--sab) + var(--s-9)) calc(var(--gutter) + var(--sal));
+    calc(var(--sab) + var(--s-6)) calc(var(--gutter) + var(--sal));
   margin: 0 auto;
   max-width: var(--content-max);
 }

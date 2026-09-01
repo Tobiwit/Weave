@@ -3,52 +3,46 @@
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  background:
-    radial-gradient(
-      120% 80% at 20% 10%,
-      hsl(var(--mood-hue-a) 40% 12% / 0.9),
-      transparent 70%
-    ),
-    linear-gradient(180deg, var(--c-void), var(--c-bg) 55%, var(--c-void));
+  background: var(--c-void);
 }
 
+/*
+  Rendered at roughly a fifth of display size and scaled back up under a heavy
+  blur. Everything drawn is a soft radial light, so the blur is the intended
+  finish rather than a way to hide the upscale.
+*/
 .mood-bg__canvas {
   position: absolute;
-  inset: 0;
+  inset: -12%;
+  width: 124%;
+  height: 124%;
   display: block;
-  /* GPU-composited softening: far cheaper than blurring inside the canvas. */
-  filter: blur(var(--mood-blur)) saturate(1.15);
-  transform: scale(1.12);
-  transform-origin: center;
-  will-change: filter;
+  filter: blur(46px);
 }
 
-/* Tactile fibre grain so the field reads as material rather than gradient. */
+/* Fine grain, purely to stop wide gradients banding on OLED panels. */
 .mood-bg__grain {
   position: absolute;
   inset: -20%;
-  opacity: 0.16;
+  opacity: 0.055;
   mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
-  background-size: 180px 180px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
 }
 
 .mood-bg__vignette {
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(132% 100% at 50% 42%, transparent 34%, rgba(3, 3, 8, 0.66) 100%),
+  background: radial-gradient(
+      125% 95% at 50% 38%,
+      transparent 34%,
+      oklch(0.06 0.03 272 / 0.72) 100%
+    ),
     linear-gradient(
       180deg,
-      rgba(5, 5, 12, 0.55) 0%,
-      rgba(5, 5, 12, 0.18) 20%,
-      rgba(5, 5, 12, 0.18) 62%,
-      rgba(4, 4, 10, 0.66) 100%
+      oklch(0.06 0.03 272 / 0.55) 0%,
+      transparent 20%,
+      transparent 60%,
+      oklch(0.06 0.03 272 / 0.7) 100%
     );
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .mood-bg__canvas {
-    transform: none;
-  }
 }

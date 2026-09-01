@@ -3,51 +3,73 @@ import './ui.css';
 
 interface SliderProps {
   label: string;
+  /** What the dimension actually means, in plain words. */
+  hint?: string;
   value: number;
   onChange: (value: number) => void;
-  /** Shown instead of a percentage, e.g. "High" or "132 BPM". */
-  displayValue?: string;
-  min?: number;
-  max?: number;
-  step?: number;
-  disabled?: boolean;
+  /** Words along the scale, low to high. The active one is shown. */
+  scale: readonly string[];
+  /** Shown when the value came from a provider rather than from our reading. */
+  measured?: boolean;
 }
 
+function wordFor(value: number, scale: readonly string[]): string {
+  const index = Math.min(scale.length - 1, Math.floor(value * scale.length));
+  return scale[Math.max(0, index)];
+}
+
+/**
+ * A ticked slider.
+ *
+ * The ticks are a mask over a two-stop fill, so the filled and unfilled halves
+ * are one element and always line up. A native range input sits on top at zero
+ * opacity, which keeps dragging, keyboard control and screen-reader semantics
+ * for free rather than reinventing them.
+ */
 export function Slider({
   label,
+  hint,
   value,
   onChange,
-  displayValue,
-  min = 0,
-  max = 1,
-  step = 0.01,
-  disabled = false,
+  scale,
+  measured = false,
 }: SliderProps) {
   const id = useId();
-  const fill = ((value - min) / (max - min)) * 100;
+  const fill = Math.round(value * 100);
+  const word = wordFor(value, scale);
 
   return (
-    <div className="slider">
-      <div className="slider__head">
-        <label className="slider__label" htmlFor={id}>
+    <div className="tick">
+      <div className="tick__head">
+        <label className="tick__label" htmlFor={id}>
           {label}
+          {hint && <span className="tick__hint">{hint}</span>}
         </label>
-        <span className="slider__value">
-          {displayValue ?? `${Math.round(fill)}%`}
+        <span className="tick__value">
+          {word}
+          {measured && (
+            <span className="tick__measured" title="Measured, not inferred">
+              measured
+            </span>
+          )}
         </span>
       </div>
-      <input
-        id={id}
-        className="slider__input"
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        disabled={disabled}
-        style={{ ['--slider-fill' as string]: `${fill}%` }}
-        onChange={(event) => onChange(Number(event.target.value))}
-      />
+
+      <div className="tick__track" style={{ ['--tick-fill' as string]: `${fill}%` }}>
+        <div className="tick__marks" aria-hidden="true" />
+        <div className="tick__thumb" aria-hidden="true" />
+        <input
+          id={id}
+          className="tick__input"
+          type="range"
+          min={0}
+          max={1}
+          step={0.02}
+          value={value}
+          aria-valuetext={word}
+          onChange={(event) => onChange(Number(event.target.value))}
+        />
+      </div>
     </div>
   );
 }

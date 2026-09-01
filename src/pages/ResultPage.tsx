@@ -1,8 +1,7 @@
-import { motion } from 'motion/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMoodEnvironment } from '../components/background/MoodProvider';
-import { FlowField, type FlowConnection, type FlowNode } from '../components/flow/FlowField';
+import { PointCloud } from '../components/cloud/PointCloud';
 import { Artwork } from '../components/ui/Artwork';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/Notice';
@@ -17,7 +16,7 @@ import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useSongProfile } from '../hooks/useSongProfile';
 import type { Playlist, PlaylistMatch } from '../types';
 import { MatchList } from './result/MatchList';
-import { ProfileEditor } from './result/ProfileEditor';
+import { Fingerprint } from './result/Fingerprint';
 import './result.css';
 
 type Phase = 'review' | 'matching' | 'matches';
@@ -39,8 +38,11 @@ export default function ResultPage() {
     () => (profile ? moodStateFromProfile(profile) : NEUTRAL_MOOD),
     [profile],
   );
+  // The reading is dense text, so the field steps back behind it. It returns
+  // to full strength for the match reveal, where it is the whole event.
   useMoodEnvironment(mood, {
-    resolution: phase === 'review' ? 1 : 0.92,
+    resolution: phase === 'review' ? 0.55 : 0.95,
+    quality: phase === 'review' ? 0.5 : 0.9,
     transitionMs: 1200,
   });
 
@@ -128,16 +130,25 @@ export default function ResultPage() {
         <div className="result__identity">
           <h1 className="u-section">{song.title}</h1>
           <p className="u-meta">
-            {[song.artist, song.year].filter(Boolean).join(' · ')}
+            {[
+              song.artist,
+              song.year,
+              profile.measuredFields.includes('bpm') && profile.bpm
+                ? `${Math.round(profile.bpm)} BPM`
+                : undefined,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
           </p>
         </div>
       </header>
 
       {phase === 'review' ? (
         <div className="result__review">
-          <h2 className="u-hero result__heading">{COPY.fingerprintHeading}</h2>
+          {/* The mood below is the headline; this is only its preface. */}
+          <p className="result__preface">{COPY.fingerprintHeading}</p>
 
-          <ProfileEditor profile={profile} onChange={update} />
+          <Fingerprint profile={profile} onChange={update} />
 
           <div className="result__cta">
             <p className="u-dim result__confirm">{COPY.confirmHeading}</p>
@@ -184,8 +195,12 @@ export default function ResultPage() {
 }
 
 /**
- * The attraction moment: the song contracts to one point and playlist regions
- * lean toward it, with thread strength following similarity.
+ * The attraction moment.
+ *
+ * The song's own material contracts and then disperses toward the playlists it
+ * belongs with. Strength is carried by how much of the field arrives and how
+ * tightly it gathers, not by drawing a line to each destination: lines turn an
+ * atmosphere into a network diagram.
  */
 function MatchReveal({
   matches,
@@ -200,54 +215,32 @@ function MatchReveal({
 
   useEffect(() => {
     if (!settled) return;
-    const timer = setTimeout(() => setVisible(false), 1400);
+    const timer = setTimeout(() => setVisible(false), 1200);
     return () => clearTimeout(timer);
   }, [settled]);
 
-  const { nodes, connections } = useMemo(() => {
-    const ring: FlowNode[] = [{ id: 'song', x: 0.5, y: 0.46, intensity: 1 }];
-    const links: FlowConnection[] = [];
-    const count = Math.max(matches.length, 3);
-
-    matches.slice(0, 6).forEach((match, index) => {
-      const angle = (index / count) * Math.PI * 2 - Math.PI / 2;
-      // Stronger matches sit closer, so proximity reads as attraction.
-      const radius = 0.46 - (match.score / 100) * 0.16;
-      ring.push({
-        id: match.playlistId,
-        x: 0.5 + Math.cos(angle) * radius,
-        y: 0.46 + Math.sin(angle) * radius * 0.85,
-        intensity: match.score / 100,
-      });
-      links.push({
-        from: match.playlistId,
-        to: 'song',
-        strength: 0.2 + (match.score / 100) * 0.8,
-        active: match.score >= 45,
-      });
-    });
-
-    return { nodes: ring, connections: links };
+  // One stream per candidate playlist, arriving in proportion to its score, so
+  // a strong field means a strong set of matches.
+  const streams = useMemo(() => {
+    if (matches.length === 0) return [0.35, 0.2, 0.1];
+    return matches.slice(0, 6).map((match) => 0.25 + (match.score / 100) * 0.75);
   }, [matches]);
 
   if (!visible) return null;
 
   return (
-    <motion.div
-      className="result__reveal"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: settled ? 0 : 1 }}
-      transition={{ duration: settled ? 1.2 : 0.6 }}
+    <div
+      className={`result__reveal${settled ? ' result__reveal--settling' : ''}`}
       aria-hidden="true"
     >
-      <FlowField
-        nodes={nodes}
-        connections={connections}
-        progress={matches.length > 0 ? 1 : 0}
-        particles
+      <PointCloud
+        streams={streams}
         hueA={mood.hueA}
         hueB={mood.hueB}
+        convergence={settled ? 1 : 0.35}
+        speed={settled ? 0.3 : 0.85}
+        quality={0.75}
       />
-    </motion.div>
+    </div>
   );
 }

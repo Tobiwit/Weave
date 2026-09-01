@@ -1,5 +1,15 @@
 import type { Playlist, SongProfile } from '../../types';
 
+/**
+ * Manual additions are stored as `facet:term` so the interface knows which line
+ * of the reading a word belongs to. Everything downstream wants the bare word.
+ * Untagged entries are passed through, so older profiles still read correctly.
+ */
+export function manualTagLabel(tag: string): string {
+  const separator = tag.indexOf(':');
+  return separator === -1 ? tag : tag.slice(separator + 1);
+}
+
 /** Descriptors currently active on a profile: inferred, minus removed, plus manual. */
 export function activeProfileTerms(profile: SongProfile): string[] {
   const removed = new Set(profile.removedTags.map((t) => t.toLowerCase()));
@@ -11,7 +21,7 @@ export function activeProfileTerms(profile: SongProfile): string[] {
     ...profile.communityTags.slice(0, 8),
   ];
   const kept = inferred.filter((t) => !removed.has(t.toLowerCase()));
-  return dedupeTerms([...kept, ...profile.manualTags]);
+  return dedupeTerms([...kept, ...profile.manualTags.map(manualTagLabel)]);
 }
 
 /** The descriptors that define a playlist world, in priority order. */
@@ -49,7 +59,7 @@ export function profileEmbeddingText(profile: SongProfile): string {
     parts.push(`Described as: ${profile.communityTags.slice(0, 12).join(', ')}.`);
   }
   if (profile.manualTags.length) {
-    parts.push(`Also: ${profile.manualTags.join(', ')}.`);
+    parts.push(`Also: ${profile.manualTags.map(manualTagLabel).join(', ')}.`);
   }
   return parts.join(' ');
 }

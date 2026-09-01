@@ -1,21 +1,21 @@
 import { useEffect, useRef } from 'react';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import type { MoodVisualState } from '../../types';
-import { MoodFieldRenderer } from './moodField';
+import { BloomFieldRenderer } from './bloomField';
 import './MoodBackground.css';
 
 interface MoodBackgroundProps {
   state: MoodVisualState;
-  /** 0-1: how resolved the environment is. Rises through the analysis. */
+  /** 0-1: how present the light is. Rises through the analysis. */
   resolution?: number;
-  /** Lower on list screens where the material should stay in the background. */
+  /** Lower on content-heavy screens where the field should step back. */
   quality?: number;
   transitionMs?: number;
   className?: string;
 }
 
 /**
- * The full-screen mood material. Sits behind everything and owns no layout.
+ * The mood field. Sits behind everything and owns no layout.
  */
 export function MoodBackground({
   state,
@@ -25,16 +25,16 @@ export function MoodBackground({
   className,
 }: MoodBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rendererRef = useRef<MoodFieldRenderer | null>(null);
+  const rendererRef = useRef<BloomFieldRenderer | null>(null);
   const reducedMotion = useReducedMotion();
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    let renderer: MoodFieldRenderer;
+    let renderer: BloomFieldRenderer;
     try {
-      renderer = new MoodFieldRenderer(canvas, state, {
+      renderer = new BloomFieldRenderer(canvas, state, {
         resolution,
         reducedMotion,
         quality,
@@ -47,11 +47,10 @@ export function MoodBackground({
     const parent = canvas.parentElement;
     const applySize = () => {
       const rect = parent?.getBoundingClientRect();
-      const width = rect?.width || window.innerWidth;
-      const height = rect?.height || window.innerHeight;
-      // Capping DPR keeps large phone screens from paying for pixels that the
-      // blur immediately throws away.
-      renderer.resize(width, height, Math.min(window.devicePixelRatio || 1, 2));
+      renderer.resize(
+        rect?.width || window.innerWidth,
+        rect?.height || window.innerHeight,
+      );
     };
 
     applySize();
@@ -74,8 +73,8 @@ export function MoodBackground({
       renderer.stop();
       rendererRef.current = null;
     };
-    // The renderer is imperative; state changes are pushed in via the effects
-    // below rather than by rebuilding it.
+    // The renderer is imperative; state changes are pushed in by the effects
+    // below rather than by tearing it down and rebuilding it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reducedMotion]);
 
@@ -87,15 +86,12 @@ export function MoodBackground({
     rendererRef.current?.setOptions({ resolution, quality, reducedMotion });
   }, [resolution, quality, reducedMotion]);
 
-  const softness = state.softness;
-
   return (
     <div
       className={`mood-bg${className ? ` ${className}` : ''}`}
       aria-hidden="true"
       style={
         {
-          '--mood-blur': `${3 + softness * 11}px`,
           '--mood-hue-a': `${state.hueA}`,
           '--mood-hue-b': `${state.hueB}`,
         } as React.CSSProperties

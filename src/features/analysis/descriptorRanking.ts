@@ -115,8 +115,9 @@ const scoreOf = (ranked: ScoredDescriptor[], id: string) =>
   Math.max(0, ranked.find((entry) => entry.descriptor.id === id)?.score ?? 0);
 
 /**
- * Derives energy from where the song sits between the low- and high-energy
- * descriptors. Inferred, and always labelled as such in the interface.
+ * Energy is pace and drive: how much the song moves. Derived from where it
+ * sits between the low- and high-energy descriptors. Inferred, and always
+ * labelled as such in the interface.
  */
 export function inferEnergy(ranked: ScoredDescriptor[]): number {
   const high = scoreOf(ranked, 'high-energy');
@@ -127,16 +128,30 @@ export function inferEnergy(ranked: ScoredDescriptor[]): number {
   return Math.min(1, Math.max(0, (high + mid * 0.5) / total));
 }
 
+/**
+ * Intensity is emotional weight: how much the song asks of you. Deliberately
+ * separate from energy, because a hushed song can be overwhelming and a fast
+ * one can be weightless. Energy contributes only a little, enough to keep the
+ * two from contradicting each other outright.
+ */
 export function inferIntensity(ranked: ScoredDescriptor[], energy: number): number {
-  const intense = ['cathartic', 'angry', 'euphoric', 'melodramatic', 'anthemic', 'maximal']
-    .reduce((sum, id) => sum + scoreOf(ranked, id), 0);
-  const calm = ['calm', 'minimal', 'intimate', 'laid-back'].reduce(
+  const intense = [
+    'cathartic',
+    'angry',
+    'euphoric',
+    'melodramatic',
+    'anthemic',
+    'maximal',
+    'defiant',
+    'triumphant',
+  ].reduce((sum, id) => sum + scoreOf(ranked, id), 0);
+  const calm = ['calm', 'minimal', 'intimate', 'laid-back', 'atmospheric'].reduce(
     (sum, id) => sum + scoreOf(ranked, id),
     0,
   );
   const total = intense + calm;
   const lean = total === 0 ? 0.5 : intense / total;
-  return Math.min(1, Math.max(0, lean * 0.6 + energy * 0.4));
+  return Math.min(1, Math.max(0, lean * 0.78 + energy * 0.22));
 }
 
 export interface DescriptorSelection {
