@@ -33,6 +33,18 @@ async function boot() {
     if (state.status === 'signed-in') void syncNow();
   });
 
+  // The service worker claims open pages as soon as a new build lands, which
+  // can leave a running page mixing its old code with newly-fetched chunks.
+  // Reloading once on takeover keeps code and assets from the same build.
+  if ('serviceWorker' in navigator) {
+    let reloading = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (reloading) return;
+      reloading = true;
+      window.location.reload();
+    });
+  }
+
   const container = document.getElementById('root');
   if (!container) throw new Error('Root container missing');
 

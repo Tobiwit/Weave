@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Artwork } from '../../components/ui/Artwork';
 import { Button } from '../../components/ui/Button';
 import { createPlaylistFromImport } from '../../features/playlists/importPlaylist';
 import {
@@ -7,9 +8,11 @@ import {
   importPublicPlaylist,
   isSpotifyConnected,
   isSpotifyImportAvailable,
+  listMyPlaylists,
   SpotifyImportError,
   subscribeToSpotifyAuth,
   type ImportedPlaylist,
+  type PlaylistSummary,
 } from '../../services/spotify';
 
 /** The trigger, which lives beside "+ New" so import reads as a peer action. */
@@ -32,7 +35,7 @@ export function ImportButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-type Phase = 'link' | 'preview' | 'working';
+type Phase = 'mine' | 'link' | 'preview' | 'working';
 
 /**
  * Import a public Spotify playlist from a link.
@@ -42,7 +45,8 @@ type Phase = 'link' | 'preview' | 'working';
  * extra tap. Only track identity comes across; the reading is Weave's own.
  */
 export function ImportPanel({ onClose }: { onClose: () => void }) {
-  const [phase, setPhase] = useState<Phase>('link');
+  const [phase, setPhase] = useState<Phase>('mine');
+  const [mine, setMine] = useState<PlaylistSummary[] | null>(null);
   const [link, setLink] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [imported, setImported] = useState<ImportedPlaylist | null>(null);
@@ -54,11 +58,20 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
     return subscribeToSpotifyAuth(setConnected);
   }, []);
 
-  const lookUp = async () => {
+  // Once connected, your own playlists are a better starting point than an
+  // empty URL field. A link is still accepted for anything not in the list.
+  useEffect(() => {
+    if (connected !== true || mine !== null) return;
+    listMyPlaylists()
+      .then(setMine)
+      .catch(() => setMine([]));
+  }, [connected, mine]);
+
+  const lookUp = async (source = link) => {
     setError(null);
     setPhase('working');
     try {
-      const result = await importPublicPlaylist(link);
+      const result = await importPublicPlaylist(source);
       if (result.tracks.length === 0) {
         setError('That playlist has no tracks we can read.');
         setPhase('link');
@@ -72,7 +85,7 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
           ? caught.message
           : 'Something went wrong reading that link.',
       );
-      setPhase('link');
+      setPhase(source === link ? 'link' : 'mine');
     }
   };
 
@@ -153,11 +166,60 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
             </Button>
           </div>
         </>
+      ) : phase === 'mine' ? (
+        <>
+          <div className="import__head">
+            <p className="u-eyebrow import__label">Your Spotify playlists</p>
+            <Button variant="ghost" size="sm" onClick={() => setPhase('link')}>
+              Use a link
+            </Button>
+          </div>
+
+          {mine === null ? (
+            <p className="u-meta">Loading your playlists…</p>
+          ) : mine.length === 0 ? (
+            <p className="u-meta import__connect">
+              No playlists came back. You can still paste a link to any playlist.
+            </p>
+          ) : (
+            <ul className="import__list u-scroll">
+              {mine.map((playlist) => (
+                <li key={playlist.id}>
+                  <button
+                    type="button"
+                    className="import__row"
+                    onClick={() => void lookUp(playlist.id)}
+                  >
+                    <Artwork src={playlist.coverUrl} seed={playlist.id} size={40} alt="" />
+                    <span className="import__rowText">
+                      <span className="import__rowName">{playlist.name}</span>
+                      <span className="import__rowMeta u-meta">
+                        {playlist.trackCount}{' '}
+                        {playlist.trackCount === 1 ? 'track' : 'tracks'}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="import__actions">
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              Cancel
+            </Button>
+          </div>
+        </>
       ) : (
         <>
-          <label className="u-eyebrow import__label" htmlFor="spotify-link">
-            Paste a Spotify playlist link
-          </label>
+          <div className="import__head">
+            <label className="u-eyebrow import__label" htmlFor="spotify-link">
+              Paste a Spotify playlist link
+            </label>
+            <Button variant="ghost" size="sm" onClick={() => setPhase('mine')}>
+              My playlists
+            </Button>
+          </div>
           <form
             onSubmit={(event) => {
               event.preventDefault();
@@ -182,7 +244,7 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
               variant="primary"
               size="sm"
               disabled={!link.trim() || phase === 'working'}
-              onClick={lookUp}
+              onClick={() => void lookUp()}
             >
               {phase === 'working' ? 'Reading…' : 'Look it up'}
             </Button>

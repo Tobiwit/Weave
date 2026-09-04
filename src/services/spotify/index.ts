@@ -105,6 +105,65 @@ function pickCover(images?: SpotifyImage[]): string | undefined {
   return [...images].sort((a, b) => (b.width ?? 0) - (a.width ?? 0))[0]?.url;
 }
 
+export interface PlaylistSummary {
+  id: string;
+  name: string;
+  trackCount: number;
+  coverUrl?: string;
+  owner?: string;
+}
+
+/**
+ * The signed-in listener's own playlists.
+ *
+ * Being connected makes pasting a link unnecessary for your own playlists, and
+ * a list you can tap is a far better affordance than a URL field.
+ */
+export async function listMyPlaylists(limit = 50): Promise<PlaylistSummary[]> {
+  const token = await getSpotifyToken();
+  if (!token) {
+    throw new SpotifyImportError('not_connected', 'Connect your Spotify account first.');
+  }
+
+  const auth = { Authorization: `Bearer ${token}` };
+  const out: PlaylistSummary[] = [];
+  let next: string | null =
+    `https://api.spotify.com/v1/me/playlists?limit=${Math.min(50, limit)}`;
+
+  while (next && out.length < limit) {
+    const response: Response = await fetch(next, { headers: auth });
+    if (response.status === 401) {
+      throw new SpotifyImportError(
+        'not_connected',
+        'Your Spotify connection expired. Connect again.',
+      );
+    }
+    if (!response.ok) {
+      throw new SpotifyImportError(
+        'upstream',
+        'Spotify is not answering right now. Try again in a moment.',
+      );
+    }
+
+    const body = await response.json();
+    for (const item of body.items ?? []) {
+      // A deleted playlist can still appear in the list as a null entry.
+      if (!item?.id || !item?.name) continue;
+      out.push({
+        id: item.id,
+        name: item.name,
+        trackCount: item.tracks?.total ?? 0,
+        coverUrl: pickCover(item.images),
+        owner: item.owner?.display_name,
+      });
+      if (out.length >= limit) break;
+    }
+    next = body.next ?? null;
+  }
+
+  return out;
+}
+
 export async function importPublicPlaylist(url: string): Promise<ImportedPlaylist> {
   const playlistId = parsePlaylistId(url);
   if (!playlistId) {
@@ -202,11 +261,25 @@ export async function importPublicPlaylist(url: string): Promise<ImportedPlaylis
   }
 
   if (tracks.length === 0) {
+    // Nothing came back and nothing was skipped means the response did not
+    // carry tracks at all, which is a very different problem from a playlist
+    // full of unavailable songs. Report the shape so the cause is visible
+    // rather than inferred.
+    if (skipped === 0) {
+      console.warn('[weave] Spotify returned no tracks', {
+        playlistId,
+        market,
+        responseKeys: Object.keys(playlist ?? {}),
+        hasTracksKey: 'tracks' in (playlist ?? {}),
+        trackTotal: playlist?.tracks?.total ?? null,
+        itemCount: playlist?.tracks?.items?.length ?? null,
+      });
+    }
     throw new SpotifyImportError(
       skipped > 0 ? 'all_unavailable' : 'empty',
       skipped > 0
         ? 'None of those tracks are available in your region, so there is nothing to bring across.'
-        : 'That playlist has no tracks we can read.',
+        : 'That playlist returned no tracks. See the console for what came back.',
     );
   }
 
