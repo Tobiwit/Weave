@@ -127,7 +127,12 @@ Deno.serve(async (request) => {
     if (meta.status === 401 || meta.status === 403) {
       return json({ error: 'not_public' }, 403);
     }
-    if (!meta.ok) return json({ error: 'upstream' }, 502);
+    if (!meta.ok) {
+      return json(
+        { error: 'upstream', stage: 'playlist', status: meta.status, detail: await meta.text() },
+        502,
+      );
+    }
 
     const playlist = await meta.json();
 
@@ -139,16 +144,22 @@ Deno.serve(async (request) => {
       const page = await fetch(
         `https://api.spotify.com/v1/playlists/${playlistId}/tracks` +
           `?limit=${PAGE_SIZE}&offset=${offset}&market=${region}` +
-          `&fields=${encodeURIComponent(
-            'next,items(track(id,name,album(name,release_date,images),artists(name)))',
-          )}`,
+          // Left unencoded on purpose. Percent-encoding the commas and
+          // parentheses of Spotify's field selector makes it reject the query;
+          // these characters are legal in a query string as-is.
+          `&fields=next,items(track(id,name,album(name,release_date,images),artists(name)))`,
         { headers: auth },
       );
 
       // Surface a failed page rather than returning a short list, which would
       // look identical to a playlist that is genuinely nearly empty.
       if (!page.ok) {
-        if (tracks.length === 0) return json({ error: 'upstream' }, 502);
+        if (tracks.length === 0) {
+          return json(
+            { error: 'upstream', stage: 'tracks', status: page.status, detail: await page.text() },
+            502,
+          );
+        }
         break;
       }
 
@@ -193,6 +204,13 @@ Deno.serve(async (request) => {
     });
   } catch (error) {
     const reason = error instanceof Error ? error.message : 'unknown';
-    return json({ error: reason === 'not_configured' ? 'not_configured' : 'upstream' }, 500);
+    return json(
+      {
+        error: reason === 'not_configured' ? 'not_configured' : 'upstream',
+        stage: 'function',
+        detail: reason,
+      },
+      500,
+    );
   }
 });
