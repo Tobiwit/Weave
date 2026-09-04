@@ -105,10 +105,45 @@ function pickCover(images?: SpotifyImage[]): string | undefined {
   return [...images].sort((a, b) => (b.width ?? 0) - (a.width ?? 0))[0]?.url;
 }
 
+interface TrackPage {
+  items?: { track?: SpotifyTrack }[];
+  next?: string | null;
+  total?: number | null;
+}
+
+/**
+ * Spotify returns a playlist's tracks in two different shapes.
+ *
+ * The documented one nests a paging object under `tracks`. The one actually
+ * observed here lifts `items` to the top level and omits `tracks` entirely.
+ * Reading only the documented shape silently yields zero tracks, which looks
+ * exactly like an empty playlist, so both are handled.
+ */
+function trackPageOf(payload: {
+  items?: { track?: SpotifyTrack }[];
+  next?: string | null;
+  total?: number | null;
+  tracks?: TrackPage;
+}): TrackPage {
+  if (Array.isArray(payload?.items)) {
+    return { items: payload.items, next: payload.next ?? null, total: payload.total ?? null };
+  }
+  return payload?.tracks ?? {};
+}
+
+/** The track count from whichever shape this summary arrived in. */
+function totalOf(payload: {
+  total?: number | null;
+  tracks?: { total?: number | null };
+}): number | null {
+  return payload?.tracks?.total ?? payload?.total ?? null;
+}
+
 export interface PlaylistSummary {
   id: string;
   name: string;
-  trackCount: number;
+  /** Null when Spotify did not report one, rather than a misleading zero. */
+  trackCount: number | null;
   coverUrl?: string;
   owner?: string;
 }
@@ -152,7 +187,7 @@ export async function listMyPlaylists(limit = 50): Promise<PlaylistSummary[]> {
       out.push({
         id: item.id,
         name: item.name,
-        trackCount: item.tracks?.total ?? 0,
+        trackCount: totalOf(item),
         coverUrl: pickCover(item.images),
         owner: item.owner?.display_name,
       });
@@ -245,9 +280,10 @@ export async function importPublicPlaylist(url: string): Promise<ImportedPlaylis
     }
   };
 
-  collect(playlist.tracks?.items);
+  const firstPage = trackPageOf(playlist);
+  collect(firstPage.items);
 
-  let next: string | null = playlist.tracks?.next ?? null;
+  let next: string | null = firstPage.next ?? null;
   while (next && tracks.length < MAX_TRACKS) {
     const page = await fetch(next, { headers: auth });
     if (!page.ok) {
@@ -256,8 +292,9 @@ export async function importPublicPlaylist(url: string): Promise<ImportedPlaylis
       break;
     }
     const body = await page.json();
-    collect(body.items);
-    next = body.next ?? null;
+    const nextPage = trackPageOf(body);
+    collect(nextPage.items);
+    next = nextPage.next ?? null;
   }
 
   if (tracks.length === 0) {
@@ -270,9 +307,8 @@ export async function importPublicPlaylist(url: string): Promise<ImportedPlaylis
         playlistId,
         market,
         responseKeys: Object.keys(playlist ?? {}),
-        hasTracksKey: 'tracks' in (playlist ?? {}),
-        trackTotal: playlist?.tracks?.total ?? null,
-        itemCount: playlist?.tracks?.items?.length ?? null,
+        trackTotal: firstPage.total ?? null,
+        itemCount: firstPage.items?.length ?? null,
       });
     }
     throw new SpotifyImportError(

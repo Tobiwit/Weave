@@ -193,10 +193,12 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
                     <Artwork src={playlist.coverUrl} seed={playlist.id} size={40} alt="" />
                     <span className="import__rowText">
                       <span className="import__rowName">{playlist.name}</span>
-                      <span className="import__rowMeta u-meta">
-                        {playlist.trackCount}{' '}
-                        {playlist.trackCount === 1 ? 'track' : 'tracks'}
-                      </span>
+                      {playlist.trackCount !== null && (
+                        <span className="import__rowMeta u-meta">
+                          {playlist.trackCount}{' '}
+                          {playlist.trackCount === 1 ? 'track' : 'tracks'}
+                        </span>
+                      )}
                     </span>
                   </button>
                 </li>
