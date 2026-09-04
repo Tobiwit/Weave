@@ -109,18 +109,35 @@ function pickCover(images?: SpotifyImage[]): string | undefined {
 }
 
 /**
- * The track inside a playlist item.
+ * The track inside a playlist entry.
  *
- * The documented shape wraps it as `{ track: {...} }`. Responses have also been
- * seen with the track's own fields on the item directly, so this accepts both
- * rather than assuming the wrapper is present.
+ * The documented shape wraps it as `{ track: {...} }`; the shape actually
+ * observed wraps it as `{ item: {...} }`, matching the same rename that turned
+ * the page's `tracks` into `items`. Both are tried, then the entry itself, and
+ * finally any property that looks like a track — so another rename degrades
+ * into still working rather than into an empty import.
+ *
+ * A track is only usable if it has a name and at least one artist, which is
+ * also what distinguishes it from the booleans and flags sitting alongside it.
  */
-function trackOf(item: unknown): ReadableTrack | null {
-  if (!item || typeof item !== 'object') return null;
-  const record = item as { track?: unknown };
-  for (const candidate of [record.track, item]) {
-    const track = candidate as SpotifyTrack | undefined;
-    if (track?.name && track.artists?.length) return track as ReadableTrack;
+function trackOf(entry: unknown): ReadableTrack | null {
+  if (!entry || typeof entry !== 'object') return null;
+
+  const readable = (value: unknown): ReadableTrack | null => {
+    const track = value as SpotifyTrack | undefined;
+    return track?.name && track.artists?.length ? (track as ReadableTrack) : null;
+  };
+
+  const record = entry as Record<string, unknown>;
+  for (const candidate of [record.track, record.item, entry]) {
+    const track = readable(candidate);
+    if (track) return track;
+  }
+
+  // Last resort: whichever property actually carries a track.
+  for (const value of Object.values(record)) {
+    const track = readable(value);
+    if (track) return track;
   }
   return null;
 }
