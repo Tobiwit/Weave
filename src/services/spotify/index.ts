@@ -65,6 +65,19 @@ export function looksLikePlaylistLink(input: string): boolean {
   }
 }
 
+/**
+ * The two-letter market to ask Spotify about.
+ *
+ * A client-credentials token has no country of its own, and without a market
+ * Spotify nulls out every track in a playlist. Sending the browser's region
+ * also means availability matches what the listener would actually see.
+ */
+function marketFromLocale(): string {
+  const locale = typeof navigator !== 'undefined' ? navigator.language : '';
+  const region = locale.split('-')[1];
+  return /^[A-Za-z]{2}$/.test(region ?? '') ? region.toUpperCase() : 'US';
+}
+
 /** A stable local id, so re-importing the same playlist does not duplicate songs. */
 function songIdFor(track: { spotifyId?: string | null; title: string; artist: string }): string {
   if (track.spotifyId) return `sp_${track.spotifyId}`;
@@ -88,7 +101,7 @@ export async function importPublicPlaylist(url: string): Promise<ImportedPlaylis
   }
 
   const { data, error } = await client.functions.invoke('spotify-playlist', {
-    body: { url: url.trim() },
+    body: { url: url.trim(), market: marketFromLocale() },
   });
 
   if (error || !data) {
@@ -109,6 +122,7 @@ export async function importPublicPlaylist(url: string): Promise<ImportedPlaylis
     description: string;
     coverUrl?: string;
     truncated?: boolean;
+    skipped?: number;
     tracks: {
       spotifyId?: string | null;
       title: string;
@@ -119,12 +133,22 @@ export async function importPublicPlaylist(url: string): Promise<ImportedPlaylis
     }[];
   };
 
+  const tracks = payload.tracks ?? [];
+  // Everything dropped is a different problem from an empty playlist: it means
+  // the tracks came back unreadable, not that there was nothing there.
+  if (tracks.length === 0 && (payload.skipped ?? 0) > 0) {
+    throw new SpotifyImportError(
+      'all_unavailable',
+      'None of those tracks are available in your region, so there is nothing to bring across.',
+    );
+  }
+
   return {
     name: payload.name,
     description: stripHtml(payload.description ?? ''),
     coverUrl: payload.coverUrl,
     truncated: Boolean(payload.truncated),
-    tracks: (payload.tracks ?? []).map((track) => ({
+    tracks: tracks.map((track) => ({
       id: songIdFor(track),
       title: track.title,
       artist: track.artist,

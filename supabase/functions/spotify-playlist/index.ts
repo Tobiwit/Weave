@@ -101,7 +101,14 @@ Deno.serve(async (request) => {
     });
 
   try {
-    const { url } = await request.json().catch(() => ({ url: '' }));
+    const { url, market } = await request.json().catch(() => ({ url: '', market: '' }));
+
+    // Without a market, a client-credentials token has no country context and
+    // Spotify returns every item's `track` as null. The playlist then looks
+    // empty rather than unavailable, which is a genuinely confusing failure.
+    const region = /^[A-Z]{2}$/.test(String(market ?? '').toUpperCase())
+      ? String(market).toUpperCase()
+      : 'US';
     const playlistId = parsePlaylistId(String(url ?? ''));
     if (!playlistId) {
       return json({ error: 'bad_link' }, 400);
@@ -111,7 +118,8 @@ Deno.serve(async (request) => {
     const auth = { Authorization: `Bearer ${token}` };
 
     const meta = await fetch(
-      `https://api.spotify.com/v1/playlists/${playlistId}?fields=name,description,images,public`,
+      `https://api.spotify.com/v1/playlists/${playlistId}` +
+        `?market=${region}&fields=name,description,images,public`,
       { headers: auth },
     );
 
@@ -125,21 +133,33 @@ Deno.serve(async (request) => {
 
     const tracks: unknown[] = [];
     let offset = 0;
+    let skipped = 0;
 
     while (tracks.length < MAX_TRACKS) {
       const page = await fetch(
         `https://api.spotify.com/v1/playlists/${playlistId}/tracks` +
-          `?limit=${PAGE_SIZE}&offset=${offset}` +
-          `&fields=next,items(track(id,name,album(name,release_date,images),artists(name)))`,
+          `?limit=${PAGE_SIZE}&offset=${offset}&market=${region}` +
+          `&fields=${encodeURIComponent(
+            'next,items(track(id,name,album(name,release_date,images),artists(name)))',
+          )}`,
         { headers: auth },
       );
-      if (!page.ok) break;
+
+      // Surface a failed page rather than returning a short list, which would
+      // look identical to a playlist that is genuinely nearly empty.
+      if (!page.ok) {
+        if (tracks.length === 0) return json({ error: 'upstream' }, 502);
+        break;
+      }
 
       const body = await page.json();
       for (const item of body.items ?? []) {
         const track = item?.track;
         // Local files and removed tracks come through as null or without a name.
-        if (!track?.name || !track.artists?.length) continue;
+        if (!track?.name || !track.artists?.length) {
+          skipped += 1;
+          continue;
+        }
 
         const year = track.album?.release_date
           ? Number(String(track.album.release_date).slice(0, 4))
@@ -165,6 +185,9 @@ Deno.serve(async (request) => {
       description: playlist.description ?? '',
       coverUrl: pickCover(playlist.images),
       trackCount: tracks.length,
+      // Reported so the app can tell "nothing readable here" apart from
+      // "we dropped everything", which are very different problems.
+      skipped,
       truncated: tracks.length >= MAX_TRACKS,
       tracks,
     });
