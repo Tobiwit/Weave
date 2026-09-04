@@ -40,9 +40,9 @@ export default defineConfig({
         // browsable offline. Third-party music APIs are deliberately absent:
         // analysis caching belongs in the app data layer, not the SW.
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
-        // The analyzer library is only needed once an analysis actually runs,
-        // so it is fetched on demand rather than at install time.
-        globIgnores: ['**/transformers*.js', '**/*.wasm'],
+        // Neither the analyzer nor the account client is needed to open the
+        // app, so both are fetched on demand rather than at install time.
+        globIgnores: ['**/transformers*.js', '**/supabase-*.js', '**/*.wasm'],
         navigateFallback: '/index.html',
         cleanupOutdatedCaches: true,
         // The embedding model weights are large and cached by the browser and
@@ -61,6 +61,8 @@ export default defineConfig({
           const path = id.replaceAll('\\', '/');
           if (path.includes('/node_modules/react')) return 'vendor';
           if (path.includes('/node_modules/motion')) return 'motion';
+          // Named so the service worker can leave it out of the install.
+          if (path.includes('/node_modules/@supabase/')) return 'supabase';
           return undefined;
         },
       },

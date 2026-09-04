@@ -53,18 +53,26 @@ export function getSongProfiles(songIds: string[]): Promise<SongProfile[]> {
     .then((rows) => rows.filter(Boolean) as SongProfile[]);
 }
 
-export function getAllSongProfiles(): Promise<SongProfile[]> {
-  return db.songProfiles.toArray();
+export async function getAllSongProfiles(): Promise<SongProfile[]> {
+  const rows = await db.songProfiles.toArray();
+  return rows.filter((profile) => !profile.deletedAt);
 }
 
 /* ------------------------------ playlists -------------------------------- */
 
-export function getAllPlaylists(): Promise<Playlist[]> {
-  return db.playlists.orderBy('updatedAt').reverse().toArray();
+export async function getAllPlaylists(): Promise<Playlist[]> {
+  const rows = await db.playlists.orderBy('updatedAt').reverse().toArray();
+  return rows.filter((playlist) => !playlist.deletedAt);
 }
 
-export function getPlaylist(id: string): Promise<Playlist | undefined> {
-  return db.playlists.get(id);
+/** Includes tombstones. Only the sync engine should need this. */
+export function getAllPlaylistsRaw(): Promise<Playlist[]> {
+  return db.playlists.toArray();
+}
+
+export async function getPlaylist(id: string): Promise<Playlist | undefined> {
+  const playlist = await db.playlists.get(id);
+  return playlist?.deletedAt ? undefined : playlist;
 }
 
 export async function savePlaylist(playlist: Playlist): Promise<void> {
@@ -90,8 +98,16 @@ export async function createPlaylist(
   return playlist;
 }
 
+/**
+ * Soft delete. The row stays as a tombstone so the deletion can reach other
+ * devices; a hard delete would look identical to "never seen it" and the
+ * playlist would come back on the next sync.
+ */
 export async function deletePlaylist(id: string): Promise<void> {
-  await db.playlists.delete(id);
+  const playlist = await db.playlists.get(id);
+  if (!playlist) return;
+  const now = Date.now();
+  await db.playlists.put({ ...playlist, deletedAt: now, updatedAt: now });
 }
 
 export async function addSongToPlaylist(

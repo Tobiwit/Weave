@@ -45,6 +45,100 @@ because no component talks to an API directly.
 Without a key, search and community tags come from the local catalogue and the
 app remains fully usable. Settings lets you force on-device-only mode.
 
+## Accounts and Spotify import (optional)
+
+Both are additive. With none of this configured Weave stays local-only and
+every screen works exactly as before — there is no login wall anywhere.
+
+### 1. Create a Supabase project
+
+Copy the project URL and the **anon** key into `.env`:
+
+```
+VITE_SUPABASE_URL=https://xxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJ...
+```
+
+The anon key is meant to be public. Row-level security is what protects data,
+so never put the `service_role` key in a `VITE_` variable.
+
+### 2. Create the tables
+
+Run `supabase/migrations/0001_library.sql` in the Supabase SQL editor. It
+creates three tables and the row-level security policies that scope every row
+to its owner, on both read and write.
+
+### 3. Deploy the Spotify function
+
+Spotify has no anonymous read: every Web API endpoint returns 401 without a
+token, public playlists included. The client-credentials grant needs the app
+secret, which cannot live in a browser bundle, so it lives in an edge function
+instead. The result is that importing a link needs no Spotify login from
+anyone.
+
+Create an app at https://developer.spotify.com/dashboard, then:
+
+```bash
+supabase secrets set SPOTIFY_CLIENT_ID=... SPOTIFY_CLIENT_SECRET=...
+```
+
+```bash
+supabase functions deploy spotify-playlist
+```
+
+### 4. Deploying to Vercel
+
+The Supabase CLI steps above are **not** part of the deploy. They are one-time
+setup against your Supabase project, run from your machine; Vercel only builds
+and hosts the static frontend.
+
+`vercel.json` is committed and handles the two things a Vite PWA needs from a
+host: a catch-all rewrite to `index.html` so refreshing `/playlists` does not
+404, and cache headers that let `sw.js` and the manifest be re-fetched while
+hashed assets stay immutable.
+
+Three things to get right in the dashboards:
+
+1. **Vercel → Settings → Environment Variables.** Vite inlines `VITE_*` at
+   build time, so a local `.env` does nothing for a Vercel build. Add
+   `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` and `VITE_LASTFM_API_KEY`
+   there, then redeploy.
+2. **Supabase → Authentication → URL Configuration.** Add your Vercel domain
+   as the Site URL and to Redirect URLs. Magic links come back to
+   `window.location.origin`, and Supabase refuses redirects to origins that
+   are not on that list — this is the most common reason sign-in appears to do
+   nothing in production.
+3. **Redeploy after changing env vars.** They are baked into the bundle, so an
+   existing deployment will not pick them up on its own.
+
+### What syncs, and what does not
+
+IndexedDB stays the source of truth. Sync pushes what changed and pulls what
+the account has, merging per record by `updatedAt` — last write wins, which is
+the right model for one person on a few devices.
+
+Embeddings are deliberately **not** synced. They are large, they are derivable
+from the record they belong to, and `ensureLibraryVectors` already rebuilds
+them on demand. A new device recomputes rather than downloading megabytes of
+float arrays that any model change would invalidate anyway.
+
+Deletions are soft. A hard delete is indistinguishable from "never seen it", so
+a device that missed the delete would resurrect the playlist on its next sync;
+`deletedAt` makes the deletion a fact that can travel.
+
+### Where Spotify stops
+
+Spotify supplies **track identity only** — title, artist, album, year, cover.
+Weave then reads those songs with its own sources. No Spotify content enters
+the embedding pipeline, nothing is gated behind Spotify authentication, and the
+app is fully usable without it. That boundary is a product decision and also
+keeps the project clear of Spotify's terms on derived data and model training.
+
+Imported songs are stored as identity and are not analysed automatically:
+reading several hundred songs is minutes of work and a lot of network, so it
+stays an explicit choice. Until then the playlist is defined by its words
+alone, which the matching engine already handles.
+
 ## How it fits together
 
 ```
@@ -54,13 +148,14 @@ src/
   db/              Dexie database and repositories
   services/        one adapter per external concern, behind an interface
     search/  metadata/  tags/  lyrics/  audio/  artwork/
-    embedding/  projection/  spotify/
+    embedding/  projection/  spotify/  cloud/
   features/
     analysis/      the pipeline, descriptor ranking, stage visuals
     matching/      pure vector maths, scoring, explanations
     playlists/     playlist vectors, insights, vector maintenance
     mood/          Song Profile -> visual parameters
     universe/      projection and layout
+    sync/          optional library sync
   components/      background, cloud, flow, layout, playlist, ui, brand, pwa
   pages/           one directory-level component per route
 ```

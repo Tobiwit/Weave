@@ -64,3 +64,77 @@
     gap: var(--s-2);
   }
 }
+
+/* ------------------------------- Import --------------------------------- */
+
+.playlists__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex: none;
+}
+
+.import {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  max-width: 460px;
+  margin-bottom: var(--s-6);
+  padding: var(--s-5);
+  border-radius: var(--r-lg);
+  background: oklch(1 0 0 / 0.05);
+  border: 1px solid var(--c-hairline);
+}
+
+.import__label {
+  display: block;
+}
+
+.import__input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 var(--s-4);
+  border: 1px solid var(--c-hairline);
+  border-radius: var(--r-md);
+  background: oklch(1 0 0 / 0.04);
+  font-size: var(--t-body);
+  outline: none;
+  transition: border-color var(--d-micro) var(--e-out);
+}
+
+.import__input:focus {
+  border-color: var(--c-blue);
+}
+
+.import__input::placeholder {
+  color: var(--c-text-4);
+}
+
+.import__title {
+  font-size: 1.1875rem;
+  letter-spacing: -0.022em;
+}
+
+.import__meta {
+  margin-top: -6px;
+}
+
+.import__note {
+  max-width: 46ch;
+  line-height: 1.5;
+}
+
+.import__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.import__error {
+  color: var(--c-amber);
+}
+
+.import__unavailable {
+  max-width: 46ch;
+  line-height: 1.5;
+}

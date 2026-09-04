@@ -20,6 +20,7 @@ import {
 } from '../db/repositories';
 import { nearestPlaylists } from '../features/matching';
 import { ensureLibraryVectors, ensurePlaylistVectors } from '../features/playlists/ensureVectors';
+import { unreadSongIds } from '../features/playlists/importPlaylist';
 import { toCandidate } from '../features/playlists/playlistEngine';
 import {
   coreQualities,
@@ -41,6 +42,7 @@ export default function PlaylistDetailPage() {
   const [editing, setEditing] = useState(false);
   const [missing, setMissing] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
+  const [unread, setUnread] = useState<string[]>([]);
 
   useEffect(() => {
     if (!playlistId) return;
@@ -70,6 +72,8 @@ export default function PlaylistDetailPage() {
       if (refreshed) setPlaylist(refreshed);
       const refreshedProfiles = await getSongProfiles(found.songIds);
       if (!cancelled) setProfiles(refreshedProfiles);
+      const pending = await unreadSongIds(found);
+      if (!cancelled) setUnread(pending);
     };
 
     void load();
@@ -198,6 +202,14 @@ export default function PlaylistDetailPage() {
         <h2 className="u-eyebrow">
           {defining.length > 1 ? 'Defining songs' : 'Songs'}
         </h2>
+        {unread.length > 0 && (
+          <p className="u-meta pl-detail__unread">
+            {unread.length} {unread.length === 1 ? 'song has' : 'songs have'} not
+            been read yet, so {unread.length === 1 ? 'it does' : 'they do'} not
+            shape this playlist's centre. Open one to read it.
+          </p>
+        )}
+
         {songs.length === 0 ? (
           <p className="u-meta pl-detail__empty">
             No songs yet. This playlist is defined by its words alone.

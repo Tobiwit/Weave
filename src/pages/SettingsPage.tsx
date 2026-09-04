@@ -15,6 +15,7 @@ import {
   updateRuntimeSettings,
   type RuntimeSettings,
 } from '../services/runtimeSettings';
+import { AccountPanel } from './settings/AccountPanel';
 import './settings.css';
 
 export default function SettingsPage() {
@@ -37,6 +38,8 @@ export default function SettingsPage() {
   return (
     <div className="page settings">
       <PageHeader back title="Settings" />
+
+      <AccountPanel />
 
       <section className="settings__section">
         <h2 className="u-eyebrow">Data sources</h2>

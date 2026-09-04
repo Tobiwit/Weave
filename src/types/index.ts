@@ -64,6 +64,7 @@ export interface SongProfile {
 
   createdAt: number;
   updatedAt: number;
+  deletedAt?: number;
 }
 
 export interface Playlist {
@@ -81,6 +82,11 @@ export interface Playlist {
 
   createdAt: number;
   updatedAt: number;
+  /**
+   * Tombstone. A deletion has to be a fact that can travel, otherwise syncing
+   * a device that never saw the delete would silently resurrect the playlist.
+   */
+  deletedAt?: number;
 }
 
 export interface PlaylistMatch {

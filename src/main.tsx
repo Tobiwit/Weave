@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import { APP } from './config/app';
 import { ensureSeedData } from './data/seed';
+import { startAuthWatch, subscribeToAuth } from './services/cloud/auth';
+import { syncNow } from './features/sync/syncEngine';
 import { loadRuntimeSettings } from './services/runtimeSettings';
 import './styles/global.css';
 
@@ -18,6 +20,18 @@ async function boot() {
     loadRuntimeSettings().catch(() => undefined),
     ensureSeedData().catch(() => undefined),
   ]);
+
+  // Accounts are optional: this resolves immediately to "unavailable" when the
+  // build has no cloud credentials, and never blocks the first render.
+  void startAuthWatch()
+    .then((state) => {
+      if (state.status === 'signed-in') void syncNow();
+    })
+    .catch(() => undefined);
+
+  subscribeToAuth((state) => {
+    if (state.status === 'signed-in') void syncNow();
+  });
 
   const container = document.getElementById('root');
   if (!container) throw new Error('Root container missing');

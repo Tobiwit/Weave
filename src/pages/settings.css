@@ -38,3 +38,32 @@
     max-width: 620px;
   }
 }
+
+.settings__form {
+  margin-bottom: var(--s-3);
+  max-width: 340px;
+}
+
+.settings__input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 var(--s-4);
+  border: 1px solid var(--c-hairline);
+  border-radius: var(--r-md);
+  background: oklch(1 0 0 / 0.04);
+  font-size: var(--t-body);
+  outline: none;
+  transition: border-color var(--d-micro) var(--e-out);
+}
+
+.settings__input:focus {
+  border-color: var(--c-blue);
+}
+
+.settings__input::placeholder {
+  color: var(--c-text-4);
+}
+
+.settings__sent {
+  color: var(--c-cyan);
+}
