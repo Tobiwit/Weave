@@ -100,9 +100,29 @@ interface SpotifyTrack {
   album?: { name?: string; release_date?: string; images?: SpotifyImage[] };
 }
 
+/** A track that carries the two fields an import cannot do without. */
+type ReadableTrack = SpotifyTrack & { name: string; artists: { name: string }[] };
+
 function pickCover(images?: SpotifyImage[]): string | undefined {
   if (!images?.length) return undefined;
   return [...images].sort((a, b) => (b.width ?? 0) - (a.width ?? 0))[0]?.url;
+}
+
+/**
+ * The track inside a playlist item.
+ *
+ * The documented shape wraps it as `{ track: {...} }`. Responses have also been
+ * seen with the track's own fields on the item directly, so this accepts both
+ * rather than assuming the wrapper is present.
+ */
+function trackOf(item: unknown): ReadableTrack | null {
+  if (!item || typeof item !== 'object') return null;
+  const record = item as { track?: unknown };
+  for (const candidate of [record.track, item]) {
+    const track = candidate as SpotifyTrack | undefined;
+    if (track?.name && track.artists?.length) return track as ReadableTrack;
+  }
+  return null;
 }
 
 interface TrackPage {
@@ -266,13 +286,15 @@ export async function importPublicPlaylist(url: string): Promise<ImportedPlaylis
   const tracks: ImportedTrack[] = [];
   let skipped = 0;
   let truncated = false;
+  let firstSkipped: unknown = null;
 
   const collect = (items: { track?: SpotifyTrack }[] | undefined) => {
     for (const item of items ?? []) {
-      const track = item?.track;
+      const track = trackOf(item);
       // Local files and removed tracks arrive as null or without a name.
-      if (!track?.name || !track.artists?.length) {
+      if (!track) {
         skipped += 1;
+        if (!firstSkipped) firstSkipped = item;
         continue;
       }
       const year = track.album?.release_date
@@ -334,10 +356,25 @@ export async function importPublicPlaylist(url: string): Promise<ImportedPlaylis
         sample: JSON.stringify(playlist?.items ?? playlist?.tracks ?? null).slice(0, 400),
       });
     }
+    if (skipped > 0) {
+      // Everything being unreadable is far more likely to be an unexpected item
+      // shape than a whole playlist unavailable in one country, so show what an
+      // item actually looked like.
+      console.warn('[weave] Spotify items were all unreadable', {
+        playlistId,
+        market,
+        skipped,
+        itemKeys:
+          firstSkipped && typeof firstSkipped === 'object'
+            ? Object.keys(firstSkipped)
+            : typeof firstSkipped,
+        sample: JSON.stringify(firstSkipped).slice(0, 400),
+      });
+    }
     throw new SpotifyImportError(
       skipped > 0 ? 'all_unavailable' : 'empty',
       skipped > 0
-        ? 'None of those tracks are available in your region, so there is nothing to bring across.'
+        ? 'Those tracks came back in a form we could not read. See the console.'
         : 'That playlist returned no tracks. See the console for what came back.',
     );
   }
