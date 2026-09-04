@@ -112,31 +112,46 @@ interface TrackPage {
 }
 
 /**
- * Spotify returns a playlist's tracks in two different shapes.
+ * Finds the track list in a playlist response, whatever shape it arrived in.
  *
- * The documented one nests a paging object under `tracks`. The one actually
- * observed here lifts `items` to the top level and omits `tracks` entirely.
- * Reading only the documented shape silently yields zero tracks, which looks
- * exactly like an empty playlist, so both are handled.
+ * Spotify has been observed returning the documented `tracks` paging object,
+ * a bare top-level `items` array, and an `items` paging object with no `tracks`
+ * key at all. Reading one fixed path silently produces zero tracks, which is
+ * indistinguishable from an empty playlist, so this looks for the array rather
+ * than assuming where it lives.
  */
-function trackPageOf(payload: {
-  items?: { track?: SpotifyTrack }[];
-  next?: string | null;
-  total?: number | null;
-  tracks?: TrackPage;
-}): TrackPage {
-  if (Array.isArray(payload?.items)) {
-    return { items: payload.items, next: payload.next ?? null, total: payload.total ?? null };
+function trackPageOf(payload: Record<string, unknown> | null | undefined): TrackPage {
+  const asPage = (value: unknown): TrackPage | null => {
+    if (Array.isArray(value)) {
+      return { items: value as TrackPage['items'], next: null, total: value.length };
+    }
+    if (value && typeof value === 'object') {
+      const record = value as Record<string, unknown>;
+      if (Array.isArray(record.items)) {
+        return {
+          items: record.items as TrackPage['items'],
+          next: (record.next as string | null) ?? null,
+          total: (record.total as number | null) ?? null,
+        };
+      }
+    }
+    return null;
+  };
+
+  for (const key of ['tracks', 'items']) {
+    const page = asPage(payload?.[key]);
+    if (page) return page;
   }
-  return payload?.tracks ?? {};
+  return {};
 }
 
 /** The track count from whichever shape this summary arrived in. */
-function totalOf(payload: {
-  total?: number | null;
-  tracks?: { total?: number | null };
-}): number | null {
-  return payload?.tracks?.total ?? payload?.total ?? null;
+function totalOf(payload: Record<string, unknown> | null | undefined): number | null {
+  const page = trackPageOf(payload);
+  if (typeof page.total === 'number') return page.total;
+  if (page.items) return page.items.length;
+  const direct = payload?.total;
+  return typeof direct === 'number' ? direct : null;
 }
 
 export interface PlaylistSummary {
@@ -303,12 +318,20 @@ export async function importPublicPlaylist(url: string): Promise<ImportedPlaylis
     // full of unavailable songs. Report the shape so the cause is visible
     // rather than inferred.
     if (skipped === 0) {
+      // Dump the actual structure, not just the keys: the last two rounds of
+      // this were both a wrong assumption about where the array lives.
+      const describe = (value: unknown): unknown => {
+        if (Array.isArray(value)) return `array(${value.length})`;
+        if (value && typeof value === 'object') return Object.keys(value);
+        return typeof value;
+      };
       console.warn('[weave] Spotify returned no tracks', {
         playlistId,
         market,
         responseKeys: Object.keys(playlist ?? {}),
-        trackTotal: firstPage.total ?? null,
-        itemCount: firstPage.items?.length ?? null,
+        tracksShape: describe(playlist?.tracks),
+        itemsShape: describe(playlist?.items),
+        sample: JSON.stringify(playlist?.items ?? playlist?.tracks ?? null).slice(0, 400),
       });
     }
     throw new SpotifyImportError(
