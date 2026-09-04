@@ -41,8 +41,11 @@ const MESSAGES: Record<string, string> = {
   bad_link: 'That does not look like a Spotify playlist link.',
   not_found: 'We could not find that playlist. Is the link right?',
   not_public: 'That playlist is private. Only public links can be imported.',
-  not_configured: 'Spotify import is not set up for this build yet.',
+  not_configured:
+    'The import service is missing its Spotify keys. Set them with `supabase secrets set`.',
   unavailable: 'Spotify import is not set up for this build yet.',
+  not_deployed:
+    'The import service is not deployed yet. Run `supabase functions deploy spotify-playlist`.',
   upstream: 'Spotify is not answering right now. Try again in a moment.',
 };
 
@@ -89,7 +92,12 @@ export async function importPublicPlaylist(url: string): Promise<ImportedPlaylis
   });
 
   if (error || !data) {
-    throw new SpotifyImportError('upstream', MESSAGES.upstream);
+    // A missing function fails at the network layer rather than returning a
+    // status: its 404 carries no CORS headers, so the preflight is rejected and
+    // the browser reports a bare fetch failure. Blaming Spotify for that sends
+    // you looking in entirely the wrong place.
+    const code = error?.name === 'FunctionsFetchError' ? 'not_deployed' : 'upstream';
+    throw new SpotifyImportError(code, MESSAGES[code]);
   }
   if (typeof data === 'object' && data !== null && 'error' in data) {
     const code = String((data as { error: string }).error);
