@@ -1,11 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/Button';
 import { createPlaylistFromImport } from '../../features/playlists/importPlaylist';
 import {
+  connectSpotify,
   importPublicPlaylist,
+  isSpotifyConnected,
   isSpotifyImportAvailable,
   SpotifyImportError,
+  subscribeToSpotifyAuth,
   type ImportedPlaylist,
 } from '../../services/spotify';
 
@@ -20,8 +23,8 @@ export function ImportButton({ onClick }: { onClick: () => void }) {
       disabled={!available}
       title={
         available
-          ? 'Import a public Spotify playlist from a link'
-          : 'Spotify import needs the cloud settings configured for this build'
+          ? 'Import a Spotify playlist from a link'
+          : 'Spotify import needs VITE_SPOTIFY_CLIENT_ID set for this build'
       }
     >
       Import
@@ -43,7 +46,13 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
   const [link, setLink] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [imported, setImported] = useState<ImportedPlaylist | null>(null);
+  const [connected, setConnected] = useState<boolean | null>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    void isSpotifyConnected().then(setConnected);
+    return subscribeToSpotifyAuth(setConnected);
+  }, []);
 
   const lookUp = async () => {
     setError(null);
@@ -87,6 +96,41 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
     }
   };
 
+  // Spotify will not let an app token read playlist contents, so the listener
+  // connects their own account once. Public and private playlists both work
+  // after that.
+  if (connected === false) {
+    return (
+      <section className="import u-rise" aria-label="Connect Spotify">
+        <p className="u-meta import__connect">
+          Spotify only lets an account read its own playlists, so connect yours
+          once. Weave takes the track names and reads the songs itself.
+        </p>
+        <div className="import__actions">
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => {
+              void connectSpotify().catch(() =>
+                setError('We could not open Spotify sign-in.'),
+              );
+            }}
+          >
+            Connect Spotify
+          </Button>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            Cancel
+          </Button>
+        </div>
+        {error && (
+          <p className="import__error u-meta" role="alert">
+            {error}
+          </p>
+        )}
+      </section>
+    );
+  }
+
   return (
     <section className="import u-rise" aria-label="Import from Spotify">
       {phase === 'preview' && imported ? (
@@ -112,7 +156,7 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
       ) : (
         <>
           <label className="u-eyebrow import__label" htmlFor="spotify-link">
-            Paste a public Spotify playlist link
+            Paste a Spotify playlist link
           </label>
           <form
             onSubmit={(event) => {

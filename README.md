@@ -68,23 +68,42 @@ Run `supabase/migrations/0001_library.sql` in the Supabase SQL editor. It
 creates three tables and the row-level security policies that scope every row
 to its owner, on both read and write.
 
-### 3. Deploy the Spotify function
+### 3. Spotify import
 
-Spotify has no anonymous read: every Web API endpoint returns 401 without a
-token, public playlists included. The client-credentials grant needs the app
-secret, which cannot live in a browser bundle, so it lives in an edge function
-instead. The result is that importing a link needs no Spotify login from
-anyone.
+Create an app at https://developer.spotify.com/dashboard and put its **client
+id** in `.env`:
 
-Create an app at https://developer.spotify.com/dashboard, then:
-
-```bash
-supabase secrets set SPOTIFY_CLIENT_ID=... SPOTIFY_CLIENT_SECRET=...
+```
+VITE_SPOTIFY_CLIENT_ID=...
 ```
 
-```bash
-supabase functions deploy spotify-playlist
+There is no secret. Import uses Authorization Code with PKCE, entirely in the
+browser, so the client id is public by design and no server sits in the path.
+
+Register the redirect URI in the Spotify dashboard, matched exactly:
+
 ```
+http://127.0.0.1:5173/spotify-callback     development
+https://your-domain/spotify-callback       production
+```
+
+Spotify no longer accepts `localhost` as a redirect host — use the `127.0.0.1`
+loopback address, and open the dev server on that address too.
+
+**Why a Spotify login is unavoidable.** An app token was the obvious route and
+it does not work: measured against a real playlist,
+`GET /playlists/{id}/tracks` returns 403 for a client-credentials token, and
+`GET /playlists/{id}` returns 200 with the `tracks` key stripped from the
+response entirely. Spotify only lets an account read playlist contents, so the
+connection has to be the listener's own. That also means private playlists work.
+
+While the Spotify app is in Development Mode only accounts you add to its
+allowlist can connect. Fine for personal use; it needs extended quota before
+anyone else could.
+
+Tokens are stored in IndexedDB on the device that authorised them and are
+deliberately never synced: a refresh token is a credential, and copying it
+between devices through the account would widen its blast radius for nothing.
 
 ### 4. Deploying to Vercel
 
