@@ -42,14 +42,30 @@ const MB_HEADERS: HeadersInit = {
   'User-Agent': 'Weave/0.1.0 (https://github.com/Tobiwit/Weave)',
 };
 
-let lastMusicBrainzCall = 0;
+const MB_MIN_INTERVAL_MS = 1100;
 
-async function respectRateLimit(): Promise<void> {
-  const elapsed = Date.now() - lastMusicBrainzCall;
-  if (elapsed < 1100) {
-    await new Promise((resolve) => setTimeout(resolve, 1100 - elapsed));
-  }
-  lastMusicBrainzCall = Date.now();
+let lastMusicBrainzCall = 0;
+let musicBrainzGate: Promise<void> = Promise.resolve();
+
+/**
+ * Waits for this caller's turn, then for the rest of the interval.
+ *
+ * Callers queue behind one another rather than each measuring the gap for
+ * itself: two concurrent lookups reading the same timestamp would both find
+ * the same gap, both wait it out, and then fire together, which is the one
+ * thing the limit exists to prevent. Chaining makes the read and the write one
+ * uninterrupted step. An idle app still pays nothing — the first call through
+ * finds the interval long since elapsed and goes straight out.
+ */
+function respectRateLimit(): Promise<void> {
+  const turn = musicBrainzGate.then(async () => {
+    const wait = MB_MIN_INTERVAL_MS - (Date.now() - lastMusicBrainzCall);
+    if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+    lastMusicBrainzCall = Date.now();
+  });
+  // A rejected turn must not wedge the queue for everyone behind it.
+  musicBrainzGate = turn.catch(() => undefined);
+  return turn;
 }
 
 export const musicBrainzProvider: MetadataProvider = {

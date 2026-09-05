@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ReadingProgress } from '../components/analysis/ReadingProgress';
 import { useMoodEnvironment } from '../components/background/MoodProvider';
 import { PageHeader } from '../components/layout/PageHeader';
 import { KeywordInput } from '../components/playlist/KeywordInput';
@@ -81,6 +82,8 @@ export default function PlaylistDetailPage() {
       cancelled = true;
     };
   }, [playlistId, reloadToken]);
+
+  const reload = useCallback(() => setReloadToken((token) => token + 1), []);
 
   const mood = useMemo(
     () => (playlist ? moodStateFromPlaylist(playlist) : NEUTRAL_MOOD),
@@ -202,13 +205,7 @@ export default function PlaylistDetailPage() {
         <h2 className="u-eyebrow">
           {defining.length > 1 ? 'Defining songs' : 'Songs'}
         </h2>
-        {unread.length > 0 && (
-          <p className="u-meta pl-detail__unread">
-            {unread.length} {unread.length === 1 ? 'song has' : 'songs have'} not
-            been read yet, so {unread.length === 1 ? 'it does' : 'they do'} not
-            shape this playlist's centre. Open one to read it.
-          </p>
-        )}
+        <ReadingProgress unreadIds={unread} onFinished={reload} />
 
         {songs.length === 0 ? (
           <p className="u-meta pl-detail__empty">

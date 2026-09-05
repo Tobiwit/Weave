@@ -1,4 +1,5 @@
 import { Outlet, useLocation } from 'react-router-dom';
+import { ReadingStatus } from '../analysis/ReadingStatus';
 import { MoodBackground } from '../background/MoodBackground';
 import { useMoodContext } from '../background/MoodProvider';
 import { InstallHint } from '../pwa/InstallHint';
@@ -37,6 +38,7 @@ export function AppShell() {
         </div>
       </main>
 
+      {!immersive && <ReadingStatus />}
       {!immersive && <BottomNav />}
       <InstallHint />
     </div>

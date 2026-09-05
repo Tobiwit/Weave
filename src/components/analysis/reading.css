@@ -1,0 +1,179 @@
+/* The playlist-scoped panel. */
+
+.reading {
+  margin-bottom: var(--s-4);
+  padding: var(--s-4);
+  border: 1px solid var(--c-hairline);
+  border-radius: var(--r-md);
+  background: var(--c-surface);
+}
+
+.reading__text {
+  margin-bottom: var(--s-3);
+  max-width: 48ch;
+  line-height: 1.55;
+  color: var(--c-text-3);
+}
+
+.reading__bar {
+  height: 2px;
+  border-radius: var(--r-pill);
+  background: var(--c-hairline-strong);
+  overflow: hidden;
+}
+
+.reading__fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  background: linear-gradient(90deg, var(--c-blue), var(--c-periwinkle));
+  transition: transform 600ms var(--e-out);
+}
+
+.reading__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-4);
+  margin-top: var(--s-3);
+}
+
+.reading__now {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--t-meta);
+  color: var(--c-text-2);
+}
+
+.reading__count {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  color: var(--c-text-4);
+}
+
+.reading__actions {
+  display: flex;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+}
+
+/* The shell-wide indicator. */
+
+.reading-status {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  /* Clear of the permanent navigation, and of the home indicator under it. */
+  bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + var(--s-3));
+  z-index: 40;
+
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  max-width: min(92vw, 460px);
+  padding: var(--s-2) var(--s-3);
+
+  border: 1px solid var(--c-hairline-strong);
+  border-radius: var(--r-pill);
+  background: color-mix(in oklab, var(--c-void) 82%, transparent);
+  backdrop-filter: blur(18px);
+  font-size: var(--t-meta);
+  color: var(--c-text-2);
+  animation: reading-status-in 320ms var(--e-out) both;
+}
+
+@keyframes reading-status-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.reading-status__pip {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--c-periwinkle);
+  animation: reading-pulse 1.8s var(--e-inout, ease-in-out) infinite;
+}
+
+.reading-status__pip[data-idle] {
+  background: var(--c-text-4);
+  animation: none;
+}
+
+@keyframes reading-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.reading-status__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reading-status__count {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  color: var(--c-text-4);
+}
+
+.reading-status__action {
+  flex: none;
+  /* Bare buttons keep the user agent's grey face without this. */
+  appearance: none;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: 2px var(--s-2);
+  border-radius: var(--r-pill);
+  color: var(--c-text-3);
+  font-size: var(--t-micro);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: color var(--d-micro) var(--e-out);
+}
+
+.reading-status__action:hover {
+  color: var(--c-text);
+}
+
+[data-reduced-motion='true'] .reading-status,
+[data-reduced-motion='true'] .reading-status__pip,
+[data-reduced-motion='true'] .reading__fill {
+  animation: none;
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reading-status,
+  .reading-status__pip,
+  .reading__fill {
+    animation: none;
+    transition: none;
+  }
+}
+
+/*
+ * The indicator floats over the scroll container, so the last of a page would
+ * sit under it. The attribute is set only while it is on screen, which keeps
+ * the reservation from being permanent dead space.
+ */
+[data-reading] .shell__main {
+  padding-bottom: calc(var(--s-8) + var(--s-2));
+}

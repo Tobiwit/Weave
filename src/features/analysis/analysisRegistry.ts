@@ -15,6 +15,45 @@ const runs = new Map<string, ActiveRun>();
 const RETENTION_MS = 4000;
 
 /**
+ * The run for a song, started if it is not already going.
+ *
+ * One song is read once at a time no matter how many places ask for it, so
+ * opening a song the background queue happens to be reading joins that work
+ * rather than duplicating its network requests.
+ */
+function ensureRun(song: Song): ActiveRun {
+  const existing = runs.get(song.id);
+  if (existing) return existing;
+
+  const created: ActiveRun = {
+    state: null,
+    listeners: new Set(),
+    promise: undefined as unknown as Promise<SongProfile>,
+  };
+
+  created.promise = runSongAnalysis(song, {
+    onUpdate: (state) => {
+      created.state = state;
+      for (const observer of created.listeners) observer(state);
+    },
+  });
+
+  created.promise
+    .then(() => {
+      // Held briefly so a remount sees the finished state, then released so a
+      // later visit runs a fresh analysis.
+      setTimeout(() => runs.delete(song.id), RETENTION_MS);
+    })
+    .catch((error: Error) => {
+      created.error = error;
+      runs.delete(song.id);
+    });
+
+  runs.set(song.id, created);
+  return created;
+}
+
+/**
  * Keeps one analysis per song, shared by every observer.
  *
  * A component can mount, unmount and remount, as it does under StrictMode,
@@ -26,48 +65,28 @@ export function observeSongAnalysis(
   listener: AnalysisListener,
   onError?: (error: Error) => void,
 ): () => void {
-  let run = runs.get(song.id);
-
-  if (!run) {
-    const created: ActiveRun = {
-      state: null,
-      listeners: new Set(),
-      promise: undefined as unknown as Promise<SongProfile>,
-    };
-
-    created.promise = runSongAnalysis(song, {
-      onUpdate: (state) => {
-        created.state = state;
-        for (const observer of created.listeners) observer(state);
-      },
-    });
-
-    created.promise
-      .then(() => {
-        // Held briefly so a remount sees the finished state, then released so a
-        // later visit runs a fresh analysis.
-        setTimeout(() => runs.delete(song.id), RETENTION_MS);
-      })
-      .catch((error: Error) => {
-        created.error = error;
-        runs.delete(song.id);
-      });
-
-    runs.set(song.id, created);
-    run = created;
-  }
+  const run = ensureRun(song);
 
   run.listeners.add(listener);
   if (run.state) listener(run.state);
 
-  const current = run;
   if (onError) {
-    current.promise.catch((error: Error) => {
-      if (current.listeners.has(listener)) onError(error);
+    run.promise.catch((error: Error) => {
+      if (run.listeners.has(listener)) onError(error);
     });
   }
 
   return () => {
-    current.listeners.delete(listener);
+    run.listeners.delete(listener);
   };
+}
+
+/**
+ * Reads a song and waits for the profile, without watching it happen.
+ *
+ * What the background queue uses. It shares its run with the analysis screen,
+ * so a song being read in the background is not read twice if you open it.
+ */
+export function readSong(song: Song): Promise<SongProfile> {
+  return ensureRun(song).promise;
 }

@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import { APP } from './config/app';
 import { ensureSeedData } from './data/seed';
+import { restoreReadingQueue } from './features/analysis/readingQueue';
 import { startAuthWatch, subscribeToAuth } from './services/cloud/auth';
 import { syncNow } from './features/sync/syncEngine';
 import { loadRuntimeSettings } from './services/runtimeSettings';
@@ -28,6 +29,10 @@ async function boot() {
       if (state.status === 'signed-in') void syncNow();
     })
     .catch(() => undefined);
+
+  // A batch of songs left half-read by the last visit picks up where it
+  // stopped. Deliberately not awaited: it is background work by definition.
+  void restoreReadingQueue().catch(() => undefined);
 
   subscribeToAuth((state) => {
     if (state.status === 'signed-in') void syncNow();
