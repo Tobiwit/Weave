@@ -112,6 +112,12 @@ export const MATCHING_CONFIG = {
     maxWeight: 3,
     /** Below this many read songs, rarity cannot be told from coincidence. */
     minCorpusSize: 12,
+    /**
+     * Playlists needed before rarity is measured across playlists rather than
+     * across songs. Matching picks between playlists, so that is the unit that
+     * matters, but with two or three of them every word looks distinctive.
+     */
+    minPlaylists: 4,
   },
 
   /** How many descriptors an explanation may list per column. */

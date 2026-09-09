@@ -87,6 +87,7 @@ export async function createPlaylist(
     id: input.id ?? createId('pl'),
     name: input.name,
     description: input.description,
+    coverUrl: input.coverUrl,
     keywords: input.keywords,
     songIds: input.songIds ?? [],
     keywordEmbedding: input.keywordEmbedding,

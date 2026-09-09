@@ -1,5 +1,6 @@
 import { MATCHING_CONFIG } from '../../config/matching';
-import { normalizeSimilarity, type SimilarityCalibration } from './score';
+import { calibrationFor } from './calibration';
+import { normalizeSimilarity } from './score';
 import { tagSimilarity, type TagVector } from './tagRarity';
 import { cosineSimilarity, type Vector } from './vector';
 
@@ -119,10 +120,6 @@ export function playlistSongSimilarity(
 function facetSimilarity(a: Vector, b: Vector): number | null {
   if (!a.length || !b.length) return null;
   return cosineSimilarity(a, b);
-}
-
-function calibrationFor(name: ComponentName): SimilarityCalibration {
-  return MATCHING_CONFIG.components.calibration[name];
 }
 
 /**

@@ -4,6 +4,7 @@ import App from './App';
 import { APP } from './config/app';
 import { ensureSeedData } from './data/seed';
 import { restoreReadingQueue } from './features/analysis/readingQueue';
+import { loadMeasuredCalibration } from './features/playlists/measureCalibration';
 import { startAuthWatch, subscribeToAuth } from './services/cloud/auth';
 import { syncNow } from './features/sync/syncEngine';
 import { loadRuntimeSettings } from './services/runtimeSettings';
@@ -20,6 +21,10 @@ async function boot() {
   await Promise.all([
     loadRuntimeSettings().catch(() => undefined),
     ensureSeedData().catch(() => undefined),
+    // Score bands this library measured for itself. Without them every visit
+    // would fall back to the shipped defaults and scores would move under the
+    // user between sessions.
+    loadMeasuredCalibration().catch(() => undefined),
   ]);
 
   // Accounts are optional: this resolves immediately to "unavailable" when the

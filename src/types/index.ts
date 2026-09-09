@@ -77,6 +77,11 @@ export interface Playlist {
   name: string;
   description?: string;
   keywords: string[];
+  /**
+   * Cover art the playlist arrived with, when it was imported from somewhere
+   * that had one. Playlists made here have none and get a generated material.
+   */
+  coverUrl?: string;
 
   songIds: string[];
 

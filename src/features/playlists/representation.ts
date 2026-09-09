@@ -6,8 +6,9 @@ import type { Playlist, Song, SongProfile } from '../../types';
 import {
   COMPONENT_ORDER,
   cosineSimilarity,
-  tagWeight,
+  discriminationWeight,
   type ComponentName,
+  type TagCorpus,
 } from '../matching';
 import { evaluatePlaylist, type EvaluationRow } from '../matching/evaluate';
 import { buildMatchingContext, candidateForSong } from './playlistEngine';
@@ -29,11 +30,30 @@ import { coreQualities, describeBreadth } from './playlistInsights';
 export interface ComponentReadout {
   name: ComponentName;
   label: string;
-  /** What this component is compared against, in plain words. */
-  source: string;
+  /** What this facet of the playlist actually says, in its own words. */
+  reads: string;
+  /** How much it counts towards a match, as language rather than a number. */
+  influence: string;
   /** Configured share of a match score, before renormalisation. */
   weight: number;
   available: boolean;
+}
+
+/**
+ * Whether the scores have run out of room at the top.
+ *
+ * A calibration band maps a measured similarity range onto 0 to 100. If the
+ * ceiling sits below where songs actually land, everything above it clips to
+ * 100 and the score stops telling a good fit from a perfect one. Half a
+ * playlist reading 100 across every column is not a sign the playlist is
+ * excellent. It is a sign the band was measured on a different library.
+ */
+export interface Saturation {
+  atCeiling: number;
+  atFloor: number;
+  total: number;
+  healthy: boolean;
+  note: string;
 }
 
 export interface VocabularyEntry {
@@ -72,6 +92,7 @@ export interface PlaylistRepresentation {
   components: ComponentReadout[];
   vocabulary: VocabularyEntry[];
   members: EvaluationRow[];
+  saturation: Saturation | null;
   /** Songs from elsewhere in the library that this playlist pulls hardest on. */
   drawnIn: EvaluationRow[];
   map: MapPoint[];
@@ -90,6 +111,82 @@ const COMPONENT_LABELS: Record<ComponentName, string> = {
   tags: 'Vocabulary',
   themes: 'Themes',
 };
+
+/** The weight as language. A reader wants the shape, not two decimal places. */
+function describeInfluence(weight: number): string {
+  if (weight >= 0.35) return 'Counts for more than any other part of a match';
+  if (weight >= 0.22) return 'Counts for about a quarter of a match';
+  if (weight >= 0.15) return 'Counts for about a fifth of a match';
+  if (weight >= 0.08) return 'Counts for a tenth of a match';
+  return 'Counts for a little, enough to break a tie';
+}
+
+/** The commonest few of something, most distinctive first. */
+function topTerms(
+  profiles: SongProfile[],
+  pick: (profile: SongProfile) => string[],
+  corpus: TagCorpus,
+  limit = 4,
+): string[] {
+  const counts = new Map<string, { label: string; count: number }>();
+  for (const profile of profiles) {
+    for (const term of new Set(pick(profile).map((value) => value.trim()))) {
+      if (!term) continue;
+      const key = term.toLowerCase();
+      const entry = counts.get(key);
+      if (entry) entry.count += 1;
+      else counts.set(key, { label: term, count: 1 });
+    }
+  }
+  return [...counts.entries()]
+    .map(([key, { label, count }]) => ({
+      label,
+      score: count * discriminationWeight(key, corpus),
+    }))
+    .sort((a, b) => b.score - a.score || a.label.localeCompare(b.label))
+    .slice(0, limit)
+    .map((entry) => entry.label);
+}
+
+function sentence(terms: string[], empty: string): string {
+  if (terms.length === 0) return empty;
+  if (terms.length === 1) return terms[0];
+  return `${terms.slice(0, -1).join(', ')} and ${terms[terms.length - 1]}`;
+}
+
+/**
+ * Reads how much of the score range is actually being used.
+ *
+ * Counted over every song in the library scored against this playlist, not
+ * just its members. Members are the best-fitting songs by construction and
+ * belong at the top of the range, so judging saturation from them alone
+ * reports a healthy scale as a broken one. What matters is whether the scale
+ * separates the whole field.
+ */
+export function measureSaturation(rows: EvaluationRow[]): Saturation | null {
+  const values: (number | null)[] = rows.flatMap((row) => [
+    row.style,
+    row.moodVibe,
+    row.themes,
+    row.tags,
+    row.playlistSongs,
+  ]);
+  const present = values.filter((value): value is number => value !== null);
+  if (present.length < 8) return null;
+
+  const atCeiling = present.filter((value) => value === 100).length;
+  const atFloor = present.filter((value) => value === 0).length;
+  const total = present.length;
+  const healthy = (atCeiling + atFloor) / total < 0.25;
+
+  const note = healthy
+    ? 'Scores use the range they are given, so they can tell a close fit from a perfect one.'
+    : atCeiling >= atFloor
+      ? 'Many of these readings are pinned at 100. That means the scale has run out of room, not that the songs are flawless: above the ceiling everything reads the same. The bands were measured on a library smaller than yours, and recalculating remeasures them against your own songs.'
+      : 'Many of these readings are pinned at 0, so the scale is bottoming out and cannot separate a poor fit from a hopeless one. Recalculating remeasures the bands against your own songs.';
+
+  return { atCeiling, atFloor, total, healthy, note };
+}
 
 /**
  * How clustered a playlist is.
@@ -153,7 +250,7 @@ export function measureCohesion(
 
 function vocabularyOf(
   profiles: SongProfile[],
-  corpus: Parameters<typeof tagWeight>[1],
+  corpus: TagCorpus,
   limit = 14,
 ): VocabularyEntry[] {
   const counts = new Map<string, { label: string; count: number }>();
@@ -176,7 +273,7 @@ function vocabularyOf(
 
   return [...counts.entries()]
     .map(([key, { label, count }]) => {
-      const rarity = tagWeight(key, corpus);
+      const rarity = discriminationWeight(key, corpus);
       return { tag: label, count, rarity, weight: rarity * (count / songs) };
     })
     .sort((a, b) => b.weight - a.weight || a.tag.localeCompare(b.tag))
@@ -202,6 +299,41 @@ export async function buildPlaylistRepresentation(
   // The facets any song would be scored against, with nothing excluded.
   const facets = candidateForSong(playlist, '', context).facets;
 
+  const vocabulary = vocabularyOf(profiles, context.corpus);
+
+  const years = profiles
+    .map((profile) => context.songsById.get(profile.songId)?.year)
+    .filter((year): year is number => typeof year === 'number');
+  const era =
+    years.length === 0
+      ? ''
+      : Math.min(...years) === Math.max(...years)
+        ? `, around ${Math.min(...years)}`
+        : `, from ${Math.min(...years)} to ${Math.max(...years)}`;
+
+  const read = profiles.filter((profile) => profile.semanticEmbedding?.length);
+
+  const reads: Record<ComponentName, string> = {
+    playlistSongs:
+      read.length > 0
+        ? `${read.length} read ${read.length === 1 ? 'song' : 'songs'}, judged both as a whole and by whichever few sit closest to what is being matched.`
+        : 'No songs read yet, so a match rests entirely on the words you wrote.',
+    style: `${sentence(topTerms(profiles, (p) => p.genres, context.corpus), 'Nothing read yet')}${era}.`,
+    moodVibe: `${sentence(
+      topTerms(
+        profiles,
+        (p) => [...(p.mood ? [p.mood] : []), ...p.vibes],
+        context.corpus,
+      ),
+      'Nothing read yet',
+    )}.`,
+    themes: `${sentence(topTerms(profiles, (p) => p.themes, context.corpus), 'Nothing read yet')}.`,
+    tags: `${sentence(
+      vocabulary.slice(0, 4).map((entry) => entry.tag),
+      'No community tags yet',
+    )}.`,
+  };
+
   const components: ComponentReadout[] = COMPONENT_ORDER.map((name) => {
     const available =
       name === 'playlistSongs'
@@ -210,22 +342,11 @@ export async function buildPlaylistRepresentation(
           ? (facets?.tags.size ?? 0) > 0
           : (facets?.[name].length ?? 0) > 0;
 
-    const fromSongs = profiles.some((p) => p.semanticEmbedding?.length);
-    const source =
-      name === 'tags'
-        ? 'The community tags of its songs, weighted by how rare each one is'
-        : name === 'playlistSongs'
-          ? fromSongs
-            ? 'Its written world and the songs in it, plus the nearest few of them'
-            : 'Its written world alone, until a song is read'
-          : fromSongs
-            ? 'Its written world blended with this facet of its songs'
-            : 'Its written world alone, until a song is read';
-
     return {
       name,
       label: COMPONENT_LABELS[name],
-      source,
+      reads: reads[name],
+      influence: describeInfluence(MATCHING_CONFIG.components.weights[name]),
       weight: MATCHING_CONFIG.components.weights[name],
       available,
     };
@@ -261,10 +382,11 @@ export async function buildPlaylistRepresentation(
     read: withVectors.length,
     size: playlist.songIds.length,
     breadth: describeBreadth(profiles, playlist.centroidEmbedding),
-    coreQualities: coreQualities(profiles),
+    coreQualities: coreQualities(profiles, context.corpus),
     components,
-    vocabulary: vocabularyOf(profiles, context.corpus),
+    vocabulary,
     members,
+    saturation: measureSaturation(evaluation.rows),
     drawnIn,
     map,
     cohesion: measureCohesion(vectors, playlist.centroidEmbedding),

@@ -7,6 +7,7 @@ import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/Notice';
 import { COPY } from '../config/app';
 import { getAllPlaylists } from '../db/repositories';
+import { rebuildLibraryRepresentation } from '../features/playlists/ensureVectors';
 import { NEUTRAL_MOOD } from '../features/mood/moodVisualState';
 import { ImportButton, ImportPanel } from './playlists/ImportPanel';
 import './playlists.css';
@@ -15,6 +16,7 @@ export default function PlaylistsPage() {
   const playlists = useLiveQuery(() => getAllPlaylists(), [], []);
   const navigate = useNavigate();
   const [importing, setImporting] = useState(false);
+  const [, setRecalcToken] = useState(0);
 
   // Calmer than Analyze: the material stays well back on this screen.
   const mood = useMemo(() => ({ ...NEUTRAL_MOOD, density: 0.3, motion: 0.18 }), []);
@@ -31,6 +33,10 @@ export default function PlaylistsPage() {
           </Button>
         </div>
       </div>
+
+      {playlists.length > 1 && (
+        <Recalculate count={playlists.length} onDone={() => setRecalcToken((t) => t + 1)} />
+      )}
 
       {importing && <ImportPanel onClose={() => setImporting(false)} />}
 
@@ -62,6 +68,67 @@ export default function PlaylistsPage() {
             </li>
           ))}
         </ul>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Rebuilds every playlist against the library as a whole.
+ *
+ * How much a word is worth depends on how many playlists carry it, so it is
+ * not a property of any one playlist. Adding a rock playlist to a library of
+ * indie pop changes what "indie pop" is worth everywhere at once, and only a
+ * pass over all of them puts every playlist back in step. Rebuilding one
+ * cannot do that, which is why this lives here rather than on each playlist.
+ */
+function Recalculate({ count, onDone }: { count: number; onDone: () => void }) {
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(
+    null,
+  );
+  const [summary, setSummary] = useState<string | null>(null);
+
+  const run = () => {
+    setSummary(null);
+    setProgress({ done: 0, total: count });
+    void rebuildLibraryRepresentation((done, total) => setProgress({ done, total }))
+      .then(({ reports, calibration }) => {
+        const moved = reports.filter((report) => report.centroidShift > 0.0005);
+        const songs = reports.reduce((sum, report) => sum + report.songs, 0);
+        const rebuilt =
+          moved.length === 0
+            ? `Rebuilt ${reports.length} playlists over ${songs} readings. Nothing moved, so every playlist already meant what it means now.`
+            : `Rebuilt ${reports.length} playlists over ${songs} readings. ${moved.length} shifted: ${moved
+                .map((report) => report.playlist.name)
+                .slice(0, 4)
+                .join(', ')}.`;
+        setSummary(
+          calibration
+            ? `${rebuilt} Score bands remeasured over ${calibration.samples} comparisons, so the numbers now use your library's own range.`
+            : rebuilt,
+        );
+        onDone();
+      })
+      .catch(() => setSummary('Something went wrong rebuilding the library.'))
+      .finally(() => setProgress(null));
+  };
+
+  return (
+    <div className="playlists__recalc">
+      <div className="playlists__recalcRow">
+        <p className="u-meta playlists__recalcText">
+          How distinctive a word is depends on how many of your playlists use
+          it, so the weights are shared across all of them. Recalculate after
+          importing or reading a lot.
+        </p>
+        <Button variant="quiet" size="sm" disabled={progress !== null} onClick={run}>
+          {progress ? `${progress.done}/${progress.total}` : 'Recalculate'}
+        </Button>
+      </div>
+      {summary && (
+        <p className="u-meta playlists__recalcSummary" role="status">
+          {summary}
+        </p>
       )}
     </div>
   );

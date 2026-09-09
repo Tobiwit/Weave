@@ -14,12 +14,13 @@ import {
   deletePlaylist,
   getPlaylist,
   getSongProfiles,
+  getAllSongProfiles,
   getSongs,
   removeSongFromPlaylist,
   savePlaylist,
   upsertSong,
 } from '../db/repositories';
-import { nearestPlaylists } from '../features/matching';
+import { buildLibraryCorpus, nearestPlaylists, type TagCorpus } from '../features/matching';
 import {
   ensureLibraryVectors,
   ensurePlaylistVectors,
@@ -33,6 +34,7 @@ import {
   rankDefiningSongs,
 } from '../features/playlists/playlistInsights';
 import { moodStateFromPlaylist, NEUTRAL_MOOD } from '../features/mood/moodVisualState';
+import type { RebuildReport } from '../features/playlists/ensureVectors';
 import type { Playlist, Song, SongProfile } from '../types';
 import './playlistDetail.css';
 
@@ -49,6 +51,8 @@ export default function PlaylistDetailPage() {
   const [reloadToken, setReloadToken] = useState(0);
   const [unread, setUnread] = useState<string[]>([]);
   const [rebuilding, setRebuilding] = useState(false);
+  const [rebuilt, setRebuilt] = useState<RebuildReport | null>(null);
+  const [corpus, setCorpus] = useState<TagCorpus | null>(null);
 
   useEffect(() => {
     if (!playlistId) return;
@@ -74,6 +78,10 @@ export default function PlaylistDetailPage() {
       const library = await ensureLibraryVectors().catch(() => [] as Playlist[]);
       if (cancelled) return;
       setOthers(library);
+      // Core qualities are judged against the whole library, so a word common
+      // to every playlist stops counting as this one's defining quality.
+      const allProfiles = await getAllSongProfiles().catch(() => [] as SongProfile[]);
+      if (!cancelled) setCorpus(buildLibraryCorpus(allProfiles, library));
       const refreshed = library.find((p) => p.id === playlistId);
       if (refreshed) setPlaylist(refreshed);
       const refreshedProfiles = await getSongProfiles(found.songIds);
@@ -96,7 +104,10 @@ export default function PlaylistDetailPage() {
   );
   useMoodEnvironment(mood, { resolution: 0.7, quality: 0.8 });
 
-  const qualities = useMemo(() => coreQualities(profiles), [profiles]);
+  const qualities = useMemo(
+    () => coreQualities(profiles, corpus ?? undefined),
+    [profiles, corpus],
+  );
   const breadth = useMemo(
     () => describeBreadth(profiles, playlist?.centroidEmbedding),
     [profiles, playlist?.centroidEmbedding],
@@ -190,7 +201,9 @@ export default function PlaylistDetailPage() {
           disabled={rebuilding}
           onClick={() => {
             setRebuilding(true);
+            setRebuilt(null);
             void rebuildPlaylistRepresentation(playlist)
+              .then((report) => setRebuilt(report))
               .catch(() => undefined)
               .finally(() => {
                 setRebuilding(false);
@@ -208,6 +221,8 @@ export default function PlaylistDetailPage() {
           Representation
         </Button>
       </div>
+
+      {rebuilt && <RebuildNote report={rebuilt} />}
 
       <section className="pl-detail__section">
         <h2 className="u-eyebrow">Its world</h2>
@@ -317,5 +332,31 @@ export default function PlaylistDetailPage() {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * What a rebuild actually did.
+ *
+ * Rebuilding is usually instant and usually changes nothing, which from the
+ * outside is indistinguishable from a button that does not work. Saying so
+ * plainly is the difference between the two.
+ */
+function RebuildNote({ report }: { report: RebuildReport }) {
+  const moved = Math.round(report.centroidShift * 1000) / 1000;
+
+  const summary =
+    report.songs === 0
+      ? 'Nothing to rebuild yet: none of these songs have been read.'
+      : report.changed === 0
+        ? `Rebuilt ${report.songs} ${report.songs === 1 ? 'song' : 'songs'}. Nothing changed, so this playlist already meant what it means now.`
+        : `Rebuilt ${report.songs} ${report.songs === 1 ? 'song' : 'songs'}. ${report.changed} came out different and its centre moved by ${moved}.`;
+
+  return (
+    <p className="pl-detail__rebuilt u-meta" role="status">
+      {summary}
+      {report.unread > 0 &&
+        ` ${report.unread} still unread, so ${report.unread === 1 ? 'it adds' : 'they add'} nothing yet.`}
+    </p>
   );
 }

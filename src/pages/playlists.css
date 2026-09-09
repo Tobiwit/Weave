@@ -201,3 +201,34 @@
 .import__rowMeta {
   margin-top: 1px;
 }
+
+/*
+ * A library-level action, so it sits above the list rather than inside any
+ * playlist. Quiet by default: it is maintenance, not the point of the screen.
+ */
+.playlists__recalc {
+  margin-bottom: var(--s-5);
+  padding: var(--s-3) 0;
+  border-top: 1px solid var(--c-hairline);
+  border-bottom: 1px solid var(--c-hairline);
+}
+
+.playlists__recalcRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+}
+
+.playlists__recalcText {
+  max-width: 44ch;
+  line-height: 1.5;
+  color: var(--c-text-4);
+}
+
+.playlists__recalcSummary {
+  margin-top: var(--s-3);
+  max-width: 52ch;
+  line-height: 1.5;
+  color: var(--c-text-3);
+}

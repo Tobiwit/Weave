@@ -31,6 +31,7 @@ export async function createPlaylistFromImport(
   const playlist = await createPlaylist({
     name: imported.name,
     description: imported.description || undefined,
+    coverUrl: imported.coverUrl,
     keywords,
     songIds: imported.tracks.map((track) => track.id),
   });

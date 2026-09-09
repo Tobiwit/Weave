@@ -43,6 +43,9 @@ export {
 } from './terms';
 export {
   buildTagCorpus,
+  buildLibraryCorpus,
+  discriminationWeight,
+  songTerms,
   tagWeight,
   songTagVector,
   playlistTagVector,
@@ -51,6 +54,16 @@ export {
   type TagCorpus,
   type TagVector,
 } from './tagRarity';
+export {
+  calibrationFor,
+  bandFromSamples,
+  bandsFromSamples,
+  setMeasuredCalibration,
+  getMeasuredCalibration,
+  CALIBRATION_KEY,
+  type CalibrationSet,
+  type MeasuredCalibration,
+} from './calibration';
 export {
   scoreComponents,
   playlistSongSimilarity,

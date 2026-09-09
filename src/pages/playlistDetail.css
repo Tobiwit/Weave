@@ -103,3 +103,10 @@
   gap: var(--s-2);
   margin-bottom: var(--s-5);
 }
+
+.pl-detail__rebuilt {
+  margin: calc(var(--s-3) * -1) 0 var(--s-5);
+  max-width: 52ch;
+  line-height: 1.5;
+  color: var(--c-text-3);
+}

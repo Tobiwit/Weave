@@ -10,7 +10,7 @@ import type { Playlist, PlaylistMatch, Song, SongProfile } from '../../types';
 import { MATCHING_CONFIG } from '../../config/matching';
 import {
   activeProfileTerms,
-  buildTagCorpus,
+  buildLibraryCorpus,
   calculatePlaylistVector,
   centroid,
   moodEmbeddingText,
@@ -274,7 +274,9 @@ export async function buildMatchingContext(
   extraSongIds: string[] = [],
 ): Promise<MatchingContext> {
   const allProfiles = await getAllSongProfiles();
-  const corpus = buildTagCorpus(allProfiles);
+  // Across playlists, not just across songs: matching is choosing between
+  // playlists, so a word on every one of them cannot help decide.
+  const corpus = buildLibraryCorpus(allProfiles, playlists);
   const profilesById = new Map(allProfiles.map((p) => [p.songId, p]));
 
   const needed = new Set<string>(extraSongIds);

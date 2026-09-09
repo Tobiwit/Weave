@@ -126,27 +126,24 @@ export default function PlaylistRepresentationPage() {
       )}
 
       <section className="rep__section">
-        <h2 className="u-eyebrow">What a match is measured on</h2>
+        <h2 className="u-eyebrow">What this playlist says it is</h2>
+        <p className="u-meta rep__note">
+          Each part of a match asks a different question. This is the answer
+          this playlist gives to each of them.
+        </p>
         <ul className="rep__components">
           {data.components.map((component) => (
             <li
               key={component.name}
               className={`rep__component${component.available ? '' : ' rep__component--off'}`}
             >
-              <div className="rep__componentHead">
-                <span className="rep__componentName">{component.label}</span>
-                <span className="rep__componentWeight">
-                  {Math.round(component.weight * 100)}%
-                </span>
-              </div>
-              <div className="rep__weightBar" aria-hidden="true">
-                <span style={{ transform: `scaleX(${component.weight})` }} />
-              </div>
-              <p className="u-meta rep__componentSource">
+              <p className="u-eyebrow rep__componentName">{component.label}</p>
+              <p className="rep__componentReads">
                 {component.available
-                  ? component.source
-                  : 'Nothing to compare yet, so this is left out and the other weights take its share.'}
+                  ? component.reads
+                  : 'Nothing to compare yet, so this is left out of a match and the other parts take its share.'}
               </p>
+              <p className="u-meta rep__componentInfluence">{component.influence}</p>
             </li>
           ))}
         </ul>
@@ -188,6 +185,15 @@ export default function PlaylistRepresentationPage() {
             nothing is measured partly against its own contribution.
           </p>
           <ScoreTable rows={data.members} />
+          {data.saturation && !data.saturation.healthy && (
+            <p className="rep__saturation" role="status">
+              <span className="rep__saturationHead">
+                {data.saturation.atCeiling} of {data.saturation.total} readings
+                are pinned at the top of the scale
+              </span>
+              <span className="u-meta">{data.saturation.note}</span>
+            </p>
+          )}
         </section>
       )}
 

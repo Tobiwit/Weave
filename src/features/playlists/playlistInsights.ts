@@ -3,8 +3,11 @@ import type { Playlist, SongProfile } from '../../types';
 import {
   calculateLeaveOneOutCentroid,
   cosineSimilarity,
+  discriminationWeight,
   normalizeSimilarity,
+  profileFacets,
   semanticBreadth,
+  type TagCorpus,
 } from '../matching';
 
 export interface DefiningSong {
@@ -66,26 +69,52 @@ export function describeBreadth(
   return { value, label: 'Very broad' };
 }
 
-/** The descriptors that recur across a playlist's songs. */
-export function coreQualities(profiles: SongProfile[], limit = 6): string[] {
+/**
+ * The descriptors that make a playlist itself.
+ *
+ * Not simply the ones that recur most: a word can be on every song here and on
+ * every song everywhere else too, and then it describes your taste rather than
+ * this playlist. "Feminine" turning up as a core quality of half your
+ * playlists is that failure exactly.
+ *
+ * So frequency inside the playlist is weighed against how many playlists carry
+ * the word at all. A word common here and rare elsewhere rises; a word common
+ * everywhere falls, however often it appears. Without a corpus there is nothing
+ * to compare against and this falls back to plain frequency.
+ */
+export function coreQualities(
+  profiles: SongProfile[],
+  corpus?: TagCorpus,
+  limit = 6,
+): string[] {
   const counts = new Map<string, { label: string; count: number }>();
 
   for (const profile of profiles) {
+    const facets = profileFacets(profile);
     const terms = [
-      ...(profile.mood ? [profile.mood] : []),
-      ...profile.vibes,
-      ...profile.themes,
+      ...(facets.mood ? [facets.mood] : []),
+      ...facets.vibes,
+      ...facets.themes,
     ];
-    for (const term of terms) {
-      const key = term.toLowerCase();
-      const entry = counts.get(key);
+    // A word repeated on one song still only counts once for that song.
+    for (const term of new Set(terms.map((t) => t.toLowerCase()))) {
+      const label = terms.find((t) => t.toLowerCase() === term) ?? term;
+      const entry = counts.get(term);
       if (entry) entry.count += 1;
-      else counts.set(key, { label: term, count: 1 });
+      else counts.set(term, { label, count: 1 });
     }
   }
 
-  return [...counts.values()]
-    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+  const songs = Math.max(1, profiles.length);
+
+  return [...counts.entries()]
+    .map(([key, { label, count }]) => ({
+      label,
+      score: corpus
+        ? (count / songs) * discriminationWeight(key, corpus)
+        : count,
+    }))
+    .sort((a, b) => b.score - a.score || a.label.localeCompare(b.label))
     .slice(0, limit)
     .map((entry) => entry.label);
 }

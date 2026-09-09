@@ -119,51 +119,50 @@
 .rep__components {
   display: flex;
   flex-direction: column;
-  gap: var(--s-4);
+  gap: var(--s-5);
 }
 
 .rep__component--off {
   opacity: 0.5;
 }
 
-.rep__componentHead {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--s-3);
+.rep__component {
+  padding-left: var(--s-3);
+  border-left: 1px solid var(--c-hairline-strong);
 }
 
 .rep__componentName {
-  font-size: 0.9375rem;
+  margin-bottom: var(--s-1);
+}
+
+.rep__componentReads {
+  max-width: 52ch;
+  font-size: 1.0625rem;
+  line-height: 1.45;
   color: var(--c-text);
 }
 
-.rep__componentWeight {
-  font-size: var(--t-meta);
-  font-variant-numeric: tabular-nums;
-  color: var(--c-text-3);
+.rep__componentInfluence {
+  margin-top: var(--s-1);
+  color: var(--c-text-4);
 }
 
-.rep__weightBar {
-  display: block;
-  height: 2px;
-  margin: var(--s-2) 0;
-  border-radius: var(--r-pill);
-  background: var(--c-hairline);
-  overflow: hidden;
-}
-
-.rep__weightBar span {
-  display: block;
-  height: 100%;
-  width: 100%;
-  transform-origin: left center;
-  background: linear-gradient(90deg, var(--c-blue), var(--c-periwinkle));
-}
-
-.rep__componentSource {
+.rep__saturation {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
   max-width: 52ch;
+  margin-top: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  border-left: 2px solid var(--c-amber);
+  background: var(--c-surface);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
   line-height: 1.5;
+}
+
+.rep__saturationHead {
+  font-size: 0.9375rem;
+  color: var(--c-text-2);
 }
 
 /* ----------------------------- vocabulary ------------------------------- */

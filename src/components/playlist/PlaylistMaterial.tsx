@@ -25,6 +25,23 @@ export function PlaylistMaterial({
   const mood = useMemo(() => moodStateFromPlaylist(playlist), [playlist]);
   const dimension = typeof size === 'number' ? `${size}px` : size;
 
+  // An imported playlist keeps the cover it came with. The generated material
+  // is for playlists made here, which have no artwork of their own.
+  if (playlist.coverUrl) {
+    return (
+      <img
+        className={`pl-material pl-material--art${className ? ` ${className}` : ''}`}
+        src={playlist.coverUrl}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        width={typeof size === 'number' ? size : undefined}
+        height={typeof size === 'number' ? size : undefined}
+        style={{ width: dimension, height: dimension, borderRadius: radius }}
+      />
+    );
+  }
+
   const bandGap = 6 + (1 - mood.density) * 10;
   const bandAngle = 96 + mood.curvature * 46;
 

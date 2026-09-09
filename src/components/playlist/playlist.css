@@ -72,3 +72,13 @@
   display: flex;
   flex-direction: column;
 }
+
+/*
+ * A real cover replaces the generated material entirely, so it needs the
+ * cropping the material never did.
+ */
+.pl-material--art {
+  display: block;
+  object-fit: cover;
+  background: var(--c-bg-2);
+}

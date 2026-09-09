@@ -1,5 +1,5 @@
 import { MATCHING_CONFIG } from '../../config/matching';
-import type { SongProfile } from '../../types';
+import type { Playlist, SongProfile } from '../../types';
 import { profileFacets } from './terms';
 
 /**
@@ -25,10 +25,29 @@ export interface TagCorpus {
   documentCount: number;
   /** Lowercased tag to the number of songs carrying it. */
   documentFrequency: Map<string, number>;
+  /** Playlists the corpus spans. Zero when it was built from songs alone. */
+  playlistCount: number;
+  /**
+   * Lowercased term to the number of playlists carrying it, counting community
+   * tags, descriptors and the words the playlist was written with alike.
+   */
+  playlistFrequency: Map<string, number>;
 }
 
 export function normalizeTag(tag: string): string {
   return tag.trim().toLowerCase();
+}
+
+/** Every word a song contributes: what listeners call it and what we read in it. */
+export function songTerms(profile: SongProfile): string[] {
+  const facets = profileFacets(profile);
+  return [
+    ...facets.communityTags,
+    ...facets.genres,
+    ...facets.vibes,
+    ...facets.themes,
+    ...(facets.mood ? [facets.mood] : []),
+  ];
 }
 
 /** Counts how many read songs carry each tag. */
@@ -45,27 +64,108 @@ export function buildTagCorpus(profiles: SongProfile[]): TagCorpus {
     }
   }
 
-  return { documentCount, documentFrequency };
+  return {
+    documentCount,
+    documentFrequency,
+    playlistCount: 0,
+    playlistFrequency: new Map(),
+  };
 }
 
 /**
- * Smoothed inverse document frequency, clamped to a usable band.
+ * The corpus with the playlist dimension filled in.
  *
- * A tag the corpus has never seen is treated as merely rare rather than as
- * infinitely informative, which is what the ceiling is for.
+ * Counting songs alone answers the wrong question. Someone who listens mostly
+ * to indie pop has indie pop on most of their songs and on most of their
+ * playlists, and it tells you nothing about which playlist anything belongs
+ * to. A word that appears on one playlist out of nine tells you a great deal,
+ * even if that playlist is large enough that the word is common song by song.
+ *
+ * So the unit is the playlist, and every kind of word counts: community tags,
+ * the descriptors we read, and the words the playlist was written with. That is
+ * what makes "rock" a strong signal in a library of otherwise indie pop, and
+ * what stops "feminine" from being a defining quality of half of them.
+ */
+export function buildLibraryCorpus(
+  profiles: SongProfile[],
+  playlists: Playlist[],
+): TagCorpus {
+  const corpus = buildTagCorpus(profiles);
+  const byId = new Map(profiles.map((profile) => [profile.songId, profile]));
+
+  const playlistFrequency = new Map<string, number>();
+  let playlistCount = 0;
+
+  for (const playlist of playlists) {
+    const terms = new Set<string>();
+    for (const keyword of playlist.keywords) {
+      const key = normalizeTag(keyword);
+      if (key) terms.add(key);
+    }
+    for (const songId of playlist.songIds) {
+      const profile = byId.get(songId);
+      if (!profile) continue;
+      for (const term of songTerms(profile)) {
+        const key = normalizeTag(term);
+        if (key) terms.add(key);
+      }
+    }
+
+    if (terms.size === 0) continue;
+    playlistCount += 1;
+    for (const term of terms) {
+      playlistFrequency.set(term, (playlistFrequency.get(term) ?? 0) + 1);
+    }
+  }
+
+  return { ...corpus, playlistCount, playlistFrequency };
+}
+
+function clampedIdf(
+  frequency: number,
+  total: number,
+  config = MATCHING_CONFIG.tagRarity,
+): number {
+  const idf = Math.log((total + 1) / (frequency + 1)) + 1;
+  return Math.min(config.maxWeight, Math.max(config.minWeight, idf));
+}
+
+/**
+ * How much a word narrows down which playlist something belongs to.
+ *
+ * Measured across playlists when there are enough of them to mean anything.
+ * Below that the library cannot tell a distinctive word from a coincidence, so
+ * it falls back to counting songs, and below that it gives up and treats every
+ * word as equal rather than inventing a distinction.
+ */
+export function discriminationWeight(
+  term: string,
+  corpus: TagCorpus,
+  config = MATCHING_CONFIG.tagRarity,
+): number {
+  const key = normalizeTag(term);
+
+  if (corpus.playlistCount >= config.minPlaylists) {
+    return clampedIdf(corpus.playlistFrequency.get(key) ?? 0, corpus.playlistCount, config);
+  }
+  if (corpus.documentCount < config.minCorpusSize) return 1;
+  return clampedIdf(corpus.documentFrequency.get(key) ?? 0, corpus.documentCount, config);
+}
+
+/**
+ * The weight a community tag carries when matching, clamped to a usable band.
+ *
+ * The same question `discriminationWeight` answers, because matching is
+ * choosing between playlists. A tag the corpus has never seen is treated as
+ * merely rare rather than as infinitely informative, which is what the ceiling
+ * is for.
  */
 export function tagWeight(
   tag: string,
   corpus: TagCorpus,
   config = MATCHING_CONFIG.tagRarity,
 ): number {
-  // Too small a corpus cannot tell common from rare, so nothing is up-weighted
-  // until there is enough evidence to justify it.
-  if (corpus.documentCount < config.minCorpusSize) return 1;
-
-  const frequency = corpus.documentFrequency.get(normalizeTag(tag)) ?? 0;
-  const idf = Math.log((corpus.documentCount + 1) / (frequency + 1)) + 1;
-  return Math.min(config.maxWeight, Math.max(config.minWeight, idf));
+  return discriminationWeight(tag, corpus, config);
 }
 
 /** A tag set as a sparse weighted vector, keyed by the normalised tag. */

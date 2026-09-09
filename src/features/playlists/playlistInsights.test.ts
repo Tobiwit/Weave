@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { buildLibraryCorpus } from '../matching';
 import type { Playlist, SongProfile } from '../../types';
 import {
   comparePlaylists,
@@ -120,6 +121,7 @@ describe('coreQualities', () => {
   it('respects the requested limit', () => {
     const qualities = coreQualities(
       [profile('a', [1], { vibes: ['One', 'Two', 'Three'] })],
+      undefined,
       2,
     );
     expect(qualities).toHaveLength(2);
@@ -127,6 +129,32 @@ describe('coreQualities', () => {
 
   it('handles a playlist with no analysed songs', () => {
     expect(coreQualities([])).toEqual([]);
+  });
+
+  it('demotes a word that every playlist in the library carries', () => {
+    // "Feminine" is on every song here, but also on every other playlist, so it
+    // describes the listener rather than this playlist. "Bratty" is local.
+    const here = [
+      profile('a', [1], { vibes: ['Feminine', 'Bratty'] }),
+      profile('b', [1], { vibes: ['Feminine', 'Bratty'] }),
+      profile('c', [1], { vibes: ['Feminine'] }),
+    ];
+    const elsewhere = ['p2', 'p3', 'p4', 'p5'].map((id) => ({
+      id,
+      name: id,
+      keywords: ['feminine'],
+      songIds: [],
+      createdAt: 0,
+      updatedAt: 0,
+    }));
+    const corpus = buildLibraryCorpus(here, [
+      { id: 'p1', name: 'p1', keywords: [], songIds: ['a', 'b', 'c'], createdAt: 0, updatedAt: 0 },
+      ...elsewhere,
+    ]);
+
+    expect(coreQualities(here, corpus)[0]).toBe('Bratty');
+    // Without the corpus, sheer frequency puts the useless word first.
+    expect(coreQualities(here)[0]).toBe('Feminine');
   });
 });
 

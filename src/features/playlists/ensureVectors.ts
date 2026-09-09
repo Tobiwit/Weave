@@ -9,7 +9,12 @@ import {
 } from '../../db/repositories';
 import { embeddingService } from '../../services/embedding';
 import type { Playlist, SongProfile } from '../../types';
-import { profileEmbeddingText } from '../matching';
+import {
+  cosineSimilarity,
+  profileEmbeddingText,
+  type MeasuredCalibration,
+} from '../matching';
+import { recalibrateLibrary } from './measureCalibration';
 import { updatePlaylistVectors } from './playlistEngine';
 
 /**
@@ -92,27 +97,100 @@ export async function ensurePlaylistVectors(playlist: Playlist): Promise<Playlis
  * the exact text they came from, so anything genuinely unchanged is a lookup
  * rather than a recomputation.
  */
+export interface RebuildReport {
+  playlist: Playlist;
+  /** Member songs whose vector was rebuilt. */
+  songs: number;
+  /** How many of those actually came out different. */
+  changed: number;
+  /**
+   * How far the playlist's centre moved, as one minus the cosine between the
+   * old centroid and the new one. Zero means nothing about what this playlist
+   * means has changed, which is the usual and correct outcome.
+   */
+  centroidShift: number;
+  /** Songs in the playlist with no reading yet, so they contributed nothing. */
+  unread: number;
+}
+
 export async function rebuildPlaylistRepresentation(
   playlist: Playlist,
-): Promise<Playlist> {
+): Promise<RebuildReport> {
+  const before = playlist.centroidEmbedding;
   const profiles = await getSongProfiles(playlist.songIds);
+  let changed = 0;
 
   if (profiles.length > 0) {
     const vectors = await embeddingService.embedMany(
       profiles.map(profileEmbeddingText),
     );
     await Promise.all(
-      profiles.map((profile, index) =>
-        saveSongProfile({
+      profiles.map((profile, index) => {
+        const next = vectors[index];
+        if (!sameVector(profile.semanticEmbedding, next)) changed += 1;
+        return saveSongProfile({
           ...profile,
-          semanticEmbedding: vectors[index],
+          semanticEmbedding: next,
           embeddingVersion: PROFILE_EMBEDDING_VERSION,
-        }),
-      ),
+        });
+      }),
     );
   }
 
-  return updatePlaylistVectors(playlist);
+  const rebuilt = await updatePlaylistVectors(playlist);
+  const after = rebuilt.centroidEmbedding;
+
+  const centroidShift =
+    before?.length && after?.length ? 1 - cosineSimilarity(before, after) : 0;
+
+  return {
+    playlist: rebuilt,
+    songs: profiles.length,
+    changed,
+    centroidShift: Math.max(0, centroidShift),
+    unread: playlist.songIds.length - profiles.length,
+  };
+}
+
+function sameVector(a: number[] | undefined, b: number[] | undefined): boolean {
+  if (!a || !b || a.length !== b.length) return false;
+  // Exact equality is the right test: the same text through the same model
+  // gives the same numbers, so any difference at all is a real difference.
+  return a.every((value, index) => value === b[index]);
+}
+
+/**
+ * Rebuilds every playlist in the library.
+ *
+ * Rarity is measured across playlists, so a word's weight depends on the whole
+ * library rather than on any one playlist. Adding a rock playlist to a library
+ * of indie pop changes what "indie pop" is worth everywhere at once, and only a
+ * pass over all of them puts every playlist back in step.
+ */
+export interface LibraryRebuildResult {
+  reports: RebuildReport[];
+  /** The bands the library measured for itself, when there was enough to measure. */
+  calibration: MeasuredCalibration | null;
+}
+
+export async function rebuildLibraryRepresentation(
+  onProgress?: (done: number, total: number) => void,
+): Promise<LibraryRebuildResult> {
+  const playlists = await getAllPlaylists();
+  const reports: RebuildReport[] = [];
+
+  for (const [index, playlist] of playlists.entries()) {
+    reports.push(await rebuildPlaylistRepresentation(playlist));
+    onProgress?.(index + 1, playlists.length);
+  }
+
+  // The score bands are a property of the library, not of any playlist, and
+  // they can only be measured once every vector is current.
+  const calibration = await recalibrateLibrary(
+    reports.map((report) => report.playlist),
+  ).catch(() => null);
+
+  return { reports, calibration };
 }
 
 /**
