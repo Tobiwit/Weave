@@ -1,4 +1,7 @@
-import { VECTOR_RECIPE_VERSION } from '../../config/embedding';
+import {
+  PROFILE_EMBEDDING_VERSION,
+  VECTOR_RECIPE_VERSION,
+} from '../../config/embedding';
 import {
   getAllPlaylists,
   getSongProfiles,
@@ -9,15 +12,33 @@ import type { Playlist, SongProfile } from '../../types';
 import { profileEmbeddingText } from '../matching';
 import { updatePlaylistVectors } from './playlistEngine';
 
+/**
+ * Whether a stored vector can be compared with a freshly built one.
+ *
+ * A missing vector obviously has to be built. A vector from an older recipe is
+ * worse than missing: it sits in a different region of the space and would
+ * quietly score against everything else as though it belonged there.
+ */
+export function needsEmbedding(profile: SongProfile): boolean {
+  return (
+    !profile.semanticEmbedding?.length ||
+    profile.embeddingVersion !== PROFILE_EMBEDDING_VERSION
+  );
+}
+
 /** Embeds a profile on demand, so nothing is computed until it is needed. */
 export async function ensureProfileEmbedding(
   profile: SongProfile,
 ): Promise<SongProfile> {
-  if (profile.semanticEmbedding?.length) return profile;
+  if (!needsEmbedding(profile)) return profile;
   const semanticEmbedding = await embeddingService.embed(
     profileEmbeddingText(profile),
   );
-  const next = { ...profile, semanticEmbedding };
+  const next = {
+    ...profile,
+    semanticEmbedding,
+    embeddingVersion: PROFILE_EMBEDDING_VERSION,
+  };
   await saveSongProfile(next);
   return next;
 }
@@ -25,16 +46,20 @@ export async function ensureProfileEmbedding(
 export async function ensureProfileEmbeddings(
   profiles: SongProfile[],
 ): Promise<SongProfile[]> {
-  const missing = profiles.filter((p) => !p.semanticEmbedding?.length);
-  if (missing.length === 0) return profiles;
+  const stale = profiles.filter(needsEmbedding);
+  if (stale.length === 0) return profiles;
 
   const vectors = await embeddingService.embedMany(
-    missing.map(profileEmbeddingText),
+    stale.map(profileEmbeddingText),
   );
   const updated = new Map<string, SongProfile>();
   await Promise.all(
-    missing.map(async (profile, index) => {
-      const next = { ...profile, semanticEmbedding: vectors[index] };
+    stale.map(async (profile, index) => {
+      const next = {
+        ...profile,
+        semanticEmbedding: vectors[index],
+        embeddingVersion: PROFILE_EMBEDDING_VERSION,
+      };
       updated.set(profile.songId, next);
       await saveSongProfile(next);
     }),
@@ -44,8 +69,8 @@ export async function ensureProfileEmbeddings(
 }
 
 /**
- * Brings a playlist vector up to date, embedding any of its songs that have
- * not been embedded yet.
+ * Brings a playlist vector up to date, embedding any of its songs whose vector
+ * is missing or built from a superseded recipe.
  */
 export async function ensurePlaylistVectors(playlist: Playlist): Promise<Playlist> {
   const profiles = await getSongProfiles(playlist.songIds);
@@ -61,10 +86,12 @@ export async function ensureLibraryVectors(): Promise<Playlist[]> {
   const playlists = await getAllPlaylists();
   const prepared: Playlist[] = [];
   for (const playlist of playlists) {
+    const profiles = await getSongProfiles(playlist.songIds);
     const needsWork =
       playlist.vectorVersion !== VECTOR_RECIPE_VERSION ||
       !playlist.keywordEmbedding?.length ||
-      (playlist.songIds.length > 0 && !playlist.centroidEmbedding?.length);
+      (playlist.songIds.length > 0 && !playlist.centroidEmbedding?.length) ||
+      profiles.some(needsEmbedding);
     prepared.push(needsWork ? await ensurePlaylistVectors(playlist) : playlist);
   }
   return prepared;

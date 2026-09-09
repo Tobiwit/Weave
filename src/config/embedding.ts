@@ -22,3 +22,15 @@ export const EMBEDDING_CONFIG = {
  * from two different formulations.
  */
 export const VECTOR_RECIPE_VERSION = 2;
+
+/**
+ * The version of the canonical song embedding recipe.
+ *
+ * Every stored `semanticEmbedding` carries the version it was built with.
+ * Cosine similarity is only meaningful between vectors built from the same
+ * recipe, so a bump here invalidates the old ones and the backfill rebuilds
+ * them rather than silently comparing two different formulations.
+ *
+ * Bump this whenever `profileEmbeddingText` changes shape.
+ */
+export const PROFILE_EMBEDDING_VERSION = 1;

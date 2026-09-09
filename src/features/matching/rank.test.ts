@@ -1,5 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { nearestPlaylists, rankPlaylists, semanticBreadth, type PlaylistCandidate } from './rank';
+import type { SongFacets } from './components';
+import {
+  nearestPlaylists,
+  rankPlaylists,
+  semanticBreadth,
+  type PlaylistCandidate,
+} from './rank';
+
+/**
+ * Ranking is exercised through the whole-reading component alone: the
+ * candidates below carry no facets, so every other component is unavailable
+ * and drops out. Component combination has its own tests.
+ */
+function facetsOf(whole: number[]): SongFacets {
+  return { whole, style: [], moodVibe: [], themes: [], tags: new Map() };
+}
 
 const candidates: PlaylistCandidate[] = [
   { playlistId: 'lipgloss', vector: [1, 0, 0], terms: ['glossy', 'feminine', 'confident'] },
@@ -8,11 +23,11 @@ const candidates: PlaylistCandidate[] = [
 ];
 
 describe('rankPlaylists', () => {
-  const songVector = [0.95, 0.31, 0];
+  const song = facetsOf([0.95, 0.31, 0]);
   const songTerms = ['glossy', 'confident', 'dreamy'];
 
   it('orders playlists by similarity, strongest first', () => {
-    const ranked = rankPlaylists(songVector, songTerms, candidates);
+    const ranked = rankPlaylists(song, songTerms, candidates);
     expect(ranked.map((match) => match.playlistId)).toEqual([
       'lipgloss',
       'quirky',
@@ -20,27 +35,36 @@ describe('rankPlaylists', () => {
     ]);
   });
 
-  it('returns a normalised score alongside the raw similarity', () => {
-    const [best] = rankPlaylists(songVector, songTerms, candidates);
-    expect(best.similarity).toBeGreaterThan(0.9);
+  it('returns a normalised score alongside the combined similarity', () => {
+    const [best] = rankPlaylists(song, songTerms, candidates);
+    expect(best.similarity).toBeGreaterThan(0.8);
     expect(best.score).toBeGreaterThan(80);
     expect(best.score).toBeLessThanOrEqual(100);
   });
 
+  it('reports the components that produced the score', () => {
+    const [best] = rankPlaylists(song, songTerms, candidates);
+    const playlistSongs = best.components?.find((c) => c.name === 'playlistSongs');
+    expect(playlistSongs?.similarity).toBeGreaterThan(0.9);
+    // With nothing else comparable, this component carries the whole score.
+    expect(playlistSongs?.weight).toBeCloseTo(1, 10);
+    expect(best.components?.find((c) => c.name === 'style')?.score).toBeNull();
+  });
+
   it('explains overlap using the descriptors the two actually share', () => {
-    const [best] = rankPlaylists(songVector, songTerms, candidates);
+    const [best] = rankPlaylists(song, songTerms, candidates);
     expect(best.reasons).toContain('glossy');
     expect(best.reasons).toContain('confident');
     expect(best.reasons).not.toContain('dreamy');
   });
 
   it('surfaces descriptors that do not line up', () => {
-    const [best] = rankPlaylists(songVector, songTerms, candidates);
+    const [best] = rankPlaylists(song, songTerms, candidates);
     expect(best.differences).toContain('dreamy');
   });
 
   it('ranks every candidate exactly once', () => {
-    const ranked = rankPlaylists(songVector, songTerms, candidates);
+    const ranked = rankPlaylists(song, songTerms, candidates);
     expect(ranked).toHaveLength(candidates.length);
     expect(new Set(ranked.map((m) => m.playlistId)).size).toBe(candidates.length);
   });
@@ -50,12 +74,14 @@ describe('rankPlaylists', () => {
       { playlistId: 'b', vector: [1, 0], terms: [] },
       { playlistId: 'a', vector: [1, 0], terms: [] },
     ];
-    expect(rankPlaylists([1, 0], [], tied).map((m) => m.playlistId)).toEqual(['a', 'b']);
+    expect(
+      rankPlaylists(facetsOf([1, 0]), [], tied).map((m) => m.playlistId),
+    ).toEqual(['a', 'b']);
   });
 
-  it('returns nothing when the song has no embedding', () => {
-    const ranked = rankPlaylists([], [], candidates);
-    expect(ranked.every((match) => match.similarity === 0)).toBe(true);
+  it('scores nothing when the song has no embedding', () => {
+    const ranked = rankPlaylists(facetsOf([]), [], candidates);
+    expect(ranked.every((match) => match.score === 0)).toBe(true);
   });
 });
 

@@ -37,6 +37,83 @@ export const MATCHING_CONFIG = {
     curve: 1,
   },
 
+  /**
+   * Matching is split into independent components so that no single facet can
+   * carry the whole score. See `features/matching/components.ts`.
+   */
+  components: {
+    /**
+     * Starting weights, meant to be tuned. They express an opinion: what a
+     * playlist already contains is the strongest evidence of what belongs in
+     * it, style is the next most reliable, and subject matter is the least,
+     * because two songs about freedom can sound nothing alike.
+     *
+     * They do not have to sum to 1. Components that cannot be compared are
+     * dropped and the rest are renormalised.
+     */
+    weights: {
+      playlistSongs: 0.4,
+      style: 0.25,
+      moodVibe: 0.2,
+      tags: 0.1,
+      themes: 0.05,
+    },
+
+    /** How the playlist-songs component splits between its two questions. */
+    playlistSongs: {
+      /** "Does this fit the playlist as a whole?" */
+      centroidWeight: 0.6,
+      /** "Does this song have close company here?" */
+      nearestWeight: 0.4,
+      /** How many nearest songs the second question averages over. */
+      topK: 3,
+    },
+
+    /**
+     * Each component gets its own band, because each compares a different
+     * shape of text and none of them uses anything like the full similarity
+     * range. One shared band would make some components nearly constant and
+     * others hypersensitive.
+     *
+     * Measured, not chosen. Every song-playlist pair in the development
+     * library was scored and the 5th and 95th percentiles of each component
+     * taken as its floor and ceiling, which is what makes the middle of the
+     * range spread out instead of bunching near the top. For reference, the
+     * observed spans were:
+     *
+     *   playlistSongs  0.706 - 0.819  (median 0.759)
+     *   style          0.563 - 0.713  (median 0.632)
+     *   moodVibe       0.718 - 0.839  (median 0.756)
+     *   themes         0.580 - 0.825  (median 0.699)
+     *   tags           0.000 - 0.259  (median 0.063)
+     *
+     * Tags sit far lower than the rest because most pairs of songs genuinely
+     * share very little rare vocabulary, so that component gets a sub-linear
+     * curve rather than a wider band.
+     *
+     * The library these came from is small. Remeasure on a real one, and after
+     * any change to a text recipe, with `weaveEvaluate` in the console.
+     */
+    calibration: {
+      playlistSongs: { floor: 0.7, ceiling: 0.82, curve: 1 },
+      style: { floor: 0.56, ceiling: 0.72, curve: 1 },
+      moodVibe: { floor: 0.71, ceiling: 0.84, curve: 1 },
+      tags: { floor: 0, ceiling: 0.35, curve: 0.75 },
+      themes: { floor: 0.58, ceiling: 0.83, curve: 1.1 },
+    },
+  },
+
+  /**
+   * Bounds on community tag rarity weighting. Without a ceiling a single
+   * typo'd tag would outweigh every real signal in the comparison.
+   */
+  tagRarity: {
+    minWeight: 0.3,
+    maxWeight: 3,
+    /** Below this many read songs, rarity cannot be told from coincidence. */
+    minCorpusSize: 12,
+  },
+
   /** How many descriptors an explanation may list per column. */
   maxOverlapReasons: 5,
   maxDifferenceReasons: 3,

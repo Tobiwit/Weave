@@ -1,15 +1,35 @@
 import { VECTOR_RECIPE_VERSION } from '../../config/embedding';
-import { getSongProfiles, savePlaylist } from '../../db/repositories';
+import {
+  getAllSongProfiles,
+  getSongProfiles,
+  getSongs,
+  savePlaylist,
+} from '../../db/repositories';
 import { embeddingService } from '../../services/embedding';
-import type { Playlist, PlaylistMatch, SongProfile } from '../../types';
+import type { Playlist, PlaylistMatch, Song, SongProfile } from '../../types';
+import { MATCHING_CONFIG } from '../../config/matching';
 import {
   activeProfileTerms,
-  calculateLeaveOneOutCentroid,
+  buildTagCorpus,
   calculatePlaylistVector,
+  centroid,
+  moodEmbeddingText,
   playlistEmbeddingText,
+  playlistMoodText,
+  playlistStyleText,
+  playlistTagVector,
   playlistTerms,
+  playlistThemeText,
   rankPlaylists,
+  songTagVector,
+  styleEmbeddingText,
+  themeEmbeddingText,
+  profileFacets,
+  weightedBlend,
   type PlaylistCandidate,
+  type PlaylistFacets,
+  type SongFacets,
+  type TagCorpus,
   type TermVectorResolver,
 } from '../matching';
 
@@ -83,42 +103,149 @@ export async function buildTermResolver(
   }
 }
 
+/* -------------------------------- facets --------------------------------- */
+
+interface ReadSong {
+  profile: SongProfile;
+  song?: Song;
+}
+
 /**
- * A candidate vector for comparing one specific song against.
+ * Embeds a batch of texts, giving an empty vector back for the blank ones.
  *
- * When the song is already in the playlist, its own embedding is removed from
- * the centroid first. Otherwise the song would be measured partly against
- * itself and every playlist it already belongs to would score near the top.
+ * A song with no themes should contribute nothing to the theme comparison.
+ * Embedding an empty string instead would place it at some arbitrary point and
+ * let it match other songs that also have no themes.
  */
-async function candidateForSong(
+async function embedTexts(texts: string[]): Promise<number[][]> {
+  const wanted: number[] = [];
+  texts.forEach((text, index) => {
+    if (text.trim()) wanted.push(index);
+  });
+
+  const out = texts.map(() => [] as number[]);
+  if (wanted.length === 0) return out;
+
+  const vectors = await embeddingService.embedMany(
+    wanted.map((index) => texts[index]),
+  );
+  wanted.forEach((index, position) => {
+    out[index] = vectors[position] ?? [];
+  });
+  return out;
+}
+
+/**
+ * Facet vectors for a set of songs, in one batched embedding call.
+ *
+ * The whole-reading vector is already stored on the profile; only the three
+ * facet texts have to be built, and the embedding cache means they are built
+ * once per song for the life of the library.
+ */
+async function facetsFor(
+  entries: ReadSong[],
+  corpus: TagCorpus,
+): Promise<SongFacets[]> {
+  const texts: string[] = [];
+  for (const { profile, song } of entries) {
+    texts.push(
+      styleEmbeddingText(profile, song),
+      moodEmbeddingText(profile),
+      themeEmbeddingText(profile),
+    );
+  }
+
+  const vectors = await embedTexts(texts);
+
+  return entries.map(({ profile }, index) => ({
+    whole: profile.semanticEmbedding ?? [],
+    style: vectors[index * 3] ?? [],
+    moodVibe: vectors[index * 3 + 1] ?? [],
+    themes: vectors[index * 3 + 2] ?? [],
+    tags: songTagVector(profileFacets(profile).communityTags, corpus),
+  }));
+}
+
+type FacetKey = 'style' | 'moodVibe' | 'themes';
+
+/** A playlist's stated world, embedded once per facet. */
+export interface PlaylistKeywordFacets {
+  style: number[];
+  moodVibe: number[];
+  themes: number[];
+}
+
+/**
+ * One facet of a playlist: what it says about itself, blended with what its
+ * songs actually are.
+ *
+ * The same 35/65 split the whole playlist vector uses, applied per facet
+ * rather than only once at the top. Keeping the written world out of the
+ * facets was measurably wrong: with leave-one-out, a two-song playlist has a
+ * single song left to build its facets from, and a song whose stated world
+ * matched the playlist exactly scored 37 because one unrelated neighbour
+ * defined every facet. The words a person wrote are evidence, and they are the
+ * only evidence a young playlist has.
+ */
+function facetVector(
+  facets: SongFacets[],
+  key: FacetKey,
+  keywords: PlaylistKeywordFacets | undefined,
+  weights = MATCHING_CONFIG,
+): number[] {
+  const songs = centroid(
+    facets.map((facet) => facet[key]).filter((v) => v.length > 0),
+  );
+  const stated = keywords?.[key] ?? [];
+
+  if (!stated.length) return songs;
+  if (!songs.length) return [...stated];
+
+  return weightedBlend([
+    { vector: stated, weight: weights.keywordWeight },
+    { vector: songs, weight: weights.centroidWeight },
+  ]);
+}
+
+/**
+ * Builds what one playlist offers a song to be compared against.
+ *
+ * When the song is already in the playlist it is removed from every component
+ * first, not just from the centroid. Otherwise the song would be measured
+ * partly against itself: its own tags would inflate the tag overlap, its own
+ * vector would be one of its nearest neighbours, and every playlist it already
+ * belongs to would sit at the top of its own results.
+ */
+function playlistFacetsFor(
   playlist: Playlist,
-  songId: string,
-): Promise<PlaylistCandidate> {
-  if (!playlist.songIds.includes(songId)) return toCandidate(playlist);
+  members: ReadSong[],
+  memberFacets: SongFacets[],
+  corpus: TagCorpus,
+  keywords: PlaylistKeywordFacets | undefined,
+  excludeSongId?: string,
+): PlaylistFacets {
+  const keep = members
+    .map((member, index) => ({ member, facet: memberFacets[index] }))
+    .filter(({ member }) => member.profile.songId !== excludeSongId);
 
-  const profiles = await getSongProfiles(playlist.songIds);
-  const usable = profiles.filter(
-    (profile): profile is SongProfile & { semanticEmbedding: number[] } =>
-      Array.isArray(profile.semanticEmbedding) && profile.semanticEmbedding.length > 0,
-  );
-  const index = usable.findIndex((profile) => profile.songId === songId);
-
-  if (index === -1) return toCandidate(playlist);
-
-  const centroidWithout = calculateLeaveOneOutCentroid(
-    usable.map((profile) => profile.semanticEmbedding),
-    index,
-  );
+  const facets = keep.map((entry) => entry.facet);
+  const songVectors = facets.map((facet) => facet.whole).filter((v) => v.length > 0);
 
   const { vector } = calculatePlaylistVector({
     keywordEmbedding: playlist.keywordEmbedding,
-    songEmbeddings: centroidWithout.length ? [centroidWithout] : [],
+    songEmbeddings: songVectors,
   });
 
   return {
-    playlistId: playlist.id,
-    vector,
-    terms: playlistTerms(playlist),
+    whole: vector,
+    songVectors,
+    style: facetVector(facets, 'style', keywords),
+    moodVibe: facetVector(facets, 'moodVibe', keywords),
+    themes: facetVector(facets, 'themes', keywords),
+    tags: playlistTagVector(
+      keep.map((entry) => entry.member.profile),
+      corpus,
+    ),
   };
 }
 
@@ -128,18 +255,136 @@ export interface MatchOutcome {
   empty: boolean;
 }
 
+/**
+ * Everything a batch of comparisons needs, loaded once.
+ *
+ * Built here rather than per playlist so the whole library is read in a
+ * handful of queries and every tag weight is measured against the same corpus.
+ */
+export interface MatchingContext {
+  corpus: TagCorpus;
+  profilesById: Map<string, SongProfile>;
+  songsById: Map<string, Song>;
+  facetsBySongId: Map<string, SongFacets>;
+  keywordFacetsByPlaylistId: Map<string, PlaylistKeywordFacets>;
+}
+
+export async function buildMatchingContext(
+  playlists: Playlist[],
+  extraSongIds: string[] = [],
+): Promise<MatchingContext> {
+  const allProfiles = await getAllSongProfiles();
+  const corpus = buildTagCorpus(allProfiles);
+  const profilesById = new Map(allProfiles.map((p) => [p.songId, p]));
+
+  const needed = new Set<string>(extraSongIds);
+  for (const playlist of playlists) {
+    for (const songId of playlist.songIds) needed.add(songId);
+  }
+
+  const songs = await getSongs([...needed]);
+  const songsById = new Map(songs.map((song) => [song.id, song]));
+
+  const entries: ReadSong[] = [...needed].flatMap((songId) => {
+    const profile = profilesById.get(songId);
+    return profile ? [{ profile, song: songsById.get(songId) }] : [];
+  });
+
+  const facets = await facetsFor(entries, corpus);
+  const facetsBySongId = new Map(
+    entries.map((entry, index) => [entry.profile.songId, facets[index]]),
+  );
+
+  const keywordTexts = playlists.flatMap((playlist) => [
+    playlistStyleText(playlist),
+    playlistMoodText(playlist),
+    playlistThemeText(playlist),
+  ]);
+  const keywordVectors = await embedTexts(keywordTexts);
+  const keywordFacetsByPlaylistId = new Map(
+    playlists.map((playlist, index) => [
+      playlist.id,
+      {
+        style: keywordVectors[index * 3] ?? [],
+        moodVibe: keywordVectors[index * 3 + 1] ?? [],
+        themes: keywordVectors[index * 3 + 2] ?? [],
+      },
+    ]),
+  );
+
+  return {
+    corpus,
+    profilesById,
+    songsById,
+    facetsBySongId,
+    keywordFacetsByPlaylistId,
+  };
+}
+
+function membersOf(playlist: Playlist, context: MatchingContext): ReadSong[] {
+  return playlist.songIds.flatMap((songId) => {
+    const profile = context.profilesById.get(songId);
+    return profile ? [{ profile, song: context.songsById.get(songId) }] : [];
+  });
+}
+
+/** A candidate scoped to one song, with that song removed from the playlist. */
+export function candidateForSong(
+  playlist: Playlist,
+  songId: string,
+  context: MatchingContext,
+): PlaylistCandidate {
+  const members = membersOf(playlist, context);
+  const memberFacets = members.map(
+    (member) =>
+      context.facetsBySongId.get(member.profile.songId) ?? {
+        whole: [],
+        style: [],
+        moodVibe: [],
+        themes: [],
+        tags: new Map(),
+      },
+  );
+
+  const facets = playlistFacetsFor(
+    playlist,
+    members,
+    memberFacets,
+    context.corpus,
+    context.keywordFacetsByPlaylistId.get(playlist.id),
+    songId,
+  );
+
+  return {
+    playlistId: playlist.id,
+    vector: facets.whole,
+    facets,
+    terms: playlistTerms(playlist),
+  };
+}
+
 export async function matchSongToPlaylists(
   profile: SongProfile,
   playlists: Playlist[],
 ): Promise<MatchOutcome> {
-  const songVector = profile.semanticEmbedding ?? [];
-  const candidates = (
-    await Promise.all(
-      playlists.map((playlist) => candidateForSong(playlist, profile.songId)),
-    )
-  ).filter((candidate) => candidate.vector.length > 0);
+  const context = await buildMatchingContext(playlists, [profile.songId]);
 
-  if (songVector.length === 0 || candidates.length === 0) {
+  // The song being matched may have unsaved edits, so its facets are built
+  // from the profile passed in rather than from the copy on disk.
+  const [songFacets] = await facetsFor(
+    [{ profile, song: context.songsById.get(profile.songId) }],
+    context.corpus,
+  );
+
+  const candidates = playlists
+    .map((playlist) => candidateForSong(playlist, profile.songId, context))
+    .filter(
+      (candidate) =>
+        candidate.vector.length > 0 ||
+        (candidate.facets?.songVectors.length ?? 0) > 0,
+    );
+
+  if (!songFacets.whole.length || candidates.length === 0) {
     return { matches: [], empty: true };
   }
 
@@ -150,7 +395,7 @@ export async function matchSongToPlaylists(
   ]);
 
   return {
-    matches: rankPlaylists(songVector, songTerms, candidates, resolver),
+    matches: rankPlaylists(songFacets, songTerms, candidates, resolver),
     empty: false,
   };
 }

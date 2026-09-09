@@ -56,6 +56,11 @@ export interface SongProfile {
   measuredFields: string[];
 
   semanticEmbedding?: number[];
+  /**
+   * Recipe version `semanticEmbedding` was built with. Absent means it predates
+   * versioning and cannot be trusted to be comparable, so it is rebuilt.
+   */
+  embeddingVersion?: number;
 
   manualTags: string[];
   removedTags: string[];
@@ -91,11 +96,24 @@ export interface Playlist {
 
 export interface PlaylistMatch {
   playlistId: string;
+  /** The weighted combination of the components, in [0, 1]. Ranking sorts on it. */
   similarity: number;
   /** Normalised 0-100 display value. A Match Score, never a probability. */
   score: number;
+  /** Per-component working, so an unexpected score can be explained. */
+  components?: MatchComponent[];
   reasons: string[];
   differences: string[];
+}
+
+/** One independently calibrated part of a match score. */
+export interface MatchComponent {
+  name: string;
+  /** Raw similarity, or null when the facet could not be compared. */
+  similarity: number | null;
+  score: number | null;
+  /** Share of the final score this component carried, after renormalisation. */
+  weight: number;
 }
 
 export interface Descriptor {

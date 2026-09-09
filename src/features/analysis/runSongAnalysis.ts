@@ -1,3 +1,4 @@
+import { PROFILE_EMBEDDING_VERSION } from '../../config/embedding';
 import { saveSongProfile, upsertSong } from '../../db/repositories';
 import { fetchArtwork } from '../../services/artwork';
 import { fetchAudioFeatures, measuredFieldsFrom } from '../../services/audio';
@@ -6,6 +7,7 @@ import { fetchLyrics } from '../../services/lyrics';
 import { fetchMetadata } from '../../services/metadata';
 import { fetchCommunityTags } from '../../services/tags';
 import type { AnalysisSource, Song, SongProfile } from '../../types';
+import { profileEmbeddingText } from '../matching';
 import { getDescriptorVectors, interpretSignals, rankDescriptors, topOfGroup } from './interpretSignals';
 import type { AnalysisListener, AnalysisNotice, AnalysisStage, AnalysisState } from './types';
 
@@ -257,13 +259,21 @@ class AnalysisRun {
       acousticness: features?.acousticness,
       bpm: features?.bpm,
       measuredFields,
-      semanticEmbedding: interpretation.embedding,
       manualTags: [],
       removedTags: [],
       sources: this.sources,
       createdAt: now,
       updatedAt: now,
     };
+
+    // The vector is built from the reading, not from the raw signals that
+    // produced it, and always by the one canonical recipe. `interpretation`
+    // holds an embedding of the collected text, which is what ranks the
+    // descriptors; it is not comparable with a playlist and is not stored.
+    profile.semanticEmbedding = await embeddingService.embed(
+      profileEmbeddingText(profile),
+    );
+    profile.embeddingVersion = PROFILE_EMBEDDING_VERSION;
 
     await saveSongProfile(profile);
     this.emit({ profile });

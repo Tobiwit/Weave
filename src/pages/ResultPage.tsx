@@ -6,10 +6,11 @@ import { Artwork } from '../components/ui/Artwork';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/Notice';
 import { COPY } from '../config/app';
+import { PROFILE_EMBEDDING_VERSION } from '../config/embedding';
 import { addSongToPlaylist } from '../db/repositories';
 import { ensureLibraryVectors } from '../features/playlists/ensureVectors';
 import { matchSongToPlaylists } from '../features/playlists/playlistEngine';
-import { activeProfileTerms, profileEmbeddingText } from '../features/matching';
+import { profileEmbeddingText } from '../features/matching';
 import { moodStateFromProfile, NEUTRAL_MOOD } from '../features/mood/moodVisualState';
 import { embeddingService } from '../services/embedding';
 import { useReducedMotion } from '../hooks/useReducedMotion';
@@ -53,14 +54,16 @@ export default function ResultPage() {
     const startedAt = Date.now();
 
     try {
-      // Re-embed from the edited profile so corrections actually change matching.
+      // Re-embed from the edited profile so corrections actually change
+      // matching. The same canonical recipe every other path uses, so a song
+      // read here and a song read in the background stay comparable.
       const semanticEmbedding = await embeddingService.embed(
-        profileEmbeddingText({
-          ...profile,
-          vibes: activeProfileTerms(profile),
-        }),
+        profileEmbeddingText(profile),
       );
-      await update({ semanticEmbedding });
+      await update({
+        semanticEmbedding,
+        embeddingVersion: PROFILE_EMBEDDING_VERSION,
+      });
 
       const library = await ensureLibraryVectors();
       setPlaylists(library);

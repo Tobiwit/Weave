@@ -1,32 +1,61 @@
 import type { PlaylistMatch } from '../../types';
+import {
+  scoreComponents,
+  type PlaylistFacets,
+  type SongFacets,
+} from './components';
 import { explainMatch, type TermVectorResolver } from './explain';
 import { normalizeSimilarity } from './score';
 import { cosineSimilarity, type Vector } from './vector';
 
 export interface PlaylistCandidate {
   playlistId: string;
-  /** High-dimensional playlist vector. Never a projected coordinate. */
+  /**
+   * The blended playlist vector. Kept for playlist-to-playlist comparisons,
+   * which are one question and do not need the facet split.
+   */
   vector: Vector;
+  /** The facets a song is scored against. Absent for relation-only candidates. */
+  facets?: PlaylistFacets;
   /** Descriptors that define the playlist world, used only for explanations. */
   terms: string[];
 }
 
+/**
+ * Scores one song against one playlist.
+ *
+ * The score is a weighted combination of independently calibrated components,
+ * not one cosine. `similarity` carries that combination so ranking still sorts
+ * on a single number, and `components` carries the working, which is what
+ * makes a surprising result diagnosable.
+ */
 export function calculateSongPlaylistMatch(
-  songEmbedding: Vector,
+  song: SongFacets,
   songTerms: string[],
   candidate: PlaylistCandidate,
   resolve?: TermVectorResolver,
 ): PlaylistMatch {
-  const similarity = cosineSimilarity(songEmbedding, candidate.vector);
+  const facets: PlaylistFacets = candidate.facets ?? {
+    whole: candidate.vector,
+    songVectors: [],
+    style: [],
+    moodVibe: [],
+    themes: [],
+    tags: new Map(),
+  };
+
+  const breakdown = scoreComponents(song, facets);
   const { reasons, differences } = explainMatch(
     songTerms,
     candidate.terms,
     resolve,
   );
+
   return {
     playlistId: candidate.playlistId,
-    similarity,
-    score: normalizeSimilarity(similarity),
+    similarity: breakdown.combined,
+    score: breakdown.score,
+    components: breakdown.components,
     reasons,
     differences,
   };
@@ -34,14 +63,14 @@ export function calculateSongPlaylistMatch(
 
 /** Ranked strongest first. Ties fall back to playlist id for stable ordering. */
 export function rankPlaylists(
-  songEmbedding: Vector,
+  song: SongFacets,
   songTerms: string[],
   candidates: PlaylistCandidate[],
   resolve?: TermVectorResolver,
 ): PlaylistMatch[] {
   return candidates
     .map((candidate) =>
-      calculateSongPlaylistMatch(songEmbedding, songTerms, candidate, resolve),
+      calculateSongPlaylistMatch(song, songTerms, candidate, resolve),
     )
     .sort(
       (a, b) =>

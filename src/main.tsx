@@ -50,6 +50,20 @@ async function boot() {
     });
   }
 
+  // A console handle on the matching breakdown. Development only: the import
+  // is dynamic so none of it reaches a production bundle.
+  if (import.meta.env.DEV) {
+    void import('./features/matching/evaluate').then((module) => {
+      (window as unknown as Record<string, unknown>).weaveEvaluate = async (
+        playlist: string,
+      ) => {
+        const evaluation = await module.evaluatePlaylist(playlist);
+        console.log(module.formatEvaluation(evaluation));
+        return evaluation;
+      };
+    });
+  }
+
   const container = document.getElementById('root');
   if (!container) throw new Error('Root container missing');
 
