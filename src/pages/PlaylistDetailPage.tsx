@@ -20,7 +20,11 @@ import {
   upsertSong,
 } from '../db/repositories';
 import { nearestPlaylists } from '../features/matching';
-import { ensureLibraryVectors, ensurePlaylistVectors } from '../features/playlists/ensureVectors';
+import {
+  ensureLibraryVectors,
+  ensurePlaylistVectors,
+  rebuildPlaylistRepresentation,
+} from '../features/playlists/ensureVectors';
 import { unreadSongIds } from '../features/playlists/importPlaylist';
 import { toCandidate } from '../features/playlists/playlistEngine';
 import {
@@ -44,6 +48,7 @@ export default function PlaylistDetailPage() {
   const [missing, setMissing] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
   const [unread, setUnread] = useState<string[]>([]);
+  const [rebuilding, setRebuilding] = useState(false);
 
   useEffect(() => {
     if (!playlistId) return;
@@ -176,6 +181,32 @@ export default function PlaylistDetailPage() {
             {breadth ? ` · ${breadth.label}` : ''}
           </p>
         </div>
+      </div>
+
+      <div className="pl-detail__tools">
+        <Button
+          variant="quiet"
+          size="sm"
+          disabled={rebuilding}
+          onClick={() => {
+            setRebuilding(true);
+            void rebuildPlaylistRepresentation(playlist)
+              .catch(() => undefined)
+              .finally(() => {
+                setRebuilding(false);
+                reload();
+              });
+          }}
+        >
+          {rebuilding ? 'Reevaluating…' : 'Reevaluate'}
+        </Button>
+        <Button
+          variant="quiet"
+          size="sm"
+          onClick={() => navigate(`/playlists/${playlist.id}/representation`)}
+        >
+          Representation
+        </Button>
       </div>
 
       <section className="pl-detail__section">

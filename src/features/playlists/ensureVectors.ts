@@ -79,6 +79,43 @@ export async function ensurePlaylistVectors(playlist: Playlist): Promise<Playlis
 }
 
 /**
+ * Rebuilds a playlist's representation from scratch.
+ *
+ * What the Reevaluate button runs. Unlike the backfill it does not ask whether
+ * anything looks stale: it re-derives every member's vector from the canonical
+ * text and then recomputes the playlist's own vectors from those.
+ *
+ * That matters because plenty can change without the version moving. Editing a
+ * song's descriptors, correcting its mood, rewriting the playlist's keywords or
+ * adding songs all change what the playlist means while every stored vector
+ * still looks current. Rebuilding is cheap regardless: embeddings are cached by
+ * the exact text they came from, so anything genuinely unchanged is a lookup
+ * rather than a recomputation.
+ */
+export async function rebuildPlaylistRepresentation(
+  playlist: Playlist,
+): Promise<Playlist> {
+  const profiles = await getSongProfiles(playlist.songIds);
+
+  if (profiles.length > 0) {
+    const vectors = await embeddingService.embedMany(
+      profiles.map(profileEmbeddingText),
+    );
+    await Promise.all(
+      profiles.map((profile, index) =>
+        saveSongProfile({
+          ...profile,
+          semanticEmbedding: vectors[index],
+          embeddingVersion: PROFILE_EMBEDDING_VERSION,
+        }),
+      ),
+    );
+  }
+
+  return updatePlaylistVectors(playlist);
+}
+
+/**
  * Prepares every playlist vector in the library. Used by Universe and by the
  * match reveal, both of which need the whole space to be comparable.
  */

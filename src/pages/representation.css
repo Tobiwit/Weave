@@ -1,0 +1,316 @@
+.rep {
+  padding-bottom: var(--s-8);
+}
+
+.rep__lede {
+  max-width: 52ch;
+  margin-bottom: var(--s-5);
+  line-height: 1.55;
+  color: var(--c-text-3);
+}
+
+.rep__facts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s-3);
+  padding: var(--s-4) 0;
+  border-top: 1px solid var(--c-hairline);
+  border-bottom: 1px solid var(--c-hairline);
+}
+
+.rep__facts dd {
+  margin: 2px 0 0;
+  font-size: 0.9375rem;
+  color: var(--c-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.rep__warn {
+  color: var(--c-amber);
+}
+
+.rep__section {
+  margin-top: var(--s-7);
+}
+
+.rep__section > .u-eyebrow {
+  margin-bottom: var(--s-3);
+}
+
+.rep__note {
+  max-width: 52ch;
+  margin-bottom: var(--s-4);
+  line-height: 1.55;
+  color: var(--c-text-3);
+}
+
+/* ------------------------------- the map -------------------------------- */
+
+.pmap {
+  margin: 0;
+}
+
+.pmap__svg {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  aspect-ratio: 1;
+  overflow: visible;
+}
+
+.pmap__centre {
+  fill: var(--c-ice);
+}
+
+.pmap__thread {
+  stroke: var(--c-periwinkle);
+  stroke-width: 0.3;
+}
+
+.pmap__dot {
+  fill: var(--c-ice);
+  cursor: pointer;
+  transition:
+    r var(--d-micro) var(--e-out),
+    fill var(--d-micro) var(--e-out);
+}
+
+.pmap__dot:focus-visible {
+  outline: none;
+  fill: var(--c-cyan);
+}
+
+.pmap__dot--on {
+  fill: var(--c-cyan);
+}
+
+.pmap__caption {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 2.75rem;
+  margin-top: var(--s-3);
+  text-align: center;
+  line-height: 1.5;
+}
+
+.pmap__name {
+  font-size: 0.9375rem;
+  color: var(--c-text);
+}
+
+.rep__cohesion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  max-width: 52ch;
+  margin-top: var(--s-4);
+  line-height: 1.55;
+}
+
+.rep__cohesionLabel {
+  font-size: 0.9375rem;
+  color: var(--c-text-2);
+}
+
+/* ----------------------------- components ------------------------------- */
+
+.rep__components {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.rep__component--off {
+  opacity: 0.5;
+}
+
+.rep__componentHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.rep__componentName {
+  font-size: 0.9375rem;
+  color: var(--c-text);
+}
+
+.rep__componentWeight {
+  font-size: var(--t-meta);
+  font-variant-numeric: tabular-nums;
+  color: var(--c-text-3);
+}
+
+.rep__weightBar {
+  display: block;
+  height: 2px;
+  margin: var(--s-2) 0;
+  border-radius: var(--r-pill);
+  background: var(--c-hairline);
+  overflow: hidden;
+}
+
+.rep__weightBar span {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  background: linear-gradient(90deg, var(--c-blue), var(--c-periwinkle));
+}
+
+.rep__componentSource {
+  max-width: 52ch;
+  line-height: 1.5;
+}
+
+/* ----------------------------- vocabulary ------------------------------- */
+
+.rep__vocab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.rep__vocabRow {
+  display: grid;
+  grid-template-columns: minmax(0, 9rem) 1fr auto;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.rep__vocabTag {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--t-meta);
+  color: var(--c-text-2);
+}
+
+.rep__vocabBar {
+  display: block;
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: var(--c-hairline);
+  overflow: hidden;
+}
+
+.rep__vocabBar span {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  background: linear-gradient(90deg, var(--c-violet), var(--c-cyan));
+}
+
+.rep__vocabMeta {
+  font-variant-numeric: tabular-nums;
+  color: var(--c-text-4);
+  white-space: nowrap;
+}
+
+/* ------------------------------- tables --------------------------------- */
+
+.rep__tableWrap {
+  /* Wide content scrolls inside its own box; the page never scrolls sideways. */
+  overflow-x: auto;
+  margin: 0 calc(var(--s-4) * -1);
+  padding: 0 var(--s-4);
+  scrollbar-width: none;
+}
+
+.rep__tableWrap::-webkit-scrollbar {
+  display: none;
+}
+
+.rep__table {
+  width: 100%;
+  /* Narrow enough that the final score is reachable without swiping on a
+     phone, which is the one column nobody should have to go looking for. */
+  min-width: 21.5rem;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-variant-numeric: tabular-nums;
+}
+
+.rep__table th,
+.rep__table td {
+  padding: var(--s-2) 0 var(--s-2) var(--s-2);
+  text-align: right;
+  font-weight: 400;
+}
+
+.rep__table col.rep__colSong {
+  width: auto;
+}
+
+.rep__table col.rep__colScore {
+  width: 2.7rem;
+}
+
+.rep__table thead th {
+  font-size: var(--t-micro);
+  /* No tracking on the score headings: the columns are narrow and the extra
+     letter spacing is what pushes the last two into each other. */
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: var(--c-text-4);
+  border-bottom: 1px solid var(--c-hairline);
+}
+
+.rep__table tbody th {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-left: 0;
+  text-align: left;
+}
+
+.rep__table thead th:first-child {
+  text-align: left;
+  letter-spacing: 0.06em;
+}
+
+.rep__table tbody tr + tr th,
+.rep__table tbody tr + tr td {
+  border-top: 1px solid var(--c-hairline);
+}
+
+.rep__songTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  color: var(--c-text-2);
+}
+
+.rep__songArtist {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rep__table td {
+  font-size: 0.875rem;
+  color: var(--c-text-3);
+}
+
+.rep__final {
+  color: var(--c-text) !important;
+}
+
+.rep__na {
+  color: var(--c-text-4);
+}
+
+@media (min-width: 768px) {
+  .rep {
+    max-width: 720px;
+  }
+}
+
+[data-reduced-motion='true'] .pmap__dot {
+  transition: none;
+}

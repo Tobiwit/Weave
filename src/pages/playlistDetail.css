@@ -93,3 +93,13 @@
     max-width: 720px;
   }
 }
+
+/*
+ * Rebuilding and inspecting sit together under the hero: both act on the
+ * playlist as a whole rather than on anything in a particular section.
+ */
+.pl-detail__tools {
+  display: flex;
+  gap: var(--s-2);
+  margin-bottom: var(--s-5);
+}

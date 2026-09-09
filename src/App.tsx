@@ -12,6 +12,9 @@ const ResultPage = lazy(() => import('./pages/ResultPage'));
 const PlaylistsPage = lazy(() => import('./pages/PlaylistsPage'));
 const PlaylistNewPage = lazy(() => import('./pages/PlaylistNewPage'));
 const PlaylistDetailPage = lazy(() => import('./pages/PlaylistDetailPage'));
+const PlaylistRepresentationPage = lazy(
+  () => import('./pages/PlaylistRepresentationPage'),
+);
 const UniversePage = lazy(() => import('./pages/UniversePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const SpotifyCallbackPage = lazy(() => import('./pages/SpotifyCallbackPage'));
@@ -35,6 +38,10 @@ const router = createBrowserRouter([
       { path: 'playlists', element: withSuspense(<PlaylistsPage />) },
       { path: 'playlists/new', element: withSuspense(<PlaylistNewPage />) },
       { path: 'playlists/:playlistId', element: withSuspense(<PlaylistDetailPage />) },
+      {
+        path: 'playlists/:playlistId/representation',
+        element: withSuspense(<PlaylistRepresentationPage />),
+      },
       { path: 'universe', element: withSuspense(<UniversePage />) },
       { path: 'settings', element: withSuspense(<SettingsPage />) },
       { path: 'spotify-callback', element: withSuspense(<SpotifyCallbackPage />) },
