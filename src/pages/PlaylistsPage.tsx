@@ -6,7 +6,7 @@ import { PlaylistMaterial } from '../components/playlist/PlaylistMaterial';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/Notice';
 import { COPY } from '../config/app';
-import { getAllPlaylists } from '../db/repositories';
+import { deletePlaylist, getAllPlaylists } from '../db/repositories';
 import { rebuildLibraryRepresentation } from '../features/playlists/ensureVectors';
 import { NEUTRAL_MOOD } from '../features/mood/moodVisualState';
 import { ImportButton, ImportPanel } from './playlists/ImportPanel';
@@ -17,6 +17,8 @@ export default function PlaylistsPage() {
   const navigate = useNavigate();
   const [importing, setImporting] = useState(false);
   const [, setRecalcToken] = useState(0);
+  const [managing, setManaging] = useState(false);
+  const [confirming, setConfirming] = useState<string | null>(null);
 
   // Calmer than Analyze: the material stays well back on this screen.
   const mood = useMemo(() => ({ ...NEUTRAL_MOOD, density: 0.3, motion: 0.18 }), []);
@@ -27,6 +29,18 @@ export default function PlaylistsPage() {
       <div className="playlists__head">
         <h1 className="u-title">{COPY.playlistsHeading}</h1>
         <div className="playlists__actions">
+          {playlists.length > 0 && (
+            <Button
+              variant="quiet"
+              size="sm"
+              onClick={() => {
+                setManaging((value) => !value);
+                setConfirming(null);
+              }}
+            >
+              {managing ? 'Done' : 'Manage'}
+            </Button>
+          )}
           <ImportButton onClick={() => setImporting(true)} />
           <Button variant="quiet" size="sm" onClick={() => navigate('/playlists/new')}>
             + New
@@ -53,18 +67,58 @@ export default function PlaylistsPage() {
               className="u-rise"
               style={{ '--rise-delay': `${index * 50}ms` } as CSSProperties}
             >
-              <Link to={`/playlists/${playlist.id}`} className="pl-row">
-                <PlaylistMaterial playlist={playlist} size={62} />
-                <span className="pl-row__text">
-                  <span className="pl-row__name">{playlist.name}</span>
-                  <span className="pl-row__desc u-meta">
-                    {playlist.keywords.slice(0, 4).join(' · ')}
+              <div className="pl-row__wrap">
+                <Link to={`/playlists/${playlist.id}`} className="pl-row">
+                  <PlaylistMaterial playlist={playlist} size={62} />
+                  <span className="pl-row__text">
+                    <span className="pl-row__name">{playlist.name}</span>
+                    <span className="pl-row__desc u-meta">
+                      {playlist.keywords.slice(0, 4).join(' · ')}
+                    </span>
                   </span>
-                </span>
-                <span className="pl-row__count u-meta">
-                  {playlist.songIds.length}
-                </span>
-              </Link>
+                  {!managing && (
+                    <span className="pl-row__count u-meta">
+                      {playlist.songIds.length}
+                    </span>
+                  )}
+                </Link>
+
+                {managing && (
+                  <span className="pl-row__manage">
+                    {confirming === playlist.id ? (
+                      <>
+                        <button
+                          type="button"
+                          className="pl-row__delete pl-row__delete--armed"
+                          onClick={() => {
+                            void deletePlaylist(playlist.id).then(() =>
+                              setConfirming(null),
+                            );
+                          }}
+                        >
+                          Delete
+                        </button>
+                        <button
+                          type="button"
+                          className="pl-row__delete"
+                          onClick={() => setConfirming(null)}
+                        >
+                          Keep
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        className="pl-row__delete"
+                        onClick={() => setConfirming(playlist.id)}
+                        aria-label={`Delete ${playlist.name}`}
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </span>
+                )}
+              </div>
             </li>
           ))}
         </ul>

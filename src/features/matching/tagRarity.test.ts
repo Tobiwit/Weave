@@ -169,7 +169,7 @@ function playlist(id: string, songIds: string[], keywords: string[] = []): Playl
 }
 
 describe('buildLibraryCorpus', () => {
-  it('counts playlists carrying a term, not songs', () => {
+  it('counts how much of each playlist carries a term, not just whether it does', () => {
     const profiles = [
       profile('a', ['indie pop']),
       profile('b', ['indie pop']),
@@ -180,19 +180,34 @@ describe('buildLibraryCorpus', () => {
       playlist('p2', ['c']),
     ]);
     expect(corpus.playlistCount).toBe(2);
-    expect(corpus.playlistFrequency.get('indie pop')).toBe(1);
-    expect(corpus.playlistFrequency.get('rock')).toBe(1);
+    expect(corpus.playlistShare.get('indie pop')).toBe(1);
+    expect(corpus.playlistShare.get('rock')).toBe(1);
   });
 
   it('counts the words a playlist was written with too', () => {
     const corpus = buildLibraryCorpus([], [playlist('p1', [], ['dreamy'])]);
-    expect(corpus.playlistFrequency.get('dreamy')).toBe(1);
+    expect(corpus.playlistShare.get('dreamy')).toBe(1);
   });
 
   it('counts descriptors, not only community tags', () => {
     const withVibes: SongProfile = { ...profile('a', []), vibes: ['Glossy'] };
     const corpus = buildLibraryCorpus([withVibes], [playlist('p1', ['a'])]);
-    expect(corpus.playlistFrequency.get('glossy')).toBe(1);
+    expect(corpus.playlistShare.get('glossy')).toBe(1);
+  });
+
+  it('lets one outlier song count for a fraction, not for the whole playlist', () => {
+    // Nine songs of indie pop and one of shoegaze. Counting presence alone
+    // would mark the playlist as a shoegaze playlist just as firmly as an
+    // indie pop one, which is what pushed every term towards ubiquity.
+    const profiles = [
+      ...Array.from({ length: 9 }, (_, i) => profile(`s${i}`, ['indie pop'])),
+      profile('odd', ['shoegaze']),
+    ];
+    const ids = profiles.map((entry) => entry.songId);
+    const corpus = buildLibraryCorpus(profiles, [playlist('p1', ids)]);
+
+    expect(corpus.playlistShare.get('indie pop')).toBeCloseTo(0.9, 5);
+    expect(corpus.playlistShare.get('shoegaze')).toBeCloseTo(0.1, 5);
   });
 });
 
@@ -218,6 +233,24 @@ describe('discriminationWeight', () => {
     expect(discriminationWeight('rock', corpus)).toBeGreaterThan(
       discriminationWeight('indie pop', corpus),
     );
+  });
+
+  it('drives a word carried by every playlist down to nothing', () => {
+    // The failure this replaces: a word on all nine playlists still scored a
+    // full 1.0, so being everywhere cost it nothing and it outranked the
+    // words that actually told the playlists apart.
+    const profiles = Array.from({ length: 9 }, (_, i) =>
+      profile(`s${i}`, ['feminine', ...(i === 0 ? ['shoegaze'] : [])]),
+    );
+    const corpus = buildLibraryCorpus(
+      profiles,
+      profiles.map((entry, i) => playlist(`p${i}`, [entry.songId])),
+    );
+
+    expect(discriminationWeight('feminine', corpus)).toBe(
+      MATCHING_CONFIG.tagRarity.minWeight,
+    );
+    expect(discriminationWeight('shoegaze', corpus)).toBeGreaterThan(1);
   });
 
   it('falls back to counting songs when there are too few playlists', () => {

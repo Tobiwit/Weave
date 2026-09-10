@@ -53,6 +53,7 @@ export default function PlaylistDetailPage() {
   const [rebuilding, setRebuilding] = useState(false);
   const [rebuilt, setRebuilt] = useState<RebuildReport | null>(null);
   const [corpus, setCorpus] = useState<TagCorpus | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   useEffect(() => {
     if (!playlistId) return;
@@ -166,6 +167,13 @@ export default function PlaylistDetailPage() {
   };
 
   const remove = async () => {
+    // Deleting is not undoable from here, and the button sits one tap from
+    // "Done". Asking once is cheap; losing a playlist you spent an evening
+    // describing is not.
+    if (!confirmingDelete) {
+      setConfirmingDelete(true);
+      return;
+    }
     await deletePlaylist(playlist.id);
     navigate('/playlists', { replace: true });
   };
@@ -326,9 +334,23 @@ export default function PlaylistDetailPage() {
 
       {editing && (
         <div className="pl-detail__danger">
-          <Button variant="ghost" size="sm" onClick={remove}>
-            Delete playlist
+          <Button
+            variant="ghost"
+            size="sm"
+            className={confirmingDelete ? 'pl-detail__confirm' : undefined}
+            onClick={remove}
+          >
+            {confirmingDelete ? 'Really delete it?' : 'Delete playlist'}
           </Button>
+          {confirmingDelete && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setConfirmingDelete(false)}
+            >
+              Keep it
+            </Button>
+          )}
         </div>
       )}
     </div>

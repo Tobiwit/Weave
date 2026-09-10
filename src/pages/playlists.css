@@ -232,3 +232,49 @@
   line-height: 1.5;
   color: var(--c-text-3);
 }
+
+/*
+ * Manage mode. The row keeps its link and grows an action beside it rather
+ * than becoming a different row, so nothing shifts when the mode turns on.
+ */
+.pl-row__wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.pl-row__wrap .pl-row {
+  flex: 1;
+  min-width: 0;
+}
+
+.pl-row__manage {
+  display: flex;
+  flex: none;
+  gap: var(--s-1);
+}
+
+.pl-row__delete {
+  appearance: none;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-pill);
+  font-size: var(--t-meta);
+  color: var(--c-text-3);
+  transition: color var(--d-micro) var(--e-out);
+}
+
+.pl-row__delete:hover {
+  color: var(--c-text);
+}
+
+/* Armed, not decorative: this is the tap that actually destroys something. */
+.pl-row__delete--armed {
+  color: var(--c-amber);
+}
+
+.pl-detail__confirm {
+  color: var(--c-amber);
+}

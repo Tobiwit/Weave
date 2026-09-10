@@ -108,7 +108,13 @@ export const MATCHING_CONFIG = {
    * typo'd tag would outweigh every real signal in the comparison.
    */
   tagRarity: {
-    minWeight: 0.3,
+    /**
+     * Low enough to say "this word is worth nothing here". A word on every
+     * playlist genuinely carries no information about which one something
+     * belongs to, and a floor that cannot express that is what made common
+     * words outrank distinctive ones.
+     */
+    minWeight: 0.05,
     maxWeight: 3,
     /** Below this many read songs, rarity cannot be told from coincidence. */
     minCorpusSize: 12,

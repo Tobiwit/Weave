@@ -28,10 +28,17 @@ export interface TagCorpus {
   /** Playlists the corpus spans. Zero when it was built from songs alone. */
   playlistCount: number;
   /**
-   * Lowercased term to the number of playlists carrying it, counting community
-   * tags, descriptors and the words the playlist was written with alike.
+   * Lowercased term to how much of the library carries it, counting community
+   * tags, descriptors and the words a playlist was written with alike.
+   *
+   * A soft count, not a headcount. Each playlist contributes the share of its
+   * songs that carry the term rather than a flat one, because in a playlist of
+   * fifty songs a single outlier would otherwise mark the whole playlist as
+   * carrying the word and push almost every term towards being ubiquitous. A
+   * word in the playlist's own keywords counts as a full one: that is the
+   * playlist saying so itself.
    */
-  playlistFrequency: Map<string, number>;
+  playlistShare: Map<string, number>;
 }
 
 export function normalizeTag(tag: string): string {
@@ -68,7 +75,7 @@ export function buildTagCorpus(profiles: SongProfile[]): TagCorpus {
     documentCount,
     documentFrequency,
     playlistCount: 0,
-    playlistFrequency: new Map(),
+    playlistShare: new Map(),
   };
 }
 
@@ -93,40 +100,64 @@ export function buildLibraryCorpus(
   const corpus = buildTagCorpus(profiles);
   const byId = new Map(profiles.map((profile) => [profile.songId, profile]));
 
-  const playlistFrequency = new Map<string, number>();
+  const playlistShare = new Map<string, number>();
   let playlistCount = 0;
 
   for (const playlist of playlists) {
-    const terms = new Set<string>();
-    for (const keyword of playlist.keywords) {
-      const key = normalizeTag(keyword);
-      if (key) terms.add(key);
-    }
+    // How many of this playlist's read songs carry each term.
+    const songsWith = new Map<string, number>();
+    let read = 0;
+
     for (const songId of playlist.songIds) {
       const profile = byId.get(songId);
       if (!profile) continue;
-      for (const term of songTerms(profile)) {
-        const key = normalizeTag(term);
-        if (key) terms.add(key);
+      read += 1;
+      for (const term of new Set(songTerms(profile).map(normalizeTag))) {
+        if (term) songsWith.set(term, (songsWith.get(term) ?? 0) + 1);
       }
     }
 
-    if (terms.size === 0) continue;
+    const shares = new Map<string, number>();
+    for (const [term, count] of songsWith) {
+      if (read > 0) shares.set(term, count / read);
+    }
+    // The playlist's own words are a statement about the whole playlist, so
+    // they count in full however few of its songs happen to echo them.
+    for (const keyword of playlist.keywords) {
+      const key = normalizeTag(keyword);
+      if (key) shares.set(key, 1);
+    }
+
+    if (shares.size === 0) continue;
     playlistCount += 1;
-    for (const term of terms) {
-      playlistFrequency.set(term, (playlistFrequency.get(term) ?? 0) + 1);
+    for (const [term, share] of shares) {
+      playlistShare.set(term, (playlistShare.get(term) ?? 0) + share);
     }
   }
 
-  return { ...corpus, playlistCount, playlistFrequency };
+  return { ...corpus, playlistCount, playlistShare };
 }
 
+/**
+ * Inverse document frequency, smoothed and clamped.
+ *
+ * Deliberately without the constant that a lot of implementations add. That
+ * constant puts a floor of one under every weight, which means a word carried
+ * by every playlist in the library still counts as much as an average one, and
+ * no amount of ubiquity can push it down. Combined with a term frequency that
+ * reaches one for a word on every song, the effect was that the most useless
+ * words in the library always won: "feminine" on nine playlists out of nine
+ * scored 0.90 while a genuinely distinctive word scored 0.16.
+ *
+ * Without it the weight falls to zero as a word approaches being everywhere,
+ * which is what makes a common word cheap and a rare one expensive.
+ */
 function clampedIdf(
   frequency: number,
   total: number,
   config = MATCHING_CONFIG.tagRarity,
 ): number {
-  const idf = Math.log((total + 1) / (frequency + 1)) + 1;
+  const idf = Math.log((total + 1) / (frequency + 1));
   return Math.min(config.maxWeight, Math.max(config.minWeight, idf));
 }
 
@@ -146,7 +177,7 @@ export function discriminationWeight(
   const key = normalizeTag(term);
 
   if (corpus.playlistCount >= config.minPlaylists) {
-    return clampedIdf(corpus.playlistFrequency.get(key) ?? 0, corpus.playlistCount, config);
+    return clampedIdf(corpus.playlistShare.get(key) ?? 0, corpus.playlistCount, config);
   }
   if (corpus.documentCount < config.minCorpusSize) return 1;
   return clampedIdf(corpus.documentFrequency.get(key) ?? 0, corpus.documentCount, config);

@@ -106,18 +106,38 @@ export function coreQualities(
   }
 
   const songs = Math.max(1, profiles.length);
+  // One song is an detail of that song, not a quality of the playlist. Small
+  // playlists are exempt: with three songs there is nothing else to go on.
+  const floor = profiles.length >= 4 ? 2 : 1;
 
-  return [...counts.entries()]
+  const ranked = [...counts.entries()]
+    .filter(([, { count }]) => count >= floor)
     .map(([key, { label, count }]) => ({
       label,
       score: corpus
         ? (count / songs) * discriminationWeight(key, corpus)
         : count,
     }))
-    .sort((a, b) => b.score - a.score || a.label.localeCompare(b.label))
+    .sort((a, b) => b.score - a.score || a.label.localeCompare(b.label));
+
+  if (!corpus) return ranked.slice(0, limit).map((entry) => entry.label);
+
+  // A word carried by most of the library says something about your taste, not
+  // about this playlist, and listing it here is worse than listing nothing: it
+  // fills every playlist with the same five words and buries the one that
+  // actually distinguishes them. So the list is cut relative to its own best,
+  // and is allowed to be short when a playlist genuinely has little that sets
+  // it apart.
+  const best = ranked[0]?.score ?? 0;
+  const cut = ranked.filter((entry) => entry.score >= best * RELATIVE_FLOOR);
+
+  return (cut.length > 0 ? cut : ranked.slice(0, 1))
     .slice(0, limit)
     .map((entry) => entry.label);
 }
+
+/** How far below the most distinctive quality a word may sit and still count. */
+const RELATIVE_FLOOR = 0.25;
 
 /** Descriptors shared by two playlists, and what pulls each way. */
 export function comparePlaylists(
