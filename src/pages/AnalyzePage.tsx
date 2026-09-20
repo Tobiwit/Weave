@@ -104,7 +104,13 @@ export default function AnalyzePage() {
       ) : (
         recents.length > 0 && (
           <section className="analyze__list u-rise" aria-label="Recent songs">
-            <p className="u-eyebrow analyze__eyebrow">Recently</p>
+            <div className="analyze__listHead">
+              <p className="u-eyebrow analyze__eyebrow">Recently</p>
+              {/* Recents re-open the analysis. The breakdowns live elsewhere. */}
+              <Link to="/songs" className="u-eyebrow analyze__all">
+                Breakdowns
+              </Link>
+            </div>
             <ul>
               {recents.map((song) => (
                 <li key={song.id}>

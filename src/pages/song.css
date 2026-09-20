@@ -1,0 +1,293 @@
+/*
+ * The breakdown's page frame.
+ *
+ * Composed as a column of very few things with a great deal of air between
+ * them: identity, the chart, four lines, two lines. Everything else on the
+ * screen is reachable and none of it is present until it is asked for.
+ */
+
+.song {
+  /*
+   * A different face from the rest of the app, for one reason: weight. The
+   * shared stack resolves to Arial on most desktops, which has no light cut, so
+   * a 200 asks for a thin and gets a regular. Preferring the platform UI face
+   * first gets the real thing — SF Pro's thin on Apple, Segoe UI Light on
+   * Windows — which is what lets this screen be quiet.
+   */
+  --font-thin:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter Tight', 'Segoe UI',
+    Roboto, system-ui, sans-serif;
+
+  font-family: var(--font-thin);
+  padding-top: calc(var(--sat) + var(--s-5));
+  padding-bottom: calc(var(--sab) + var(--s-10));
+}
+
+/* The editorial spine belongs to the pages that argue in print. This one has
+   no rules on it at all. */
+.song::before {
+  display: none;
+}
+
+/* ------------------------------- Identity -------------------------------- */
+
+.song__head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin-bottom: var(--s-9);
+}
+
+.song__back {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  margin-left: -9px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--c-text-3);
+  cursor: pointer;
+  transition:
+    background-color var(--d-ui) var(--e-out),
+    color var(--d-ui) var(--e-out);
+}
+
+.song__back:hover {
+  color: var(--c-text);
+  background: color-mix(in oklab, var(--c-text) 7%, transparent);
+}
+
+.song__head .art {
+  flex: none;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.song__identity {
+  min-width: 0;
+}
+
+.song__title {
+  font-size: 0.9375rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  color: var(--c-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.song__artist {
+  font-size: 0.8125rem;
+  font-weight: 300;
+  line-height: 1.3;
+  color: var(--c-text-4);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ------------------------------- The Weave ------------------------------- */
+
+.song__weave {
+  margin-bottom: var(--s-10);
+}
+
+.song__weaveHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-4);
+  margin-bottom: var(--s-6);
+}
+
+/*
+ * The one loud thing. Set as light as the face will go and as large as the
+ * measure allows, because dominance here is a matter of size and air, not of
+ * weight or colour.
+ */
+.song__display {
+  font-size: clamp(2.5rem, 13vw, 4.25rem);
+  font-weight: 200;
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+  color: var(--c-text);
+}
+
+.song__values {
+  flex: none;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--c-text) 5%, transparent);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--c-text-4);
+  cursor: pointer;
+  transition:
+    background-color var(--d-ui) var(--e-out),
+    color var(--d-ui) var(--e-out);
+}
+
+.song__values[aria-pressed='true'],
+.song__values:hover {
+  background: color-mix(in oklab, var(--c-text) 10%, transparent);
+  color: var(--c-text-2);
+}
+
+.song__hint {
+  margin-top: var(--s-4);
+  font-size: 0.75rem;
+  font-weight: 300;
+  letter-spacing: 0.01em;
+  color: var(--c-text-4);
+}
+
+/* -------------------------------- Groups --------------------------------- */
+
+.song__groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-bottom: var(--s-9);
+}
+
+/* -------------------------------- Folds ---------------------------------- */
+
+.song__folds {
+  margin-bottom: var(--s-8);
+}
+
+/*
+ * The fingerprint editor arrives from the results screen with its own, harder
+ * voice. It is not rebuilt here — only quietened, so it sits inside a fold
+ * without shouting over the rest of the page.
+ */
+.song .fp {
+  gap: var(--s-6);
+}
+
+.song .fp__moodWord,
+.song .facet__reading,
+.song .facet__word {
+  font-weight: 300;
+}
+
+.song .fp__moodLabel,
+.song .facet__label {
+  color: var(--c-text-4);
+}
+
+.song__foot {
+  display: flex;
+  justify-content: flex-start;
+}
+
+@media (min-width: 720px) {
+  .song__weave {
+    margin-bottom: var(--s-10);
+  }
+
+  .song__hint {
+    font-size: 0.8125rem;
+  }
+}
+
+/* ------------------------------ The index -------------------------------- */
+
+.songs__title {
+  margin-bottom: var(--s-2);
+}
+
+.songs__count {
+  margin: 0 0 var(--s-9);
+}
+
+.songs__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-5);
+}
+
+.songs__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.srow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  padding: 10px 14px 10px 10px;
+  border-radius: 18px;
+  transition: background-color var(--d-ui) var(--e-out);
+}
+
+.srow:hover {
+  background: color-mix(in oklab, var(--c-text) 5%, transparent);
+}
+
+.srow .art {
+  flex: none;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.srow__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.srow__title {
+  font-size: 0.9375rem;
+  font-weight: 350;
+  letter-spacing: -0.01em;
+  color: var(--c-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.srow__meta {
+  font-size: 0.75rem;
+  font-weight: 300;
+  color: var(--c-text-4);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The smallest possible weave: eight dots, lit where a scale has been placed. */
+.srow__weave {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 3px;
+}
+
+.srow__dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--c-text);
+  opacity: 0.12;
+  transition:
+    background-color 420ms var(--e-out),
+    opacity 420ms var(--e-out);
+}
+
+.srow__dot--on {
+  background: var(--axis);
+  opacity: 0.95;
+}

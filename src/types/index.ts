@@ -1,3 +1,5 @@
+import type { AxisId } from '../features/song/axes';
+
 export interface Song {
   id: string;
   title: string;
@@ -64,6 +66,15 @@ export interface SongProfile {
 
   manualTags: string[];
   removedTags: string[];
+
+  /**
+   * Hand-placed positions on the Weave's eight scales, keyed by axis id.
+   *
+   * Written only from the breakdown screen. An absent key means nobody has
+   * placed that axis, which is why this is partial rather than a filled record
+   * of centres: analysis must never be able to forge an opinion here.
+   */
+  axes?: Partial<Record<AxisId, number>>;
 
   sources: AnalysisSource[];
 

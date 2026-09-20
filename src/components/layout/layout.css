@@ -32,24 +32,27 @@
   padding-bottom: var(--sab);
 }
 
-/* The route wrapper is a column so full-height scenes can claim the viewport
-   while ordinary pages still grow past it and scroll. */
 .shell__page {
   display: flex;
   flex-direction: column;
   min-height: 100%;
   min-width: 0;
-  animation: page-enter 420ms var(--e-out) both;
+  animation: page-enter 520ms var(--e-inout) both;
 }
 
+/*
+ * A route arrives by being uncovered, not by sliding in. The wipe is the same
+ * gesture the observer layer uses when it draws a region, so navigation reads
+ * as part of the same machine.
+ */
 @keyframes page-enter {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    clip-path: inset(0 0 100% 0);
   }
   to {
     opacity: 1;
-    transform: none;
+    clip-path: inset(0 0 0 0);
   }
 }
 
@@ -59,30 +62,43 @@
   }
 }
 
-/* Page content sits inside the safe area and clears the floating navigation. */
+/*
+ * The page is a two-column measure on wide screens: a narrow left margin that
+ * carries machine labels and rules, and the text column offset from it. On a
+ * phone the margin collapses and only the offset survives.
+ */
 .page {
   position: relative;
   min-height: 100%;
-  /*
-    An explicit width is load-bearing: without it this stretched flex item
-    cannot shrink below the min-content width of its own contents, and a single
-    line of nowrap text would push the whole page wider than the viewport.
-  */
   width: 100%;
-  /*
-    The navigation is a sibling flex item, not an overlay, so it already has its
-    own space. Reserving its height here too cost every screen ~100px of dead
-    room at the bottom and pushed primary actions off the fold.
-  */
-  padding: calc(var(--sat) + var(--s-6)) calc(var(--gutter) + var(--sar))
-    calc(var(--sab) + var(--s-6)) calc(var(--gutter) + var(--sal));
-  margin: 0 auto;
+  padding: calc(var(--sat) + var(--s-7)) calc(var(--gutter) + var(--sar))
+    calc(var(--sab) + var(--s-8)) calc(var(--gutter) + var(--sal));
+  margin: 0;
   max-width: var(--content-max);
+  flex: 1;
+}
+
+/* A hairline down the left edge: the page has a spine, not a frame. */
+.page::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--gutter) + var(--sal) - var(--s-3));
+  top: 0;
+  bottom: 0;
+  width: var(--hair);
+  background: var(--c-hairline);
+  opacity: 0.55;
+  pointer-events: none;
 }
 
 .page--flush {
   padding-left: 0;
   padding-right: 0;
+}
+
+.page--flush::before,
+.page--full::before {
+  display: none;
 }
 
 .page--full {
@@ -92,8 +108,12 @@
   min-height: 0;
 }
 
-.page {
-  flex: 1;
+@media (min-width: 900px) {
+  .page {
+    /* Deliberately off-centre. A centred column reads as a document template;
+       an offset one reads as a composition. */
+    margin-left: clamp(0px, 8vw, 140px);
+  }
 }
 
 /* ------------------------------- Nav ------------------------------------ */
@@ -102,83 +122,109 @@
   position: relative;
   z-index: 2;
   flex: none;
-  padding: 0 calc(var(--gutter) + var(--sar)) calc(var(--s-3) + var(--sab))
-    calc(var(--gutter) + var(--sal));
+  padding: 0;
   pointer-events: none;
+  border-top: var(--hair) solid var(--c-hairline);
+  background: var(--c-void);
 }
 
 .nav__inner {
   pointer-events: auto;
   display: flex;
   align-items: stretch;
-  gap: var(--s-1);
-  max-width: 420px;
-  margin: 0 auto;
-  padding: var(--s-1);
-  border-radius: var(--r-pill);
-  background: rgba(13, 16, 32, 0.72);
-  border: 1px solid var(--c-hairline);
-  backdrop-filter: blur(22px) saturate(1.4);
-  -webkit-backdrop-filter: blur(22px) saturate(1.4);
-  box-shadow: 0 20px 46px -22px rgba(0, 0, 0, 0.95);
+  gap: 0;
+  max-width: none;
+  margin: 0;
+  padding: 0 0 var(--sab);
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
 }
 
+/*
+ * Tabs divided by rules, like channels on a mixing desk. The active one is
+ * marked by a bar at the top edge rather than by a filled shape.
+ */
 .nav__item {
+  position: relative;
   flex: 1;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  min-height: 50px;
-  border-radius: var(--r-pill);
-  color: var(--c-text-3);
-  transition: color var(--d-micro) var(--e-out),
-    background-color var(--d-micro) var(--e-out);
+  gap: var(--s-2);
+  min-height: var(--nav-h);
+  border-radius: 0;
+  color: var(--c-text-4);
+  transition: color var(--d-micro) var(--e-out);
+}
+
+.nav__item + .nav__item {
+  border-left: var(--hair) solid var(--c-hairline);
+}
+
+.nav__item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--c-signal);
+  transform: scaleX(0);
+  transition: transform var(--d-ui) var(--e-out);
 }
 
 .nav__item--active {
   color: var(--c-text);
-  background: rgba(255, 255, 255, 0.08);
+  background: none;
+}
+
+.nav__item--active::before {
+  transform: scaleX(1);
 }
 
 .nav__icon {
   display: flex;
+  opacity: 0.85;
 }
 
 .nav__label {
-  font-size: 0.6875rem;
-  letter-spacing: 0.02em;
+  font-family: var(--font-mono);
+  font-size: var(--t-nano);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
 }
 
 /* ---------------------------- Page header ------------------------------- */
 
 .page-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--s-3);
-  margin-bottom: var(--s-6);
+  margin-bottom: var(--s-7);
 }
 
 .page-head__back {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   flex: none;
-  margin-left: -8px;
+  margin-left: -6px;
   border: 0;
-  border-radius: var(--r-pill);
+  border-radius: 0;
   background: transparent;
-  color: var(--c-text-2);
+  color: var(--c-text-4);
   cursor: pointer;
-  transition: background-color var(--d-micro) var(--e-out);
+  transition: color var(--d-micro) var(--e-out);
 }
 
 .page-head__back:hover {
-  background: rgba(255, 255, 255, 0.07);
-  color: var(--c-text);
+  background: none;
+  color: var(--c-signal);
 }
 
 .page-head__title {
@@ -195,18 +241,15 @@
 }
 
 .brand__name {
-  font-size: var(--t-meta);
-  letter-spacing: 0.14em;
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: var(--c-text-3);
+  color: var(--c-text-4);
 }
 
 @media (min-width: 900px) {
-  .nav {
-    padding-bottom: var(--s-5);
-  }
-
-  .nav__inner {
-    max-width: 460px;
+  .nav__item {
+    min-height: 58px;
   }
 }

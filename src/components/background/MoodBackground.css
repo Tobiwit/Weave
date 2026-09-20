@@ -7,42 +7,43 @@
 }
 
 /*
-  Rendered at roughly a fifth of display size and scaled back up under a heavy
-  blur. Everything drawn is a soft radial light, so the blur is the intended
-  finish rather than a way to hide the upscale.
-*/
+ * Line work, so it is drawn close to display resolution and not blurred. The
+ * previous field was soft light behind a 46px blur; that finish is gone along
+ * with the palette that needed it.
+ */
 .mood-bg__canvas {
   position: absolute;
-  inset: -12%;
-  width: 124%;
-  height: 124%;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   display: block;
-  filter: blur(46px);
+  filter: none;
+  opacity: 0.9;
 }
 
-/* Fine grain, purely to stop wide gradients banding on OLED panels. */
+/* Grain, kept. It stops the darkest areas banding and adds a printed tooth. */
 .mood-bg__grain {
   position: absolute;
   inset: -20%;
-  opacity: 0.055;
+  opacity: 0.09;
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size: 160px 160px;
 }
 
+/*
+ * A flat top-and-bottom falloff rather than a coloured vignette, so the
+ * contour field reads as continuing past the edges of the screen instead of
+ * being lit from the middle.
+ */
 .mood-bg__vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-      125% 95% at 50% 38%,
-      transparent 34%,
-      oklch(0.06 0.03 272 / 0.72) 100%
-    ),
-    linear-gradient(
-      180deg,
-      oklch(0.06 0.03 272 / 0.55) 0%,
-      transparent 20%,
-      transparent 60%,
-      oklch(0.06 0.03 272 / 0.7) 100%
-    );
+  background: linear-gradient(
+    180deg,
+    var(--c-void) 0%,
+    transparent 16%,
+    transparent 74%,
+    var(--c-void) 100%
+  );
 }

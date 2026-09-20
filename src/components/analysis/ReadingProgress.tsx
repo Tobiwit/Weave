@@ -5,7 +5,9 @@ import {
   stopReading,
 } from '../../features/analysis/readingQueue';
 import { useReadingQueue } from '../../hooks/useReadingQueue';
+import type { Reading } from '../../features/observer/scanEnvelope';
 import { Button } from '../ui/Button';
+import { MachineScan } from '../observer/MachineScan';
 import './reading.css';
 
 /**
@@ -96,8 +98,27 @@ export function ReadingProgress({ unreadIds, onFinished }: Props) {
         ? `${queue.current.title} — ${queue.current.artist}`
         : 'Reading…';
 
+  const readings: Reading[] = [
+    {
+      key: 'QUEUE',
+      value: `${read} / ${total}`,
+      tier: 0,
+    },
+  ];
+
   return (
     <div className="reading reading--active">
+      {/*
+        There is content in this panel, so the scan only marks its edge. The
+        readout would have to sit on top of the progress to be seen, which is
+        exactly what this layer is not allowed to do.
+      */}
+      <MachineScan
+        active={!queue.paused && !queue.waitingForNetwork}
+        label={label}
+        readings={readings}
+        mode="mark"
+      />
       <div
         className="reading__bar"
         role="progressbar"

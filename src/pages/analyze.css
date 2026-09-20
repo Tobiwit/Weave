@@ -48,6 +48,23 @@
   margin: var(--s-4) 0 var(--s-2) var(--s-2);
 }
 
+.analyze__listHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-4);
+}
+
+.analyze__all {
+  margin: var(--s-4) var(--s-2) var(--s-2) 0;
+  color: var(--c-text-3);
+  transition: color var(--d-ui) var(--e-out);
+}
+
+.analyze__all:hover {
+  color: var(--c-text);
+}
+
 .analyze__notice {
   margin-bottom: var(--s-4);
 }

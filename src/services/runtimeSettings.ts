@@ -3,23 +3,30 @@ import type { EmbeddingMode } from './embedding';
 
 export type ProviderMode = 'auto' | 'mock';
 
+/** How much of its own working the machine shows while it computes. */
+export type ObserverIntensity = 'off' | 'subtle' | 'full';
+
 export interface RuntimeSettings {
   /** `auto` uses live providers where configured; `mock` never leaves the device. */
   providerMode: ProviderMode;
   embeddingMode: EmbeddingMode;
   reducedMotionOverride: boolean;
+  /** How much of the observer layer is allowed on screen. */
+  observerIntensity: ObserverIntensity;
 }
 
 const DEFAULTS: RuntimeSettings = {
   providerMode: 'auto',
   embeddingMode: 'auto',
   reducedMotionOverride: false,
+  observerIntensity: 'full',
 };
 
 const KEYS = {
   providerMode: 'providers.mode',
   embeddingMode: 'embedding.mode',
   reducedMotionOverride: 'a11y.reduceMotion',
+  observerIntensity: 'observer.intensity',
 } as const;
 
 let current: RuntimeSettings = { ...DEFAULTS };
@@ -37,12 +44,25 @@ export function subscribeToSettings(
 }
 
 export async function loadRuntimeSettings(): Promise<RuntimeSettings> {
-  const [providerMode, embeddingMode, reducedMotionOverride] = await Promise.all([
-    readSetting<ProviderMode>(KEYS.providerMode, DEFAULTS.providerMode),
-    readSetting<EmbeddingMode>(KEYS.embeddingMode, DEFAULTS.embeddingMode),
-    readSetting<boolean>(KEYS.reducedMotionOverride, DEFAULTS.reducedMotionOverride),
-  ]);
-  current = { providerMode, embeddingMode, reducedMotionOverride };
+  const [providerMode, embeddingMode, reducedMotionOverride, observerIntensity] =
+    await Promise.all([
+      readSetting<ProviderMode>(KEYS.providerMode, DEFAULTS.providerMode),
+      readSetting<EmbeddingMode>(KEYS.embeddingMode, DEFAULTS.embeddingMode),
+      readSetting<boolean>(
+        KEYS.reducedMotionOverride,
+        DEFAULTS.reducedMotionOverride,
+      ),
+      readSetting<ObserverIntensity>(
+        KEYS.observerIntensity,
+        DEFAULTS.observerIntensity,
+      ),
+    ]);
+  current = {
+    providerMode,
+    embeddingMode,
+    reducedMotionOverride,
+    observerIntensity,
+  };
   for (const listener of listeners) listener(current);
   return current;
 }

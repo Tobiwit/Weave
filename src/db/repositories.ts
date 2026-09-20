@@ -1,3 +1,4 @@
+import type { AxisId } from '../features/song/axes';
 import type { Playlist, Song, SongProfile } from '../types';
 import { db, type EmbeddingRecord, type StoredSong } from './weaveDb';
 
@@ -43,6 +44,32 @@ export async function saveSongProfile(profile: SongProfile): Promise<void> {
   await db.songProfiles.put({ ...profile, updatedAt: Date.now() });
 }
 
+/**
+ * Places, or unplaces, one Weave scale.
+ *
+ * Read-modify-write inside a transaction rather than patching a profile the
+ * caller is holding. Two scales adjusted in quick succession both build their
+ * new `axes` from whatever the screen last rendered, and the second write would
+ * otherwise carry a copy of the object that predates the first and silently
+ * undo it. Undefined deletes the key, because unplaced is not a value.
+ */
+export async function setSongAxis(
+  songId: string,
+  axis: AxisId,
+  value: number | undefined,
+): Promise<void> {
+  await db.transaction('rw', db.songProfiles, async () => {
+    const profile = await db.songProfiles.get(songId);
+    if (!profile) return;
+
+    const axes = { ...(profile.axes ?? {}) };
+    if (value === undefined) delete axes[axis];
+    else axes[axis] = value;
+
+    await db.songProfiles.put({ ...profile, axes, updatedAt: Date.now() });
+  });
+}
+
 export function getSongProfile(songId: string): Promise<SongProfile | undefined> {
   return db.songProfiles.get(songId);
 }
@@ -56,6 +83,26 @@ export function getSongProfiles(songIds: string[]): Promise<SongProfile[]> {
 export async function getAllSongProfiles(): Promise<SongProfile[]> {
   const rows = await db.songProfiles.toArray();
   return rows.filter((profile) => !profile.deletedAt);
+}
+
+/**
+ * Every song that has a reading, most recently touched first.
+ *
+ * Driven from the profiles rather than from the songs table: a song can be in
+ * the library because it was searched for once, and that is not the same thing
+ * as having been analyzed. Profiles without a surviving song row are dropped
+ * rather than shown as a blank.
+ */
+export async function getAnalyzedSongs(limit = 200): Promise<StoredSong[]> {
+  const profiles = await db.songProfiles
+    .orderBy('updatedAt')
+    .reverse()
+    .filter((profile) => !profile.deletedAt)
+    .limit(limit)
+    .toArray();
+
+  const songs = await db.songs.bulkGet(profiles.map((profile) => profile.songId));
+  return songs.filter(Boolean) as StoredSong[];
 }
 
 /* ------------------------------ playlists -------------------------------- */

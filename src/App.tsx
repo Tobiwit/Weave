@@ -9,6 +9,8 @@ import AnalyzePage from './pages/AnalyzePage';
 // results pull in the interpretation path.
 const AnalysisPage = lazy(() => import('./pages/AnalysisPage'));
 const ResultPage = lazy(() => import('./pages/ResultPage'));
+const SongPage = lazy(() => import('./pages/SongPage'));
+const SongsPage = lazy(() => import('./pages/SongsPage'));
 const PlaylistsPage = lazy(() => import('./pages/PlaylistsPage'));
 const PlaylistNewPage = lazy(() => import('./pages/PlaylistNewPage'));
 const PlaylistDetailPage = lazy(() => import('./pages/PlaylistDetailPage'));
@@ -35,6 +37,8 @@ const router = createBrowserRouter([
       { index: true, element: <AnalyzePage /> },
       { path: 'analysis/:songId', element: withSuspense(<AnalysisPage />) },
       { path: 'result/:songId', element: withSuspense(<ResultPage />) },
+      { path: 'songs', element: withSuspense(<SongsPage />) },
+      { path: 'song/:songId', element: withSuspense(<SongPage />) },
       { path: 'playlists', element: withSuspense(<PlaylistsPage />) },
       { path: 'playlists/new', element: withSuspense(<PlaylistNewPage />) },
       { path: 'playlists/:playlistId', element: withSuspense(<PlaylistDetailPage />) },

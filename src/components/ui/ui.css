@@ -1,70 +1,75 @@
-/* ------------------------------- Button --------------------------------- */
+/* ------------------------------- Button ---------------------------------
+   Rectangular, ruled, uppercase in the machine face. A button here reads as a
+   switch on an instrument rather than as a call to action. */
 
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--s-2);
-  min-height: 44px;
-  padding: 0 var(--s-6);
+  min-height: 40px;
+  padding: 0 var(--s-5);
   border: 0;
-  border-radius: var(--r-pill);
+  border-radius: 0;
   background: transparent;
   color: var(--c-text);
-  font-size: var(--t-body);
-  font-weight: 450;
-  letter-spacing: -0.01em;
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
   cursor: pointer;
-  transition: transform var(--d-micro) var(--e-out),
-    background-color var(--d-micro) var(--e-out), opacity var(--d-micro) var(--e-out);
-}
-
-.btn:active:not(:disabled) {
-  transform: scale(0.975);
+  transition:
+    background-color var(--d-micro) var(--e-out),
+    color var(--d-micro) var(--e-out),
+    border-color var(--d-micro) var(--e-out);
 }
 
 .btn:disabled {
-  opacity: 0.42;
+  opacity: 0.35;
   cursor: default;
 }
 
+/* The one filled element in the interface. Used sparingly, by design. */
 .btn--primary {
   background: var(--c-text);
-  color: #14121a;
-  font-weight: 500;
-  box-shadow: 0 12px 32px -16px rgba(247, 244, 238, 0.7);
+  color: var(--c-void);
 }
 
 .btn--primary:hover:not(:disabled) {
-  background: #ffffff;
+  background: var(--c-signal);
+  color: var(--c-void);
 }
 
 .btn--tinted {
-  background: var(--grad-brand);
-  color: #170f1c;
-  font-weight: 500;
+  background: var(--c-signal);
+  color: var(--c-void);
 }
 
 .btn--quiet {
-  background: var(--c-surface);
-  border: 1px solid var(--c-hairline);
+  border: var(--hair) solid var(--c-hairline);
   color: var(--c-text-2);
-  backdrop-filter: var(--blur-surface);
-  -webkit-backdrop-filter: var(--blur-surface);
 }
 
 .btn--quiet:hover:not(:disabled) {
   color: var(--c-text);
-  background: var(--c-surface-strong);
+  border-color: var(--c-signal);
 }
 
+/*
+ * Ghost is a label with a rule under it, not a button shape. It is how a
+ * secondary action stays available without adding another box.
+ */
 .btn--ghost {
-  padding: 0 var(--s-3);
-  color: var(--c-text-3);
+  padding: 0 var(--s-1);
+  min-height: 32px;
+  color: var(--c-text-4);
+  border-bottom: var(--hair) solid transparent;
 }
 
 .btn--ghost:hover:not(:disabled) {
   color: var(--c-text);
+  border-bottom-color: var(--c-signal);
 }
 
 .btn--block {
@@ -72,61 +77,65 @@
 }
 
 .btn--sm {
-  min-height: 36px;
-  padding: 0 var(--s-4);
-  font-size: var(--t-meta);
+  min-height: 30px;
+  padding: 0 var(--s-3);
+  font-size: var(--t-nano);
+  letter-spacing: 0.16em;
 }
 
-/* -------------------------------- Chip ---------------------------------- */
+/* -------------------------------- Chip -----------------------------------
+   Not a chip. A keyword set as a bracketed term, the way an index entry is
+   set: no fill, no outline, a leading rule that marks where it starts. */
 
 .chip {
   display: inline-flex;
-  align-items: center;
+  align-items: baseline;
   gap: var(--s-2);
-  min-height: 34px;
-  padding: 0 var(--s-4);
-  border-radius: var(--r-pill);
-  border: 1px solid var(--c-hairline);
-  background: rgba(255, 255, 255, 0.05);
+  min-height: 0;
+  padding: 2px 0 2px var(--s-2);
+  border: 0;
+  border-left: var(--hair) solid var(--c-hairline-strong);
+  border-radius: 0;
+  background: none;
   color: var(--c-text-2);
   font-size: var(--t-meta);
-  letter-spacing: -0.005em;
+  letter-spacing: -0.01em;
   white-space: nowrap;
-  transition: background-color var(--d-micro) var(--e-out),
-    color var(--d-micro) var(--e-out), border-color var(--d-micro) var(--e-out),
+  transition:
+    color var(--d-micro) var(--e-out),
+    border-color var(--d-micro) var(--e-out),
     opacity var(--d-micro) var(--e-out);
 }
 
 .chip--manual {
-  border-color: rgba(226, 107, 208, 0.34);
-  background: rgba(226, 107, 208, 0.09);
+  border-left-color: var(--c-signal);
   color: var(--c-text);
 }
 
 .chip--strong {
   color: var(--c-text);
-  background: rgba(255, 255, 255, 0.1);
+  border-left-color: var(--c-text-3);
 }
 
 .chip--removed {
-  opacity: 0.45;
+  opacity: 0.4;
   text-decoration: line-through;
-  text-decoration-color: var(--c-text-4);
+  text-decoration-color: var(--c-signal);
 }
 
 .chip--interactive {
   cursor: pointer;
-  border: 1px solid var(--c-hairline);
 }
 
 .chip--interactive:hover {
   color: var(--c-text);
-  border-color: var(--c-hairline-strong);
+  border-left-color: var(--c-signal);
 }
 
 .chip__mark {
-  font-size: 0.7em;
-  color: var(--c-periwinkle);
+  font-family: var(--font-mono);
+  font-size: 0.65em;
+  color: var(--c-signal);
   line-height: 1;
 }
 
@@ -134,22 +143,23 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
-  margin-right: -6px;
+  width: 18px;
+  height: 18px;
+  margin-right: -4px;
   padding: 0;
   border: 0;
-  border-radius: var(--r-pill);
+  border-radius: 0;
   background: transparent;
-  color: var(--c-text-3);
-  font-size: 15px;
+  color: var(--c-text-4);
+  font-family: var(--font-mono);
+  font-size: 13px;
   line-height: 1;
   cursor: pointer;
 }
 
 .chip__action:hover {
-  color: var(--c-text);
-  background: rgba(255, 255, 255, 0.1);
+  color: var(--c-signal);
+  background: none;
 }
 
 .chip-row {
@@ -158,22 +168,22 @@
   gap: var(--s-2);
 }
 
-/* ------------------------------- Panel ---------------------------------- */
+/* ------------------------------- Panel -----------------------------------
+   A bounded region of the page, marked by a rule down its left edge. Not a
+   card: nothing floats, nothing is translucent, nothing casts a shadow. */
 
 .panel {
   position: relative;
-  padding: var(--s-5);
-  border-radius: var(--r-lg);
-  background: rgba(255, 255, 255, 0.055);
-  border: 1px solid var(--c-hairline);
-  backdrop-filter: var(--blur-surface);
-  -webkit-backdrop-filter: var(--blur-surface);
-  box-shadow: var(--elev-2);
+  padding: var(--s-4) var(--s-5);
+  border: 0;
+  border-left: 2px solid var(--c-hairline-strong);
+  border-radius: 0;
+  background: var(--c-surface);
 }
 
 .panel--quiet {
-  background: rgba(255, 255, 255, 0.035);
-  box-shadow: none;
+  background: none;
+  border-left-color: var(--c-hairline);
 }
 
 .panel--flush {
@@ -181,23 +191,23 @@
   overflow: hidden;
 }
 
-/* ------------------------------ Artwork --------------------------------- */
+/* ------------------------------ Artwork ----------------------------------
+   Square, hard-edged, with a registration corner. Album art is treated as a
+   plate in a publication: cropped square and dropped straight onto the page. */
 
 .art {
   position: relative;
   overflow: hidden;
-  border-radius: var(--r-md);
+  border-radius: 0;
   background: var(--c-bg-2);
   flex: none;
-  box-shadow: 0 18px 40px -22px rgba(0, 0, 0, 0.95);
 }
 
 .art::after {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: inherit;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: var(--hair) solid var(--c-hairline);
   pointer-events: none;
 }
 
@@ -207,60 +217,80 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  /* Fades in over the generated cover once the real one has decoded. */
   transition: opacity 620ms var(--e-out);
 }
 
 .art__fallback {
   position: absolute;
   inset: 0;
+  background: var(--c-bg-2);
 }
 
-/* Diagonal weave bands, echoing the brand mark. */
+/* A halftone rule field. Mechanical, printed, not a gradient. */
 .art__fallback::before {
   content: '';
   position: absolute;
   inset: -25%;
   background: repeating-linear-gradient(
-    118deg,
-    rgba(255, 255, 255, 0.14) 0px,
-    rgba(255, 255, 255, 0.14) 2px,
-    transparent 2px,
-    transparent 13px
+    64deg,
+    var(--c-text) 0px,
+    var(--c-text) 1px,
+    transparent 1px,
+    transparent 7px
   );
-  mix-blend-mode: overlay;
+  opacity: 0.16;
 }
 
 .art__fallback::after {
   content: '';
   position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    80% 70% at 30% 20%,
-    rgba(255, 255, 255, 0.28),
-    transparent 70%
-  );
+  left: 0;
+  top: 0;
+  width: 34%;
+  height: var(--hair);
+  background: var(--c-signal);
 }
 
-/* ------------------------------ SongRow --------------------------------- */
+/* ------------------------------ SongRow ----------------------------------
+   A ruled line of a catalogue. The signal marks the left edge on hover, the
+   way a cursor marks a line in a terminal, rather than the row lighting up. */
 
 .song-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--s-4);
   width: 100%;
-  padding: var(--s-2) var(--s-2);
+  padding: var(--s-3) var(--s-2) var(--s-3) var(--s-3);
   border: 0;
-  border-radius: var(--r-md);
+  border-radius: 0;
   background: transparent;
   text-align: left;
   cursor: pointer;
   transition: background-color var(--d-micro) var(--e-out);
 }
 
+.song-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--c-signal);
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: transform var(--d-micro) var(--e-out);
+}
+
 .song-row:hover,
 .song-row:focus-visible {
-  background: rgba(255, 255, 255, 0.055);
+  background: var(--c-surface);
+}
+
+.song-row:hover::before,
+.song-row:focus-visible::before {
+  transform: scaleY(1);
 }
 
 .song-row__text {
@@ -274,7 +304,7 @@
   display: block;
   font-size: var(--t-body);
   color: var(--c-text);
-  letter-spacing: -0.012em;
+  letter-spacing: -0.02em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -282,9 +312,12 @@
 
 .song-row__meta {
   display: block;
-  margin-top: 1px;
-  font-size: var(--t-meta);
-  color: var(--c-text-3);
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: var(--t-nano);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--c-text-4);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -292,32 +325,32 @@
 
 .song-row__aside {
   flex: none;
-  color: var(--c-text-4);
+  color: var(--c-text-3);
+  font-family: var(--font-mono);
   font-size: var(--t-meta);
+  font-variant-numeric: tabular-nums;
 }
 
-/* ---------------------------- SearchField ------------------------------- */
+/* ---------------------------- SearchField --------------------------------
+   An input line, not a pill. The rule under it is the field; the signal takes
+   that rule when it has focus. */
 
 .search {
   position: relative;
   display: flex;
   align-items: center;
   gap: var(--s-3);
-  padding: 0 var(--s-5);
-  min-height: 56px;
-  border-radius: var(--r-pill);
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid var(--c-hairline);
-  backdrop-filter: var(--blur-surface);
-  -webkit-backdrop-filter: var(--blur-surface);
-  box-shadow: var(--elev-float);
-  transition: border-color var(--d-ui) var(--e-out),
-    background-color var(--d-ui) var(--e-out);
+  padding: 0 0 var(--s-3) 0;
+  min-height: 48px;
+  border: 0;
+  border-bottom: var(--hair) solid var(--c-hairline-strong);
+  border-radius: 0;
+  background: none;
+  transition: border-color var(--d-ui) var(--e-out);
 }
 
 .search:focus-within {
-  border-color: rgba(154, 166, 255, 0.5);
-  background: rgba(255, 255, 255, 0.1);
+  border-bottom-color: var(--c-signal);
 }
 
 .search__input {
@@ -326,41 +359,66 @@
   border: 0;
   outline: none;
   background: transparent;
-  font-size: 1.0625rem;
-  letter-spacing: -0.015em;
+  font-size: 1.375rem;
+  letter-spacing: -0.035em;
   color: var(--c-text);
 }
 
 .search__input::placeholder {
-  color: var(--c-text-3);
+  color: var(--c-text-4);
+  letter-spacing: -0.02em;
 }
 
 .search__icon {
   flex: none;
-  color: var(--c-text-3);
+  color: var(--c-text-4);
 }
 
+/* A scanning bar rather than a spinner: it reads as work, not as waiting. */
 .search__spinner {
-  width: 16px;
-  height: 16px;
+  width: 22px;
+  height: 2px;
   flex: none;
-  border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.18);
-  border-top-color: var(--c-periwinkle);
-  animation: spin 900ms linear infinite;
+  border: 0;
+  border-radius: 0;
+  background: var(--c-hairline-strong);
+  position: relative;
+  overflow: hidden;
+}
+
+.search__spinner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--c-signal);
+  transform-origin: left;
+  animation: scan 900ms var(--e-inout) infinite;
 }
 
 .search__clear {
   flex: none;
   border: 0;
   background: transparent;
-  color: var(--c-text-3);
+  color: var(--c-text-4);
   cursor: pointer;
   padding: var(--s-1);
+  font-family: var(--font-mono);
 }
 
 .search__clear:hover {
-  color: var(--c-text);
+  color: var(--c-signal);
+}
+
+@keyframes scan {
+  0% {
+    transform: scaleX(0) translateX(0);
+  }
+  50% {
+    transform: scaleX(1) translateX(0);
+  }
+  100% {
+    transform: scaleX(0) translateX(100%);
+  }
 }
 
 @keyframes spin {
@@ -409,7 +467,7 @@
   font-size: var(--t-micro);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--c-cyan);
+  color: var(--c-signal);
   opacity: 0.85;
 }
 
@@ -429,29 +487,28 @@
   inset: 0;
   background: linear-gradient(
     90deg,
-    var(--c-blue) 0%,
-    var(--c-violet) calc(var(--tick-fill) * 0.6),
-    var(--c-periwinkle) var(--tick-fill),
-    oklch(1 0 0 / 0.16) var(--tick-fill),
-    oklch(1 0 0 / 0.16) 100%
+    var(--c-signal) 0%,
+    var(--c-signal) var(--tick-fill),
+    var(--c-hairline-strong) var(--tick-fill),
+    var(--c-hairline-strong) 100%
   );
   -webkit-mask-image: repeating-linear-gradient(
     90deg,
-    #000 0 2px,
-    transparent 2px 7px
+    #000 0 1px,
+    transparent 1px 6px
   );
-  mask-image: repeating-linear-gradient(90deg, #000 0 2px, transparent 2px 7px);
+  mask-image: repeating-linear-gradient(90deg, #000 0 1px, transparent 1px 6px);
 }
 
 .tick__thumb {
   position: absolute;
-  top: 1px;
-  bottom: 1px;
-  left: clamp(1px, var(--tick-fill), calc(100% - 3px));
-  width: 2px;
-  border-radius: 1px;
+  top: -3px;
+  bottom: -3px;
+  left: clamp(1px, var(--tick-fill), calc(100% - 2px));
+  width: var(--hair);
+  border-radius: 0;
   background: var(--c-text);
-  box-shadow: 0 0 14px oklch(0.79 0.13 268 / 0.9);
+  box-shadow: none;
   pointer-events: none;
 }
 
@@ -482,7 +539,7 @@
 }
 
 .tick__track:has(.tick__input:focus-visible) .tick__marks {
-  outline: 2px solid var(--c-blue);
+  outline: var(--hair) solid var(--c-signal);
   outline-offset: 4px;
 }
 
@@ -516,15 +573,15 @@
   letter-spacing: 0;
 }
 
-/* ------------------------------- Sheet ---------------------------------- */
+/* ------------------------------- Sheet -----------------------------------
+   Square, flat, ruled at the top edge. The scrim darkens rather than blurs:
+   blur is the house style of the thing this interface is not. */
 
 .sheet-scrim {
   position: fixed;
   inset: 0;
   z-index: 60;
-  background: rgba(4, 4, 10, 0.62);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: oklch(0.09 0.004 150 / 0.86);
 }
 
 .sheet-wrap {
@@ -543,21 +600,19 @@
   max-height: min(86vh, 720px);
   display: flex;
   flex-direction: column;
-  padding: var(--s-3) var(--gutter) calc(var(--s-6) + var(--sab));
-  border-radius: var(--r-xl) var(--r-xl) 0 0;
-  background: rgba(19, 23, 41, 0.92);
-  border-top: 1px solid var(--c-hairline);
-  backdrop-filter: var(--blur-surface);
-  -webkit-backdrop-filter: var(--blur-surface);
-  box-shadow: 0 -30px 70px -30px rgba(0, 0, 0, 0.95);
+  padding: var(--s-4) var(--gutter) calc(var(--s-6) + var(--sab));
+  border-radius: 0;
+  background: var(--c-bg);
+  border-top: 2px solid var(--c-signal);
+  box-shadow: none;
 }
 
 .sheet__grip {
-  width: 36px;
-  height: 4px;
-  margin: 0 auto var(--s-4);
-  border-radius: var(--r-pill);
-  background: rgba(255, 255, 255, 0.2);
+  width: 28px;
+  height: var(--hair);
+  margin: 0 auto var(--s-5);
+  border-radius: 0;
+  background: var(--c-hairline-strong);
   flex: none;
 }
 
@@ -577,23 +632,27 @@
 
   .sheet {
     width: min(520px, 92vw);
-    border-radius: var(--r-xl);
-    border: 1px solid var(--c-hairline);
+    border: var(--hair) solid var(--c-hairline-strong);
+    border-top: 2px solid var(--c-signal);
     padding-bottom: var(--s-6);
   }
 }
 
-/* ---------------------------- Empty states ------------------------------ */
+/* ---------------------------- Empty states -------------------------------
+   Left aligned, not centred. A centred empty state reads as an apology; this
+   reads as a section that has nothing in it yet. */
 
 .empty {
-  padding: var(--s-7) var(--s-5);
-  text-align: center;
+  padding: var(--s-6) 0;
+  border-top: var(--hair) solid var(--c-hairline);
+  text-align: left;
   color: var(--c-text-3);
 }
 
 .empty__title {
-  color: var(--c-text-2);
-  font-size: var(--t-body);
+  color: var(--c-text);
+  font-size: var(--t-section);
+  letter-spacing: -0.03em;
   margin-bottom: var(--s-2);
 }
 
@@ -602,9 +661,10 @@
   gap: var(--s-3);
   align-items: flex-start;
   padding: var(--s-3) var(--s-4);
-  border-radius: var(--r-md);
-  background: rgba(255, 255, 255, 0.045);
-  border: 1px solid var(--c-hairline);
+  border: 0;
+  border-left: 2px solid var(--c-signal);
+  border-radius: 0;
+  background: var(--c-surface);
   color: var(--c-text-2);
   font-size: var(--t-meta);
   line-height: 1.45;
@@ -612,10 +672,9 @@
 
 .notice__dot {
   flex: none;
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
   margin-top: 7px;
-  border-radius: 50%;
-  background: var(--c-amber);
-  opacity: 0.8;
+  border-radius: 0;
+  background: var(--c-signal);
 }

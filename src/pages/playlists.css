@@ -12,18 +12,42 @@
   gap: var(--s-1);
 }
 
+/*
+ * A ruled entry in a catalogue. The rule between rows is the structure; the
+ * signal bar on the left is the only thing that moves on hover.
+ */
 .pl-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--s-4);
-  padding: var(--s-3) var(--s-3);
-  border-radius: var(--r-lg);
+  padding: var(--s-4) var(--s-2) var(--s-4) var(--s-3);
+  border-radius: 0;
+  border-top: var(--hair) solid var(--c-hairline);
   transition: background-color var(--d-micro) var(--e-out);
+}
+
+.pl-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: -1px;
+  bottom: 0;
+  width: 2px;
+  background: var(--c-signal);
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: transform var(--d-ui) var(--e-out);
 }
 
 .pl-row:hover,
 .pl-row:focus-visible {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--c-surface);
+}
+
+.pl-row:hover::before,
+.pl-row:focus-visible::before {
+  transform: scaleY(1);
 }
 
 .pl-row__text {
@@ -33,13 +57,20 @@
 
 .pl-row__name {
   display: block;
-  font-size: 1.1875rem;
-  letter-spacing: -0.024em;
+  font-size: 1.5rem;
+  line-height: 1.04;
+  letter-spacing: -0.042em;
 }
 
+/* Keywords are the machine's index of the playlist, so they are set as one. */
 .pl-row__desc {
   display: block;
-  margin-top: 2px;
+  margin-top: var(--s-2);
+  font-family: var(--font-mono);
+  font-size: var(--t-nano);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--c-text-4);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -47,7 +78,10 @@
 
 .pl-row__count {
   flex: none;
+  align-self: flex-start;
   color: var(--c-text-4);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
   font-variant-numeric: tabular-nums;
 }
 

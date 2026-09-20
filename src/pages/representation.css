@@ -201,7 +201,7 @@
   height: 100%;
   width: 100%;
   transform-origin: left center;
-  background: linear-gradient(90deg, var(--c-violet), var(--c-cyan));
+  background: var(--c-signal);
 }
 
 .rep__vocabMeta {

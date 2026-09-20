@@ -1,0 +1,637 @@
+/*
+ * The breakdown's own material.
+ *
+ * The rest of the app is an instrument: square, ruled, monospaced, loud where
+ * the machine is asserting something. This screen is the other half of that
+ * argument — it is where a person states an opinion, so it is soft where the
+ * instrument is hard. Rounded, unruled, translucent, almost entirely white
+ * space, with the type thin enough that colour and position do the talking.
+ *
+ * Nothing here leaks: every selector is a class only this screen renders, and
+ * the shared tokens are read, never redefined.
+ */
+
+/* ------------------------------ The Weave -------------------------------- */
+
+.weave {
+  position: relative;
+  user-select: none;
+  /* Strand taps must not be swallowed by the scroller, but the page still has
+     to scroll from anywhere over the chart. */
+  touch-action: pan-y;
+}
+
+.weave__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.weave__axis line {
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+}
+
+.weave__axis circle {
+  fill: var(--c-text);
+  opacity: 0.3;
+}
+
+/* ---- Strands ---- */
+
+.strand__line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.88;
+  transition:
+    opacity 420ms var(--e-out),
+    stroke-width 420ms var(--e-out);
+}
+
+/*
+ * Drawn on, one strand after another, as a wipe across the group rather than a
+ * dash offset. A dashed draw-in would have to measure the path, and a measured
+ * length disagrees with `non-scaling-stroke` by exactly the viewBox scale — on
+ * a wide screen the far end of every strand simply never arrives.
+ */
+.strand {
+  animation: strand-draw 1500ms var(--e-inout) both;
+  animation-delay: calc(var(--strand-index) * 85ms);
+}
+
+@keyframes strand-draw {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 -2% 0 0);
+  }
+}
+
+/* An unplaced strand is drawn in ink, not in its colour. Colour is the mark of
+   a decision, so a song nobody has placed is a grey weave resting at centre. */
+.strand--unplaced .strand__line {
+  stroke: var(--c-text);
+  stroke-width: 1.2;
+  opacity: 0.2;
+}
+
+.weave__strands--focused .strand:not(.strand--on) .strand__line {
+  opacity: 0.12;
+}
+
+.weave__strands--focused .strand--unplaced:not(.strand--on) .strand__line {
+  opacity: 0.06;
+}
+
+.strand--on .strand__line {
+  opacity: 1;
+  stroke-width: 2.5;
+}
+
+.strand--on.strand--unplaced .strand__line {
+  opacity: 0.4;
+  stroke-width: 1.6;
+}
+
+.strand__wash {
+  pointer-events: none;
+  animation: weave-fade 620ms var(--e-out) both;
+}
+
+@keyframes weave-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* A fat invisible stroke, so a one-pixel thread is still a real touch target. */
+.strand__hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 17;
+  vector-effect: non-scaling-stroke;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+.weave__drop {
+  stroke: currentColor;
+  stroke-width: 1;
+  stroke-dasharray: 1 4;
+  stroke-linecap: round;
+  opacity: 0.4;
+  vector-effect: non-scaling-stroke;
+  animation: weave-fade 520ms var(--e-out) both;
+}
+
+.weave__dot {
+  fill: currentColor;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: summit-in 520ms var(--e-snap) both;
+}
+
+@keyframes summit-in {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ---- The poles, which exist only while a strand is being read ---- */
+
+.weave__poles {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-4);
+  min-height: 1.4em;
+  margin-top: var(--s-3);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--c-text-4);
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity 420ms var(--e-out),
+    transform 420ms var(--e-out);
+}
+
+.weave__poles--on {
+  opacity: 1;
+  transform: none;
+}
+
+.weave__now {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 300;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.weave__number {
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--c-text-4);
+}
+
+/* ------------------------------- Groups ---------------------------------- */
+
+.agroup {
+  border-radius: 24px;
+  background: color-mix(in oklab, var(--c-text) 3%, transparent);
+  transition: background-color 520ms var(--e-out);
+}
+
+.agroup--open {
+  background: color-mix(in oklab, var(--c-text) 6%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  backdrop-filter: blur(20px) saturate(1.3);
+}
+
+.agroup__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-4);
+  width: 100%;
+  padding: 18px 22px;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.agroup__name {
+  flex: none;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--c-text-4);
+}
+
+.agroup__summary {
+  min-width: 0;
+  font-size: 1.0625rem;
+  font-weight: 250;
+  letter-spacing: -0.015em;
+  text-align: right;
+}
+
+.agroup__word {
+  color: var(--axis);
+  transition: color 420ms var(--e-out);
+}
+
+.agroup__word--empty {
+  color: var(--c-text-4);
+}
+
+.agroup__sep {
+  margin: 0 0.45em;
+  color: var(--c-text-4);
+  opacity: 0.6;
+}
+
+/* The body is always in the document and grows, so opening one group never
+   throws the others down the page. */
+.agroup__body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 560ms var(--e-out);
+}
+
+.agroup--open .agroup__body {
+  grid-template-rows: 1fr;
+}
+
+.agroup__inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.agroup__axis {
+  padding: 0 18px;
+}
+
+.agroup__axis:last-child {
+  padding-bottom: 12px;
+}
+
+.agroup__axis--lit .raster__word {
+  color: var(--axis);
+}
+
+/* ---------------------------- The dot raster ----------------------------- */
+
+.raster {
+  padding: 10px 4px 18px;
+}
+
+.raster__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.raster__label {
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--c-text-4);
+}
+
+.raster__word {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 0.9375rem;
+  font-weight: 300;
+  color: var(--c-text-2);
+  transition: color 420ms var(--e-out);
+}
+
+.raster--unplaced .raster__word {
+  color: var(--c-text-4);
+}
+
+.raster__number {
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--c-text-4);
+}
+
+.raster__clear {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--c-text-4);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--d-ui) var(--e-out);
+}
+
+.raster:hover .raster__clear,
+.raster:focus-within .raster__clear {
+  opacity: 1;
+}
+
+.raster__field {
+  position: relative;
+  height: 62px;
+  margin-top: 4px;
+}
+
+.raster__dots {
+  position: absolute;
+  inset: 0 7px;
+}
+
+.raster__dot {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 50%;
+  background: var(--axis);
+  transform: scale(var(--dot-scale));
+  opacity: var(--dot-opacity);
+  transition:
+    transform 300ms var(--e-out),
+    opacity 300ms var(--e-out);
+  /* Ordered outward from the middle, so a move ripples rather than snaps and an
+     opening group fills from its centre. */
+  transition-delay: calc(var(--dot-order) * 6ms);
+}
+
+.raster--unplaced .raster__dot {
+  background: var(--c-text);
+}
+
+.raster[data-open='false'] .raster__dot {
+  transform: scale(0.1);
+  opacity: 0;
+  transition-delay: calc(var(--dot-order) * 3ms);
+}
+
+/* The real control, invisible over the field: dragging, arrow keys and screen
+   reader semantics all come from it rather than being reimplemented. */
+.raster__input {
+  position: absolute;
+  inset: -6px -12px;
+  width: calc(100% + 24px);
+  height: calc(100% + 12px);
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+
+.raster__input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 44px;
+  height: 44px;
+}
+
+.raster__input::-moz-range-thumb {
+  width: 44px;
+  height: 44px;
+  border: 0;
+}
+
+/* Focus has to be visible on the field, since the input itself is invisible. */
+.raster__field:has(.raster__input:focus-visible)::after {
+  content: '';
+  position: absolute;
+  inset: -4px -8px;
+  border-radius: 20px;
+  outline: 1px solid var(--axis);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.raster__poles {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-4);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--c-text-4);
+}
+
+/* -------------------------------- Folds ---------------------------------- */
+
+.fold + .fold {
+  box-shadow: inset 0 1px 0 color-mix(in oklab, var(--c-text) 7%, transparent);
+}
+
+.fold__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-4);
+  width: 100%;
+  padding: 18px 2px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fold__name {
+  font-size: 0.9375rem;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  color: var(--c-text-2);
+  transition: color var(--d-ui) var(--e-out);
+}
+
+.fold--open .fold__name,
+.fold__head:hover .fold__name {
+  color: var(--c-text);
+}
+
+.fold__note {
+  flex: none;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-text-4);
+}
+
+.fold__body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 560ms var(--e-out);
+}
+
+.fold--open .fold__body {
+  grid-template-rows: 1fr;
+}
+
+.fold__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+  overflow: hidden;
+  min-height: 0;
+  padding: 0 2px;
+}
+
+.fold--open .fold__inner {
+  padding-bottom: var(--s-7);
+}
+
+/* ------------------------------- Signals --------------------------------- */
+
+.signals__meters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+.meter {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  column-gap: var(--s-4);
+  row-gap: 8px;
+}
+
+.meter__label {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-text-4);
+}
+
+.meter__measured {
+  letter-spacing: 0.06em;
+  text-transform: none;
+  color: var(--c-text-3);
+  opacity: 0.8;
+}
+
+.meter__number {
+  /* Pinned beside the label rather than flowed after the track, which would
+     drop it onto a line of its own under the bar. */
+  grid-column: 2;
+  grid-row: 1;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--c-text-3);
+}
+
+.meter__track {
+  grid-column: 1 / -1;
+  height: 3px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--c-text) 8%, transparent);
+  overflow: hidden;
+}
+
+.meter__fill {
+  display: block;
+  width: var(--meter);
+  height: 100%;
+  border-radius: inherit;
+  background: color-mix(in oklab, var(--c-text) 52%, transparent);
+  transition: width 760ms var(--e-out);
+}
+
+.facts {
+  margin: 0;
+}
+
+.facts__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: 9px 0;
+}
+
+.facts__label {
+  flex: none;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-text-4);
+}
+
+.facts__value {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 300;
+  color: var(--c-text-2);
+  text-align: right;
+}
+
+.signals__terms {
+  font-size: 0.8125rem;
+  font-weight: 300;
+  line-height: 1.7;
+  color: var(--c-text-4);
+}
+
+.provenance {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.provenance__row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-4);
+}
+
+.provenance__kind {
+  flex: none;
+  min-width: 92px;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-text-4);
+}
+
+.provenance__who {
+  font-size: 0.8125rem;
+  font-weight: 300;
+  color: var(--c-text-3);
+}
+
+.provenance__row--missed .provenance__who {
+  color: var(--c-text-4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .strand,
+  .strand__wash,
+  .weave__drop,
+  .weave__dot {
+    animation: none;
+  }
+}
+
+:root[data-reduced-motion='true'] .strand,
+:root[data-reduced-motion='true'] .strand__wash,
+:root[data-reduced-motion='true'] .weave__drop,
+:root[data-reduced-motion='true'] .weave__dot {
+  animation: none;
+}

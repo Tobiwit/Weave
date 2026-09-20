@@ -111,6 +111,36 @@ export default function SettingsPage() {
       </section>
 
       <section className="settings__section">
+        <h2 className="u-eyebrow">Observer</h2>
+        <p className="u-meta settings__hint">
+          How much the machine shows of its own working while it reads a song,
+          matches one, or rebuilds a playlist. It only appears where something
+          is actually being computed, and never over anything you are reading.
+          Reduced motion keeps the marks and drops the movement.
+        </p>
+        <ChipRow>
+          <Chip
+            strong={settings.observerIntensity === 'full'}
+            onClick={() => void patch({ observerIntensity: 'full' })}
+          >
+            Full
+          </Chip>
+          <Chip
+            strong={settings.observerIntensity === 'subtle'}
+            onClick={() => void patch({ observerIntensity: 'subtle' })}
+          >
+            Subtle
+          </Chip>
+          <Chip
+            strong={settings.observerIntensity === 'off'}
+            onClick={() => void patch({ observerIntensity: 'off' })}
+          >
+            Off
+          </Chip>
+        </ChipRow>
+      </section>
+
+      <section className="settings__section">
         <h2 className="u-eyebrow">Storage</h2>
         <div className="settings__actions">
           <Button

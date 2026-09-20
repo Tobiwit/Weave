@@ -6,11 +6,15 @@ interface WeaveMarkProps {
 }
 
 /**
- * The Weave symbol: a rounded square cut through by interlacing diagonal
- * bands. Strong silhouette, no fine detail, readable at app-icon size.
+ * The Weave symbol: a square cut through by interlacing diagonal bands.
+ *
+ * Was a rounded tile filled with a coral-to-periwinkle gradient, which is the
+ * exact shape and colour of every app icon made in the last five years. The
+ * weave itself was always the idea, so the fill is gone and the bands are the
+ * mark: ruled lines on the ground colour, square, with one band in the signal
+ * so it reads as part of the same instrument as the rest of the interface.
  */
 export function WeaveMark({ size = 28, idSuffix = 'm', className }: WeaveMarkProps) {
-  const gradient = `weave-grad-${idSuffix}`;
   const clip = `weave-clip-${idSuffix}`;
 
   return (
@@ -24,29 +28,34 @@ export function WeaveMark({ size = 28, idSuffix = 'm', className }: WeaveMarkPro
       aria-label="Weave"
     >
       <defs>
-        <linearGradient id={gradient} x1="4" y1="60" x2="60" y2="4" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#FF8F7A" />
-          <stop offset="0.36" stopColor="#E26BD0" />
-          <stop offset="0.7" stopColor="#A97BFF" />
-          <stop offset="1" stopColor="#9AA6FF" />
-        </linearGradient>
         <clipPath id={clip}>
-          <rect x="2" y="2" width="60" height="60" rx="17" />
+          <rect x="2" y="2" width="60" height="60" />
         </clipPath>
       </defs>
 
       <g clipPath={`url(#${clip})`}>
-        <rect x="2" y="2" width="60" height="60" rx="17" fill={`url(#${gradient})`} />
-        <g stroke="#0B0B12" strokeWidth="6" strokeLinecap="round" opacity="0.92">
+        <rect
+          x="2"
+          y="2"
+          width="60"
+          height="60"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          opacity="0.35"
+        />
+        {/* One diagonal family, then its counter-family crossing it. */}
+        <g stroke="currentColor" strokeWidth="5" opacity="0.9">
           <path d="M-6 26 L26 -6" />
           <path d="M-6 48 L48 -6" />
           <path d="M16 70 L70 16" />
-          <path d="M38 70 L70 38" />
         </g>
-        <g stroke="rgba(255,255,255,0.5)" strokeWidth="1.6" strokeLinecap="round">
-          <path d="M-6 34 L34 -6" />
+        <g stroke="currentColor" strokeWidth="2" opacity="0.45">
+          <path d="M-6 58 L58 -6" />
           <path d="M30 70 L70 30" />
         </g>
+        {/* The single thread that is not ink. */}
+        <path d="M38 70 L70 38" stroke="var(--c-signal)" strokeWidth="5" />
       </g>
     </svg>
   );

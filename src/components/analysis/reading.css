@@ -1,6 +1,8 @@
 /* The playlist-scoped panel. */
 
 .reading {
+  /* The scan is absolutely positioned inside this panel. */
+  position: relative;
   margin-bottom: var(--s-4);
   padding: var(--s-4);
   border: 1px solid var(--c-hairline);
@@ -27,7 +29,7 @@
   height: 100%;
   width: 100%;
   transform-origin: left center;
-  background: linear-gradient(90deg, var(--c-blue), var(--c-periwinkle));
+  background: var(--c-signal);
   transition: transform 600ms var(--e-out);
 }
 

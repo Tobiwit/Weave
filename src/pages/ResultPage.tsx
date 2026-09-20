@@ -16,6 +16,8 @@ import { embeddingService } from '../services/embedding';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useSongProfile } from '../hooks/useSongProfile';
 import type { Playlist, PlaylistMatch } from '../types';
+import { MachineScan } from '../components/observer/MachineScan';
+import type { Reading } from '../features/observer/scanEnvelope';
 import { MatchList } from './result/MatchList';
 import { Fingerprint } from './result/Fingerprint';
 import './result.css';
@@ -46,6 +48,41 @@ export default function ResultPage() {
     quality: phase === 'review' ? 0.5 : 0.9,
     transitionMs: 1200,
   });
+
+  /*
+   * What the matcher is working with, read off the profile and the library
+   * rather than invented. It says what is being compared, not how exciting the
+   * comparison is.
+   */
+  const matchReadings = useMemo<Reading[]>(() => {
+    if (!profile) return [];
+    const out: Reading[] = [
+      { key: 'CANDIDATES', value: `${playlists.length || '—'}`, tier: 0 },
+      { key: 'COMPONENTS', value: '5 WEIGHTED', tier: 0 },
+    ];
+    if (profile.mood) out.push({ key: 'MOOD', value: profile.mood, tier: 1 });
+    if (profile.genres.length) {
+      out.push({ key: 'STYLE', value: profile.genres.slice(0, 3).join(' / '), tier: 1 });
+    }
+    if (profile.vibes.length) {
+      out.push({
+        key: 'CHARACTER',
+        value: profile.vibes.slice(0, 3).join(' / '),
+        tier: 2,
+      });
+    }
+    out.push({
+      key: 'VECTOR',
+      value: `${profile.semanticEmbedding?.length ?? 0} DIM`,
+      tier: 1,
+    });
+    out.push({
+      key: 'VOCAB',
+      value: `${profile.communityTags.length} TERMS`,
+      tier: 2,
+    });
+    return out;
+  }, [profile, playlists.length]);
 
   const runMatching = useCallback(async () => {
     if (!profile) return;
@@ -158,6 +195,14 @@ export default function ResultPage() {
             <Button variant="primary" block onClick={runMatching}>
               {COPY.matchCta}
             </Button>
+            {/* The other reading of this song: eight scales, placed by hand. */}
+            <Button
+              variant="quiet"
+              block
+              onClick={() => navigate(`/song/${encodeURIComponent(song.id)}`)}
+            >
+              Open the breakdown
+            </Button>
           </div>
         </div>
       ) : (
@@ -165,6 +210,21 @@ export default function ResultPage() {
           <h2 className="u-title result__heading">
             {phase === 'matching' ? 'Finding its place' : 'Best matches'}
           </h2>
+
+          {/*
+            Classification, shown while it happens. The region is empty until
+            the matches arrive, so the scan has the space to itself and nothing
+            it could cover.
+          */}
+          {phase === 'matching' && (
+            <div className="result__scan">
+              <MachineScan
+                active
+                label={`${song.title} / ${song.artist}`}
+                readings={matchReadings}
+              />
+            </div>
+          )}
 
           {phase === 'matches' && matchError && (
             <EmptyState title={matchError}>

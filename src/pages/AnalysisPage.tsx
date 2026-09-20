@@ -2,9 +2,14 @@ import { useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMoodEnvironment } from '../components/background/MoodProvider';
 import { PointCloud } from '../components/cloud/PointCloud';
+import { MachineScan } from '../components/observer/MachineScan';
 import { Artwork } from '../components/ui/Artwork';
 import { Button } from '../components/ui/Button';
-import { readingTimeFor, STEP_PACING } from '../features/analysis/analysisSteps';
+import {
+  readingTimeFor,
+  STEP_LABELS,
+  STEP_PACING,
+} from '../features/analysis/analysisSteps';
 import {
   cloudConvergence,
   cloudSpeed,
@@ -16,8 +21,12 @@ import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useSongAnalysis } from '../hooks/useSongAnalysis';
 import { useStagedReveal } from '../hooks/useStagedReveal';
+import type { Reading } from '../features/observer/scanEnvelope';
 import { AnalysisSteps } from './analysis/AnalysisSteps';
 import './analysis.css';
+
+/** Every stage except the terminal one, which is not work but an outcome. */
+const TOTAL_STAGES = Object.keys(STEP_LABELS).length - 1;
 
 export default function AnalysisPage() {
   const { songId } = useParams<{ songId: string }>();
@@ -54,6 +63,76 @@ export default function AnalysisPage() {
     state?.stage === 'complete' &&
     Boolean(state.profile) &&
     revealedCount >= completed.length;
+
+  /*
+   * The machine's own working, taken straight from the run in progress. Every
+   * line is a fact the pipeline has actually established by this point, which
+   * is why the readout changes as the stages complete rather than cycling.
+   */
+  const readings = useMemo<Reading[]>(() => {
+    if (!state) return [];
+    const out: Reading[] = [
+      { key: 'STAGE', value: state.stage.toUpperCase(), tier: 0 },
+      {
+        key: 'SOURCES',
+        value: `${state.completedStages.length} / ${TOTAL_STAGES}`,
+        tier: 0,
+      },
+    ];
+
+    if (state.genres.length) {
+      out.push({ key: 'GENRE', value: state.genres.slice(0, 3).join(' / '), tier: 1 });
+    }
+    if (state.communityTags.length) {
+      out.push({
+        key: 'TAGS',
+        value: `${state.communityTags.length} RETRIEVED`,
+        tier: 1,
+      });
+      out.push({
+        key: 'VOCAB',
+        value: state.communityTags.slice(0, 3).join(' / '),
+        tier: 2,
+      });
+    }
+    out.push({
+      key: 'LYRICS',
+      value: state.lyricsAvailable ? 'READ' : 'NOT FOUND',
+      tier: 1,
+    });
+    if (state.lyricThemes.length) {
+      out.push({ key: 'THEMES', value: state.lyricThemes.join(' / '), tier: 2 });
+    }
+    if (state.descriptors.length) {
+      out.push({
+        key: 'DESCRIPTORS',
+        value: `${state.descriptors.length} MATCHED`,
+        tier: 1,
+      });
+      out.push({
+        key: 'CLASSIFY',
+        value: state.descriptors.slice(0, 3).join(' / '),
+        tier: 2,
+      });
+    }
+    if (state.preparing) {
+      out.push({
+        key: 'MODEL',
+        value: state.preparing.progress
+          ? `LOADING ${Math.round(state.preparing.progress * 100)}%`
+          : 'LOADING',
+        tier: 0,
+      });
+    }
+    if (state.notices.length) {
+      out.push({ key: 'DEGRADED', value: `${state.notices.length}`, tier: 2 });
+    }
+    return out;
+  }, [state]);
+
+  // Only while the pipeline is genuinely running. It stops the moment the
+  // reading is complete, rather than lingering over the result.
+  const working = Boolean(state) && state?.stage !== 'complete' && !error;
 
   // The move to the fingerprint waits for the reading to become readable,
   // rather than for an arbitrary timer.
@@ -98,6 +177,13 @@ export default function AnalysisPage() {
         </div>
 
         <div className="analysis__stage">
+          {/* The scan belongs to the stage area, which is empty but for the
+              artwork: there is nothing here to obscure while it runs. */}
+          <MachineScan
+            active={working}
+            label={song ? `${song.title} / ${song.artist}` : 'UNIDENTIFIED'}
+            readings={readings}
+          />
           <PointCloud
             streams={streams}
             hueA={mood.hueA}
