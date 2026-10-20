@@ -21,14 +21,14 @@ import {
   savePlaylist,
   upsertSong,
 } from '../db/repositories';
-import { buildLibraryCorpus, nearestPlaylists, type TagCorpus } from '../features/matching';
+import { buildLibraryCorpus, type TagCorpus } from '../features/matching';
 import {
   ensureLibraryVectors,
   ensurePlaylistVectors,
   rebuildPlaylistRepresentation,
 } from '../features/playlists/ensureVectors';
 import { unreadSongIds } from '../features/playlists/importPlaylist';
-import { toCandidate } from '../features/playlists/playlistEngine';
+import { relatedPlaylists, type PlaylistRelationScore } from '../features/playlists/relations';
 import {
   coreQualities,
   describeBreadth,
@@ -118,12 +118,20 @@ export default function PlaylistDetailPage() {
   );
   const defining = useMemo(() => rankDefiningSongs(profiles), [profiles]);
 
-  const relations = useMemo(() => {
-    if (!playlist || others.length < 2) return [];
-    const candidates = others.map(toCandidate).filter((c) => c.vector.length > 0);
-    const self = candidates.find((c) => c.playlistId === playlist.id);
-    if (!self) return [];
-    return nearestPlaylists(self, candidates, 3);
+  // Measured song by song with the real matcher, once the library's vectors
+  // are ready. Comparing whole-playlist vectors scored every pair at 100.
+  const [relations, setRelations] = useState<PlaylistRelationScore[]>([]);
+  useEffect(() => {
+    if (!playlist || others.length < 2) return;
+    let cancelled = false;
+    void relatedPlaylists(playlist, others)
+      .then((next) => {
+        if (!cancelled) setRelations(next);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
   }, [playlist, others]);
 
   const songById = useMemo(
@@ -321,7 +329,10 @@ export default function PlaylistDetailPage() {
 
       {relations.length > 0 && (
         <section className="pl-detail__section">
-          <h2 className="u-eyebrow">Relationships</h2>
+          <h2 className="u-eyebrow">Close to</h2>
+          <p className="u-meta pl-detail__relationsNote">
+            How well its songs would fit in each, on average.
+          </p>
           <ul className="pl-detail__relations">
             {relations.map((relation) => {
               const other = playlistById.get(relation.playlistId);
@@ -332,10 +343,16 @@ export default function PlaylistDetailPage() {
                     to={`/playlists/${relation.playlistId}`}
                     className="pl-detail__relation"
                   >
-                    <span>
-                      {playlist.name} ↔ {other.name}
-                    </span>
-                    <span className="pl-detail__relationScore">{relation.score}</span>
+                    <PlaylistMaterial playlist={other} size={36} />
+                    <span className="pl-detail__relationName">{other.name}</span>
+                    <Ring
+                      value={relation.score}
+                      size={44}
+                      thickness={2.5}
+                      unit=""
+                      fontScale={0.38}
+                      ariaLabel={`${relation.score} percent`}
+                    />
                   </Link>
                 </li>
               );

@@ -1,394 +1,276 @@
-import { AnimatePresence, motion } from 'motion/react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMoodEnvironment } from '../components/background/MoodProvider';
+import { OrbitWeave } from '../components/brand/OrbitWeave';
+import { PlaylistMaterial } from '../components/playlist/PlaylistMaterial';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/Notice';
-import { COPY } from '../config/app';
-import { comparePlaylists } from '../features/playlists/playlistInsights';
-import { moodStateFromPlaylist, NEUTRAL_MOOD } from '../features/mood/moodVisualState';
-import { buildUniverse, type UniverseData } from '../features/universe/buildUniverse';
-import { usePanZoom } from '../hooks/usePanZoom';
-import { useReducedMotion } from '../hooks/useReducedMotion';
+import { NEUTRAL_MOOD } from '../features/mood/moodVisualState';
+import { AXIS_GROUPS, axisWord, type AxisGroupId } from '../features/song/axes';
+import {
+  loadPlaylistPositions,
+  placeLabels,
+  type PlaylistPosition,
+} from '../features/universe/positions';
 import './universe.css';
 
-/** World units across the shorter viewport edge. Lower means a larger map. */
-const WORLD = 2.45;
+const STOPS = 15;
+const LAST = STOPS - 1;
+/** How far a label sits from its dot, as a share of the (square) field. */
+const LABEL_GAP = 0.09;
 
+/** A position snapped to the nearest stop, so a playlist sits on the lattice. */
+const snap = (value: number) => Math.round(value * LAST) / LAST;
+
+/**
+ * Your playlists on the scales.
+ *
+ * The same dot field the axis pads use, read instead of written: each
+ * playlist is one point at the middle of its songs, with a halo as wide as
+ * the middle half of them, so a focused playlist is a tight point and a broad
+ * one a wide cloud. The four groups are four views of the same library;
+ * switching glides every point to its place on the next pair of scales.
+ */
 export default function UniversePage() {
-  const [data, setData] = useState<UniverseData | null>(null);
-  const [selected, setSelected] = useState<string[]>([]);
+  const [positions, setPositions] = useState<PlaylistPosition[] | null>(null);
   const [failed, setFailed] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState({ width: 0, height: 0 });
-  const { transform, reset, wasDragged, handlers } = usePanZoom();
-  const reducedMotion = useReducedMotion();
+  const [groupId, setGroupId] = useState<AxisGroupId>('energy');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  useMoodEnvironment(NEUTRAL_MOOD, { resolution: 0.42, quality: 0.6 });
+  useMoodEnvironment(NEUTRAL_MOOD, { resolution: 0.7, quality: 0.9 });
 
   useEffect(() => {
     let cancelled = false;
-    buildUniverse()
-      .then((result) => !cancelled && setData(result))
+    loadPlaylistPositions()
+      .then((result) => !cancelled && setPositions(result))
       .catch(() => !cancelled && setFailed(true));
     return () => {
       cancelled = true;
     };
   }, []);
 
-  useEffect(() => {
-    const element = containerRef.current;
-    if (!element) return;
-    const update = () => {
-      const rect = element.getBoundingClientRect();
-      setSize({ width: rect.width, height: rect.height });
-    };
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
+  const group = AXIS_GROUPS.find((entry) => entry.id === groupId) ?? AXIS_GROUPS[0];
+  const [x, y] = group.axes;
 
-  const scale = Math.min(size.width, size.height) / WORLD;
-  const toScreen = (x: number, y: number) => ({
-    x: size.width / 2 + x * scale,
-    y: size.height / 2 + y * scale,
-  });
-
-  const selectedNodes = useMemo(
-    () => (data ? data.nodes.filter((node) => selected.includes(node.id)) : []),
-    [data, selected],
+  const placed = useMemo(
+    () => (positions ?? []).filter((entry) => entry.axes[x.id] && entry.axes[y.id]),
+    [positions, x.id, y.id],
+  );
+  const unplaced = useMemo(
+    () => (positions ?? []).filter((entry) => !(entry.axes[x.id] && entry.axes[y.id])),
+    [positions, x.id, y.id],
   );
 
-  const relatedIds = useMemo(() => {
-    if (!data || selected.length !== 1) return new Set<string>();
-    const ids = new Set<string>();
-    for (const link of data.links) {
-      if (link.from === selected[0]) ids.add(link.to);
-      if (link.to === selected[0]) ids.add(link.from);
+  // The field swells around every playlist, the way a pad swells around its
+  // one value: the library's shape shows even before the points are read.
+  const lattice = useMemo(() => {
+    // A stop holding a playlist is drawn by that playlist's own dot.
+    const taken = new Set(
+      placed.map(
+        (entry) =>
+          `${Math.round(entry.axes[y.id]!.median * LAST)}-${Math.round(entry.axes[x.id]!.median * LAST)}`,
+      ),
+    );
+    const cells: { key: string; px: number; py: number; swell: number }[] = [];
+    for (let row = 0; row < STOPS; row += 1) {
+      for (let col = 0; col < STOPS; col += 1) {
+        const px = col / LAST;
+        const py = row / LAST;
+        let swell = 0;
+        for (const entry of placed) {
+          const ax = entry.axes[x.id];
+          const ay = entry.axes[y.id];
+          if (!ax || !ay) continue;
+          const reach = 0.06 + Math.max(ax.high - ax.low, ay.high - ay.low) * 0.25;
+          const distance = Math.hypot(px - ax.median, py - ay.median);
+          swell = Math.max(swell, Math.exp(-0.5 * (distance / reach) ** 2));
+        }
+        if (!taken.has(`${row}-${col}`)) cells.push({ key: `${row}-${col}`, px, py, swell });
+      }
     }
-    return ids;
-  }, [data, selected]);
+    return cells;
+  }, [placed, x.id, y.id]);
 
-  const toggle = (id: string) => {
-    if (wasDragged()) return;
-    setSelected((current) => {
-      if (current.includes(id)) return current.filter((c) => c !== id);
-      if (current.length >= 2) return [id];
-      return [...current, id];
-    });
-  };
+  const labels = useMemo(
+    () =>
+      placeLabels(
+        placed.map((entry) => ({
+          id: entry.playlist.id,
+          x: snap(entry.axes[x.id]!.median),
+          y: snap(entry.axes[y.id]!.median),
+          name: entry.playlist.name,
+        })),
+        { gap: LABEL_GAP },
+      ),
+    [placed, x.id, y.id],
+  );
 
-  if (failed || (data && data.nodes.length === 0)) {
+  const selected = (positions ?? []).find((entry) => entry.playlist.id === selectedId);
+
+  if (failed) {
     return (
-      <div className="page universe universe--empty">
-        <h1 className="u-title">{COPY.universeHeading}</h1>
-        <EmptyState title="There is nothing to map yet.">
-          Create a couple of playlists and their worlds will appear here.
+      <div className="page universe">
+        <EmptyState title="The universe could not be drawn.">
+          Try again in a moment.
         </EmptyState>
-        <Button variant="primary" onClick={() => navigate('/playlists/new')}>
-          Create a playlist
-        </Button>
       </div>
     );
   }
 
   return (
-    <div className="page page--full universe">
-      <div className="universe__head">
-        <h1 className="u-title">{COPY.universeHeading}</h1>
-        <p className="u-meta">{COPY.universeSub}</p>
+    <div className="page universe">
+      <header className="universe__head">
+        <h1 className="universe__title">Your universe</h1>
+        <p className="universe__sub">Where each playlist sits, four ways.</p>
+      </header>
+
+      <div className="universe__switch" role="tablist" aria-label="Scales">
+        {AXIS_GROUPS.map((entry) => (
+          <button
+            key={entry.id}
+            type="button"
+            role="tab"
+            aria-selected={entry.id === groupId}
+            className={`universe__tab${entry.id === groupId ? ' universe__tab--on' : ''}`}
+            onClick={() => setGroupId(entry.id)}
+          >
+            {entry.label}
+          </button>
+        ))}
       </div>
 
-      <div
-        ref={containerRef}
-        className="universe__canvas"
-        {...handlers}
-        onClick={(event) => {
-          if (event.target === event.currentTarget && !wasDragged()) setSelected([]);
-        }}
-      >
-        {size.width > 0 && data && (
-          <svg
-            width={size.width}
-            height={size.height}
-            className="universe__svg"
-            role="img"
-            aria-label={describeUniverse(data)}
+      {positions === null ? (
+        <div className="universe__loading">
+          <OrbitWeave size={72} mode="working" />
+        </div>
+      ) : positions.length === 0 ? (
+        <EmptyState title="No playlists yet.">
+          Make one and it will take its place here.
+        </EmptyState>
+      ) : (
+        <>
+          <div
+            className="universe__map"
+            style={{ '--ax': x.color, '--ay': y.color } as CSSProperties}
           >
-            <defs>
-              {data.nodes.map((node) => {
-                const mood = moodStateFromPlaylist(node.playlist);
-                // Each region sits on the glow ramp, cyan for cool playlists
-                // through to lime for warm ones, like the app's own light.
-                const hue = (214 - mood.warmth * 100).toFixed(0);
-                return (
-                  <radialGradient key={node.id} id={`region-${node.id}`}>
-                    <stop offset="0%" stopColor={`oklch(0.86 0.13 ${hue})`} stopOpacity={0.34} />
-                    <stop offset="55%" stopColor={`oklch(0.8 0.12 ${hue})`} stopOpacity={0.12} />
-                    <stop offset="100%" stopColor={`oklch(0.7 0.1 ${hue})`} stopOpacity={0} />
-                  </radialGradient>
-                );
-              })}
-              <filter id="region-soften" x="-40%" y="-40%" width="180%" height="180%">
-                <feGaussianBlur stdDeviation="10" />
-              </filter>
-            </defs>
+            <span className="universe__pole universe__pole--yhigh">{y.high}</span>
+            <span className="universe__pole universe__pole--ylow">{y.low}</span>
 
-            <g
-              transform={`translate(${transform.x} ${transform.y}) scale(${transform.scale})`}
+            <div
+              className="universe__field"
+              role="group"
+              aria-label={`${x.label} across, ${y.label} up`}
+              onClick={() => setSelectedId(null)}
             >
-              {/* Connections between neighbouring worlds, shown on selection. */}
-              {data.links.map((link) => {
-                const a = data.nodes.find((n) => n.id === link.from);
-                const b = data.nodes.find((n) => n.id === link.to);
-                if (!a || !b) return null;
-                const visible =
-                  selected.length === 0 ||
-                  selected.includes(link.from) ||
-                  selected.includes(link.to);
-                const pa = toScreen(a.x, a.y);
-                const pb = toScreen(b.x, b.y);
-                const mx = (pa.x + pb.x) / 2;
-                const my = (pa.y + pb.y) / 2 - Math.abs(pa.x - pb.x) * 0.12;
-                return (
-                  <path
-                    key={`${link.from}-${link.to}`}
-                    d={`M ${pa.x} ${pa.y} Q ${mx} ${my} ${pb.x} ${pb.y}`}
-                    fill="none"
-                    stroke="oklch(0.97 0.004 200 / 0.4)"
-                    strokeWidth={0.4 + (link.score / 100) * 1.4}
-                    opacity={visible ? 0.12 + (link.score / 100) * 0.3 : 0.04}
-                    className="universe__link"
+              <div className="universe__lattice" aria-hidden="true">
+                {lattice.map((cell) => (
+                  <span
+                    key={cell.key}
+                    className="universe__dot"
+                    style={
+                      {
+                        left: `${cell.px * 100}%`,
+                        bottom: `${cell.py * 100}%`,
+                        '--dot-scale': (0.5 + cell.swell * 1.4).toFixed(3),
+                        '--dot-opacity': (0.14 + cell.swell * 0.5).toFixed(3),
+                      } as CSSProperties
+                    }
                   />
-                );
-              })}
+                ))}
+              </div>
 
-              {/* Soft regions first, so nodes and labels read above them. */}
-              <g filter="url(#region-soften)">
-                {data.nodes.map((node) => {
-                  const point = toScreen(node.x, node.y);
-                  const dimmed =
-                    selected.length > 0 &&
-                    !selected.includes(node.id) &&
-                    !relatedIds.has(node.id);
+              <div className="universe__points">
+                {placed.map((entry) => {
+                  const ax = entry.axes[x.id]!;
+                  const ay = entry.axes[y.id]!;
+                  const on = entry.playlist.id === selectedId;
+                  const label = labels[entry.playlist.id] ?? { flip: false, dy: 0 };
+                  // The leader runs from the dot to the near edge of the
+                  // label. The field is square, so one unit serves both axes.
+                  const run = label.flip ? -LABEL_GAP : LABEL_GAP;
+                  const length = Math.hypot(run, label.dy);
+                  const angle = (Math.atan2(-label.dy, run) * 180) / Math.PI;
                   return (
-                    <circle
-                      key={node.id}
-                      cx={point.x}
-                      cy={point.y}
-                      r={node.radius * scale}
-                      fill={`url(#region-${node.id})`}
-                      opacity={dimmed ? 0.22 : 1}
-                      className="universe__region"
-                    />
+                    <button
+                      key={entry.playlist.id}
+                      type="button"
+                      className={`universe__point${on ? ' universe__point--on' : ''}${
+                        label.flip ? ' universe__point--flip' : ''
+                      }${selectedId && !on ? ' universe__point--dim' : ''}`}
+                      style={
+                        {
+                          left: `${snap(ax.median) * 100}%`,
+                          bottom: `${snap(ay.median) * 100}%`,
+                          '--gap': LABEL_GAP,
+                          '--label-dy': label.dy.toFixed(3),
+                          '--leader-len': length.toFixed(4),
+                          '--leader-angle': `${angle.toFixed(2)}deg`,
+                        } as CSSProperties
+                      }
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setSelectedId(on ? null : entry.playlist.id);
+                      }}
+                      aria-pressed={on}
+                      aria-label={`${entry.playlist.name}: ${axisWord(x, ax.median)}, ${axisWord(y, ay.median)}`}
+                    >
+                      <span className="universe__leader" aria-hidden="true" />
+                      <span className="universe__core" aria-hidden="true" />
+                      <span className="universe__label">{entry.playlist.name}</span>
+                    </button>
                   );
                 })}
-              </g>
+              </div>
+            </div>
 
-              {data.songPoints.map((point) => {
-                const screen = toScreen(point.x, point.y);
-                const dimmed =
-                  selected.length > 0 && !selected.includes(point.playlistId);
-                return (
-                  <circle
-                    key={point.id}
-                    cx={screen.x}
-                    cy={screen.y}
-                    r={1.6}
-                    fill="oklch(0.97 0.004 200 / 0.75)"
-                    opacity={dimmed ? 0.12 : 0.5}
-                    className="universe__song"
-                  />
-                );
-              })}
+            <div className="universe__xpoles">
+              <span>{x.low}</span>
+              <span>{x.high}</span>
+            </div>
+          </div>
 
-              {data.nodes.map((node) => {
-                const point = toScreen(node.x, node.y);
-                const isSelected = selected.includes(node.id);
-                const dimmed =
-                  selected.length > 0 && !isSelected && !relatedIds.has(node.id);
-                return (
-                  <g
-                    key={node.id}
-                    className="universe__node"
-                    opacity={dimmed ? 0.3 : 1}
-                    onClick={() => toggle(node.id)}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`${node.playlist.name}, ${node.playlist.songIds.length} songs`}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        setSelected((current) =>
-                          current.includes(node.id)
-                            ? current.filter((c) => c !== node.id)
-                            : [...current.slice(-1), node.id],
-                        );
-                      }
-                    }}
-                  >
-                    <circle
-                      cx={point.x}
-                      cy={point.y}
-                      r={isSelected ? 7 : 5}
-                      fill="var(--c-text)"
-                      opacity={isSelected ? 1 : 0.82}
-                    />
-                    <text
-                      x={point.x}
-                      y={point.y - 14}
-                      textAnchor="middle"
-                      className="universe__label"
-                      fontSize={13 / Math.max(1, transform.scale * 0.6)}
-                    >
-                      {node.playlist.name}
-                    </text>
-                  </g>
-                );
-              })}
-            </g>
-          </svg>
-        )}
+          {selected && selected.axes[x.id] && selected.axes[y.id] ? (
+            <div className="universe__card u-rise" key={selected.playlist.id}>
+              <PlaylistMaterial playlist={selected.playlist} size={56} />
+              <div className="universe__cardText">
+                <p className="universe__cardName">{selected.playlist.name}</p>
+                <p className="universe__cardWords">
+                  <span style={{ color: x.color }}>{axisWord(x, selected.axes[x.id]!.median)}</span>
+                  <span className="universe__cardSep"> · </span>
+                  <span style={{ color: y.color }}>{axisWord(y, selected.axes[y.id]!.median)}</span>
+                </p>
+                <p className="universe__cardMeta">
+                  {selected.axes[x.id]!.songs > 0
+                    ? `Placed from ${selected.axes[x.id]!.songs} read ${
+                        selected.axes[x.id]!.songs === 1 ? 'song' : 'songs'
+                      }`
+                    : 'Placed from its words alone'}
+                </p>
+              </div>
+              <Button
+                variant="quiet"
+                size="sm"
+                onClick={() => navigate(`/playlists/${selected.playlist.id}`)}
+              >
+                Open
+              </Button>
+            </div>
+          ) : (
+            <p className="universe__hint">
+              Tap a point to see which playlist it is. A wide halo means its
+              songs are spread out on these scales.
+            </p>
+          )}
 
-        {!data && <p className="universe__loading u-meta">Mapping your worlds…</p>}
-      </div>
-
-      <div className="universe__controls">
-        <Button variant="quiet" size="sm" onClick={reset}>
-          Recentre
-        </Button>
-      </div>
-
-      <AnimatePresence>
-        {selectedNodes.length > 0 && (
-          <motion.div
-            className="universe__panel"
-            initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 24 }}
-            transition={{ duration: 0.4, ease: [0.16, 0.84, 0.28, 1] }}
-          >
-            {selectedNodes.length === 1 ? (
-              <SingleSelection
-                node={selectedNodes[0]}
-                data={data!}
-                onOpen={(id) => navigate(`/playlists/${id}`)}
-              />
-            ) : (
-              <PairSelection a={selectedNodes[0]} b={selectedNodes[1]} data={data!} />
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+          {unplaced.length > 0 && (
+            <p className="universe__unplaced">
+              Not placed yet, with nothing read on these scales:{' '}
+              {unplaced.map((entry) => entry.playlist.name).join(', ')}.
+            </p>
+          )}
+        </>
+      )}
     </div>
   );
-}
-
-function SingleSelection({
-  node,
-  data,
-  onOpen,
-}: {
-  node: UniverseData['nodes'][number];
-  data: UniverseData;
-  onOpen: (id: string) => void;
-}) {
-  const neighbours = data.links
-    .filter((link) => link.from === node.id || link.to === node.id)
-    .map((link) => ({
-      id: link.from === node.id ? link.to : link.from,
-      score: link.score,
-    }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 3);
-
-  return (
-    <>
-      <div className="universe__panelHead">
-        <h2 className="u-section">{node.playlist.name}</h2>
-        <Button variant="quiet" size="sm" onClick={() => onOpen(node.id)}>
-          Open
-        </Button>
-      </div>
-      <p className="u-meta universe__panelDesc">
-        {node.playlist.keywords.slice(0, 5).join(' · ')}
-      </p>
-      {neighbours.length > 0 && (
-        <ul className="universe__neighbours">
-          {neighbours.map((neighbour) => {
-            const other = data.nodes.find((n) => n.id === neighbour.id);
-            if (!other) return null;
-            return (
-              <li key={neighbour.id}>
-                <span>{other.playlist.name}</span>
-                <span className="universe__neighbourScore">{neighbour.score}</span>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </>
-  );
-}
-
-function PairSelection({
-  a,
-  b,
-  data,
-}: {
-  a: UniverseData['nodes'][number];
-  b: UniverseData['nodes'][number];
-  data: UniverseData;
-}) {
-  const link = data.links.find(
-    (l) =>
-      (l.from === a.id && l.to === b.id) || (l.from === b.id && l.to === a.id),
-  );
-  const comparison = comparePlaylists(a.playlist, b.playlist);
-
-  return (
-    <>
-      <div className="universe__panelHead">
-        <h2 className="u-section">
-          {a.playlist.name} × {b.playlist.name}
-        </h2>
-        {link && <span className="universe__overlap">{link.score}% overlap</span>}
-      </div>
-
-      {comparison.shared.length > 0 && (
-        <p className="universe__pairRow">
-          <span className="u-eyebrow">Shared</span>
-          {comparison.shared.join(' · ')}
-        </p>
-      )}
-      {comparison.towardA.length > 0 && (
-        <p className="universe__pairRow">
-          <span className="u-eyebrow">Toward {a.playlist.name}</span>
-          {comparison.towardA.slice(0, 4).join(' · ')}
-        </p>
-      )}
-      {comparison.towardB.length > 0 && (
-        <p className="universe__pairRow">
-          <span className="u-eyebrow">Toward {b.playlist.name}</span>
-          {comparison.towardB.slice(0, 4).join(' · ')}
-        </p>
-      )}
-    </>
-  );
-}
-
-/** Spatial views need a textual equivalent for anyone not reading the picture. */
-function describeUniverse(data: UniverseData): string {
-  const names = data.nodes.map((node) => node.playlist.name).join(', ');
-  const closest = [...data.links].sort((a, b) => b.score - a.score)[0];
-  const relation = closest
-    ? ` The closest pair is ${
-        data.nodes.find((n) => n.id === closest.from)?.playlist.name
-      } and ${data.nodes.find((n) => n.id === closest.to)?.playlist.name} at ${
-        closest.score
-      } out of 100.`
-    : '';
-  return `A map of ${data.nodes.length} playlist worlds: ${names}.${relation}`;
 }

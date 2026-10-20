@@ -49,7 +49,7 @@ export function PlaylistMaterial({
   const count = 2 + Math.round(mood.density * 2 + seed);
   const fan = 18 + mood.turbulence * 50 + seed * 40;
   const base = mood.curvature * 120 + seed * 240;
-  const hue = 214 - mood.warmth * 70 - seed * 40;
+  const hue = playlistHue(playlist);
   const radii = Array.from({ length: count }, (_, i) => 12 + i * (26 / count));
 
   return (
@@ -88,4 +88,14 @@ function hashUnit(value: string): number {
     h = Math.imul(h, 16777619);
   }
   return ((h >>> 0) % 1000) / 1000;
+}
+
+/**
+ * The hue a playlist wears everywhere it appears: its cover, its point on
+ * the universe. Somewhere on the glow ramp, set by its warmth and its id.
+ */
+// eslint-disable-next-line react-refresh/only-export-components
+export function playlistHue(playlist: Playlist): number {
+  const mood = moodStateFromPlaylist(playlist);
+  return 214 - mood.warmth * 70 - hashUnit(playlist.id) * 40;
 }
