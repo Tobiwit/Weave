@@ -7,18 +7,7 @@
  */
 
 .song {
-  /*
-   * A different face from the rest of the app, for one reason: weight. The
-   * shared stack resolves to Arial on most desktops, which has no light cut, so
-   * a 200 asks for a thin and gets a regular. Preferring the platform UI face
-   * first gets the real thing — SF Pro's thin on Apple, Segoe UI Light on
-   * Windows — which is what lets this screen be quiet.
-   */
-  --font-thin:
-    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter Tight', 'Segoe UI',
-    Roboto, system-ui, sans-serif;
-
-  font-family: var(--font-thin);
+  font-family: var(--font-sans);
   padding-top: calc(var(--sat) + var(--s-5));
   padding-bottom: calc(var(--sab) + var(--s-10));
 }
@@ -84,7 +73,7 @@
 
 .song__artist {
   font-size: 0.8125rem;
-  font-weight: 300;
+  font-weight: 400;
   line-height: 1.3;
   color: var(--c-text-4);
   overflow: hidden;
@@ -112,9 +101,10 @@
  * weight or colour.
  */
 .song__display {
-  font-size: clamp(2.5rem, 13vw, 4.25rem);
-  font-weight: 200;
-  letter-spacing: -0.05em;
+  font-family: var(--font-display);
+  font-size: clamp(2.75rem, 14vw, 4.5rem);
+  font-weight: 400;
+  letter-spacing: -0.015em;
   line-height: 0.95;
   color: var(--c-text);
 }
@@ -125,10 +115,8 @@
   border: 0;
   border-radius: 999px;
   background: color-mix(in oklab, var(--c-text) 5%, transparent);
-  font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  font-size: var(--t-nano);
+  font-weight: 500;
   color: var(--c-text-4);
   cursor: pointer;
   transition:
@@ -145,7 +133,7 @@
 .song__hint {
   margin-top: var(--s-4);
   font-size: 0.75rem;
-  font-weight: 300;
+  font-weight: 400;
   letter-spacing: 0.01em;
   color: var(--c-text-4);
 }
@@ -177,7 +165,7 @@
 .song .fp__moodWord,
 .song .facet__reading,
 .song .facet__word {
-  font-weight: 300;
+  font-weight: 400;
 }
 
 .song .fp__moodLabel,
@@ -261,7 +249,7 @@
 
 .srow__meta {
   font-size: 0.75rem;
-  font-weight: 300;
+  font-weight: 400;
   color: var(--c-text-4);
   overflow: hidden;
   text-overflow: ellipsis;

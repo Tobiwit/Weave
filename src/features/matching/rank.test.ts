@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { SongFacets } from './components';
+import { emptyAxisReadings } from '../song/axisReading';
 import {
   nearestPlaylists,
   rankPlaylists,
@@ -13,7 +14,7 @@ import {
  * and drops out. Component combination has its own tests.
  */
 function facetsOf(whole: number[]): SongFacets {
-  return { whole, style: [], moodVibe: [], themes: [], tags: new Map() };
+  return { axes: emptyAxisReadings(), whole, style: [], moodVibe: [], themes: [], tags: new Map() };
 }
 
 const candidates: PlaylistCandidate[] = [

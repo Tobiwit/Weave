@@ -1,87 +1,90 @@
-/* The playlist-scoped panel. */
+/* ------------------- The playlist-scoped reading panel -------------------- */
 
-.reading {
-  /* The scan is absolutely positioned inside this panel. */
-  position: relative;
+.rq {
   margin-bottom: var(--s-4);
   padding: var(--s-4);
-  border: 1px solid var(--c-hairline);
   border-radius: var(--r-md);
-  background: var(--c-surface);
+  background: oklch(1 0 0 / 0.05);
 }
 
-.reading__text {
+.rq__text {
   margin-bottom: var(--s-3);
   max-width: 48ch;
-  line-height: 1.55;
+  line-height: 1.5;
   color: var(--c-text-3);
 }
 
-.reading__bar {
-  height: 2px;
-  border-radius: var(--r-pill);
-  background: var(--c-hairline-strong);
-  overflow: hidden;
-}
-
-.reading__fill {
-  display: block;
-  height: 100%;
-  width: 100%;
-  transform-origin: left center;
-  background: var(--c-signal);
-  transition: transform 600ms var(--e-out);
-}
-
-.reading__row {
+.rq__head {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--s-4);
-  margin-top: var(--s-3);
+  align-items: center;
+  gap: var(--s-3);
+  margin-bottom: var(--s-3);
 }
 
-.reading__now {
+.rq__headText {
   min-width: 0;
+}
+
+.rq__now {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: var(--t-meta);
-  color: var(--c-text-2);
+  font-weight: 500;
+  color: var(--c-text);
 }
 
-.reading__count {
-  flex: none;
+.rq__count {
   font-variant-numeric: tabular-nums;
-  color: var(--c-text-4);
 }
 
-.reading__actions {
+.rq__bar {
+  height: 4px;
+  border-radius: var(--r-pill);
+  background: var(--c-surface-press);
+  overflow: hidden;
+}
+
+.rq__fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: inherit;
+  transform-origin: left center;
+  background: linear-gradient(90deg, var(--c-cyan), var(--c-lime));
+  transition: transform 600ms var(--e-out);
+}
+
+.rq__actions {
   display: flex;
   gap: var(--s-2);
   margin-top: var(--s-3);
 }
 
-/* The shell-wide indicator. */
+/* ---------------------- The shell-wide status pill ------------------------ */
 
 .reading-status {
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
-  /* Clear of the permanent navigation, and of the home indicator under it. */
-  bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + var(--s-3));
-  z-index: 40;
+  /* Just above the floating tab bar. */
+  bottom: calc(var(--nav-h) + var(--s-3) + var(--s-3) + var(--sab));
+  z-index: var(--z-hint);
 
   display: flex;
   align-items: center;
   gap: var(--s-3);
-  max-width: min(92vw, 460px);
-  padding: var(--s-2) var(--s-3);
+  max-width: min(calc(100vw - 2 * var(--gutter)), 420px);
+  min-height: 44px;
+  padding: 0 var(--s-2) 0 var(--s-4);
 
-  border: 1px solid var(--c-hairline-strong);
   border-radius: var(--r-pill);
-  background: color-mix(in oklab, var(--c-void) 82%, transparent);
+  background: oklch(0.2 0.006 220 / 0.94);
+  box-shadow:
+    inset 0 0 0 var(--hair) var(--c-hairline),
+    var(--elev-float);
   backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   font-size: var(--t-meta);
   color: var(--c-text-2);
   animation: reading-status-in 320ms var(--e-out) both;
@@ -98,28 +101,23 @@
   }
 }
 
+/* A turning half circle, the mark's own gesture. */
 .reading-status__pip {
   flex: none;
-  width: 6px;
-  height: 6px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: var(--c-periwinkle);
-  animation: reading-pulse 1.8s var(--e-inout, ease-in-out) infinite;
+  border: 2px solid transparent;
+  border-top-color: var(--c-lime);
+  border-left-color: var(--c-lime);
+  animation: spin 900ms linear infinite;
 }
 
 .reading-status__pip[data-idle] {
-  background: var(--c-text-4);
+  border-color: var(--c-text-4);
+  border-right-color: transparent;
+  border-bottom-color: transparent;
   animation: none;
-}
-
-@keyframes reading-pulse {
-  0%,
-  100% {
-    opacity: 0.35;
-  }
-  50% {
-    opacity: 1;
-  }
 }
 
 .reading-status__label {
@@ -137,27 +135,32 @@
 
 .reading-status__action {
   flex: none;
-  /* Bare buttons keep the user agent's grey face without this. */
   appearance: none;
   border: 0;
-  background: none;
   cursor: pointer;
-  padding: 2px var(--s-2);
+  min-height: 32px;
+  padding: 0 var(--s-3);
   border-radius: var(--r-pill);
-  color: var(--c-text-3);
-  font-size: var(--t-micro);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  transition: color var(--d-micro) var(--e-out);
+  background: oklch(1 0 0 / 0.08);
+  color: var(--c-text);
+  font-size: var(--t-nano);
+  font-weight: 500;
+  transition: background-color var(--d-micro) var(--e-out);
 }
 
 .reading-status__action:hover {
-  color: var(--c-text);
+  background: oklch(1 0 0 / 0.14);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 [data-reduced-motion='true'] .reading-status,
 [data-reduced-motion='true'] .reading-status__pip,
-[data-reduced-motion='true'] .reading__fill {
+[data-reduced-motion='true'] .rq__fill {
   animation: none;
   transition: none;
 }
@@ -165,17 +168,13 @@
 @media (prefers-reduced-motion: reduce) {
   .reading-status,
   .reading-status__pip,
-  .reading__fill {
+  .rq__fill {
     animation: none;
     transition: none;
   }
 }
 
-/*
- * The indicator floats over the scroll container, so the last of a page would
- * sit under it. The attribute is set only while it is on screen, which keeps
- * the reservation from being permanent dead space.
- */
+/* Room for the pill, only while it is on screen. */
 [data-reading] .shell__main {
-  padding-bottom: calc(var(--s-8) + var(--s-2));
+  padding-bottom: calc(var(--nav-h) + var(--s-6) + 56px + var(--sab));
 }

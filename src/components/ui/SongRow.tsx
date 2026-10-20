@@ -8,6 +8,8 @@ interface SongRowProps {
   onSelect?: (song: Song) => void;
   aside?: ReactNode;
   size?: number;
+  /** What tapping does, for the accessible name. Defaults to reading it. */
+  actionLabel?: string;
 }
 
 function metaLine(song: Song): string {
@@ -17,7 +19,7 @@ function metaLine(song: Song): string {
   return release ? `${song.artist} · ${release}` : song.artist;
 }
 
-export function SongRow({ song, onSelect, aside, size = 52 }: SongRowProps) {
+export function SongRow({ song, onSelect, aside, size = 52, actionLabel = 'Read' }: SongRowProps) {
   const content = (
     <>
       <Artwork src={song.artworkUrl} seed={song.id} size={size} alt="" />
@@ -38,7 +40,7 @@ export function SongRow({ song, onSelect, aside, size = 52 }: SongRowProps) {
       type="button"
       className="song-row"
       onClick={() => onSelect(song)}
-      aria-label={`Analyze ${song.title} by ${song.artist}`}
+      aria-label={`${actionLabel} ${song.title} by ${song.artist}`}
     >
       {content}
     </button>

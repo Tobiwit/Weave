@@ -44,8 +44,10 @@ export function Artwork({
   const loaded = current?.ok === true;
   const failed = current?.ok === false;
 
-  const hueA = hueFrom(seed, 1);
-  const hueB = (hueA + 60 + (hueFrom(seed, 2) % 120)) % 360;
+  // Generated covers stay inside the glow ramp, cyan to lime, so a library
+  // of songs without art still reads as one family.
+  const hueA = 105 + (hueFrom(seed, 1) % 125);
+  const hueB = 105 + (hueFrom(seed, 2) % 125);
   const dimension = typeof size === 'number' ? `${size}px` : size;
   const showImage = Boolean(src) && !failed;
 
@@ -56,7 +58,7 @@ export function Artwork({
         width: dimension,
         height: dimension,
         borderRadius: radius,
-        background: `linear-gradient(140deg, hsl(${hueA} 62% 46%), hsl(${hueB} 54% 26%) 62%, hsl(${(hueB + 30) % 360} 40% 14%))`,
+        background: `radial-gradient(120% 90% at 30% 100%, oklch(0.72 0.13 ${hueA}), oklch(0.36 0.07 ${hueB}) 60%, oklch(0.2 0.02 ${hueB}))`,
       }}
       role={alt ? 'img' : undefined}
       aria-label={alt || undefined}

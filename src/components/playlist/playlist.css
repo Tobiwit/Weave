@@ -1,51 +1,23 @@
-/*
- * The generated plate. Two ruled fields crossing at an angle taken from the
- * playlist's own character, printed rather than lit. The registration mark is
- * the only signal on it.
- */
+/* The generated cover: concentric half circles over a low glow. */
 .pl-material {
   position: relative;
   flex: none;
   overflow: hidden;
   background: var(--c-bg-2);
-  box-shadow: inset 0 0 0 1px var(--c-hairline);
 }
 
-.pl-material::before {
-  content: '';
+.pl-material__arcs {
   position: absolute;
-  inset: -40%;
-  background:
-    repeating-linear-gradient(
-      var(--rule-angle),
-      rgba(255, 255, 255, var(--rule-ink)) 0,
-      rgba(255, 255, 255, var(--rule-ink)) var(--rule-weight),
-      transparent var(--rule-weight),
-      transparent var(--rule-pitch)
-    ),
-    repeating-linear-gradient(
-      var(--cross-angle),
-      rgba(255, 255, 255, var(--cross-ink)) 0,
-      rgba(255, 255, 255, var(--cross-ink)) 1px,
-      transparent 1px,
-      transparent var(--cross-pitch)
-    );
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
-/* Registration mark: a short bar on the top edge, placed by mood. */
-.pl-material::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: var(--mark);
-  height: 2px;
-  background: var(--c-signal);
-}
-
-.pl-material--art::before,
-.pl-material--art::after {
-  content: none;
+/* A real cover replaces the generated one entirely. */
+.pl-material--art {
+  display: block;
+  object-fit: cover;
+  background: var(--c-bg-2);
 }
 
 /* ------------------------------ Keywords -------------------------------- */
@@ -58,27 +30,26 @@
 
 .kw__input {
   width: 100%;
-  min-height: 46px;
-  padding: 0 var(--s-4);
-  border-radius: var(--r-md);
-  border: 1px solid var(--c-hairline);
-  background: rgba(255, 255, 255, 0.04);
+  min-height: 52px;
+  padding: 0 var(--s-5);
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--c-surface);
+  box-shadow: inset 0 0 0 var(--hair) var(--c-hairline);
   font-size: var(--t-body);
   outline: none;
-  transition: border-color var(--d-micro) var(--e-out);
+  transition:
+    box-shadow var(--d-micro) var(--e-out),
+    background-color var(--d-micro) var(--e-out);
 }
 
 .kw__input:focus {
-  border-color: rgba(154, 166, 255, 0.5);
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--c-surface-strong);
+  box-shadow: inset 0 0 0 1.5px oklch(0.92 0.17 125 / 0.7);
 }
 
 .kw__input::placeholder {
   color: var(--c-text-4);
-}
-
-.kw__suggestions {
-  opacity: 0.85;
 }
 
 /* ------------------------------- Picker --------------------------------- */
@@ -92,14 +63,9 @@
 .picker__results {
   display: flex;
   flex-direction: column;
+  gap: 2px;
 }
 
-/*
- * A real cover replaces the generated material entirely, so it needs the
- * cropping the material never did.
- */
-.pl-material--art {
-  display: block;
-  object-fit: cover;
-  background: var(--c-bg-2);
+.kw__suggestions {
+  opacity: 0.9;
 }

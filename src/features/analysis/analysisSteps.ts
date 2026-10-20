@@ -17,6 +17,7 @@ export const STEP_ORDER: AnalysisStage[] = [
   'metadata',
   'community',
   'lyrics',
+  'audio',
   'interpret',
   'fingerprint',
 ];
@@ -26,6 +27,7 @@ export const STEP_LABELS: Record<AnalysisStage, string> = {
   metadata: 'Release',
   community: 'Community',
   lyrics: 'Lyrics',
+  audio: 'Sound',
   interpret: 'Interpretation',
   fingerprint: 'Fingerprint',
   complete: 'Complete',
@@ -36,6 +38,7 @@ const PENDING: Record<AnalysisStage, string> = {
   metadata: 'Looking up the release',
   community: 'Reading what listeners call it',
   lyrics: 'Reading between the lines',
+  audio: 'Listening for how it sounds',
   interpret: 'Weaving the signals together',
   fingerprint: 'Settling into shape',
   complete: '',
@@ -134,6 +137,16 @@ function describeStep(
         ...base,
         status: 'missing',
         detail: 'Lyrics unavailable. The rest of the reading continues.',
+      };
+
+    case 'audio':
+      if (state?.audioSources.length) {
+        return { ...base, detail: `Measured by ${state.audioSources.join(' and ')}` };
+      }
+      return {
+        ...base,
+        status: 'missing',
+        detail: 'No measured audio for this one. Its feel will be read from words.',
       };
 
     case 'interpret':

@@ -120,19 +120,14 @@ export default function UniversePage() {
             <defs>
               {data.nodes.map((node) => {
                 const mood = moodStateFromPlaylist(node.playlist);
+                // Each region sits on the glow ramp, cyan for cool playlists
+                // through to lime for warm ones, like the app's own light.
+                const hue = (214 - mood.warmth * 100).toFixed(0);
                 return (
                   <radialGradient key={node.id} id={`region-${node.id}`}>
-                    <stop
-                      offset="0%"
-                      stopColor={`hsl(${mood.hueA}, 70%, 62%)`}
-                      stopOpacity={0.38}
-                    />
-                    <stop
-                      offset="55%"
-                      stopColor={`hsl(${mood.hueB}, 66%, 54%)`}
-                      stopOpacity={0.14}
-                    />
-                    <stop offset="100%" stopColor={`hsl(${mood.hueB}, 60%, 46%)`} stopOpacity={0} />
+                    <stop offset="0%" stopColor={`oklch(0.86 0.13 ${hue})`} stopOpacity={0.34} />
+                    <stop offset="55%" stopColor={`oklch(0.8 0.12 ${hue})`} stopOpacity={0.12} />
+                    <stop offset="100%" stopColor={`oklch(0.7 0.1 ${hue})`} stopOpacity={0} />
                   </radialGradient>
                 );
               })}
@@ -162,7 +157,7 @@ export default function UniversePage() {
                     key={`${link.from}-${link.to}`}
                     d={`M ${pa.x} ${pa.y} Q ${mx} ${my} ${pb.x} ${pb.y}`}
                     fill="none"
-                    stroke="rgba(247,244,238,0.5)"
+                    stroke="oklch(0.97 0.004 200 / 0.4)"
                     strokeWidth={0.4 + (link.score / 100) * 1.4}
                     opacity={visible ? 0.12 + (link.score / 100) * 0.3 : 0.04}
                     className="universe__link"
@@ -202,7 +197,7 @@ export default function UniversePage() {
                     cx={screen.x}
                     cy={screen.y}
                     r={1.6}
-                    fill="rgba(247,244,238,0.75)"
+                    fill="oklch(0.97 0.004 200 / 0.75)"
                     opacity={dimmed ? 0.12 : 0.5}
                     className="universe__song"
                   />

@@ -1,63 +1,76 @@
+/* Each group of settings is one tile. */
 .settings__section {
-  margin-bottom: var(--s-7);
+  margin-bottom: var(--s-3);
+  padding: var(--s-4) var(--s-5) var(--s-5);
+  border-radius: var(--r-lg);
+  background: var(--c-surface);
 }
 
 .settings__section > .u-eyebrow {
   margin-bottom: var(--s-2);
+  font-size: var(--t-body);
+  color: var(--c-text);
 }
 
 .settings__hint {
   margin-bottom: var(--s-4);
-  max-width: 42ch;
+  max-width: 46ch;
   line-height: 1.5;
+}
+
+/* The chips here are a choice: the selected one is lit. */
+.settings .chip {
+  min-height: 38px;
+  padding: 0 var(--s-4);
+  cursor: pointer;
+}
+
+.settings .chip--strong {
+  background: var(--c-lime);
+  color: var(--c-on-light);
 }
 
 .settings__actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--s-2);
+  margin-top: var(--s-3);
 }
 
 .settings__warning {
   margin-top: var(--s-3);
-  color: var(--c-amber);
-  opacity: 0.85;
+  color: var(--c-alarm);
 }
 
 .settings__about {
-  padding-top: var(--s-5);
-  border-top: 1px solid var(--c-hairline);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: var(--s-3);
-}
-
-@media (min-width: 768px) {
-  .settings {
-    max-width: 620px;
-  }
+  background: none;
+  box-shadow: inset 0 0 0 var(--hair) var(--c-hairline);
 }
 
 .settings__form {
   margin-bottom: var(--s-3);
-  max-width: 340px;
+  max-width: 360px;
 }
 
 .settings__input {
   width: 100%;
-  min-height: 44px;
-  padding: 0 var(--s-4);
-  border: 1px solid var(--c-hairline);
-  border-radius: var(--r-md);
-  background: oklch(1 0 0 / 0.04);
+  min-height: 52px;
+  padding: 0 var(--s-5);
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--c-bg-2);
+  box-shadow: inset 0 0 0 var(--hair) var(--c-hairline);
   font-size: var(--t-body);
   outline: none;
-  transition: border-color var(--d-micro) var(--e-out);
+  transition: box-shadow var(--d-micro) var(--e-out);
 }
 
 .settings__input:focus {
-  border-color: var(--c-blue);
+  box-shadow: inset 0 0 0 1.5px oklch(0.92 0.17 125 / 0.7);
 }
 
 .settings__input::placeholder {
@@ -65,5 +78,15 @@
 }
 
 .settings__sent {
-  color: var(--c-cyan);
+  color: var(--c-mint);
+}
+
+.settings__calibration {
+  list-style: none;
+  margin: var(--s-3) 0 0;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: var(--c-text-4);
 }

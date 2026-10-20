@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { Descriptor, Song } from '../../types';
 import {
-  buildSourceText,
+  blendRankings,
+  buildSignalText,
+  condenseLyrics,
+  nudgeByAudio,
   groupFloor,
   inferEnergy,
   rankDescriptors,
@@ -202,51 +205,121 @@ describe('groupFloor', () => {
   });
 });
 
-describe('buildSourceText', () => {
+describe('buildSignalText', () => {
   const song: Song = { id: 's', title: 'Dreams', artist: 'Fleetwood Mac', year: 1977 };
 
   it('includes every available signal', () => {
-    const text = buildSourceText({
+    const text = buildSignalText({
       song,
       genres: ['soft rock'],
       communityTags: ['70s', 'mellow'],
-      lyrics: 'a quiet passage',
     });
     expect(text).toContain('Dreams by Fleetwood Mac');
     expect(text).toContain('1977');
     expect(text).toContain('soft rock');
     expect(text).toContain('mellow');
-    expect(text).toContain('a quiet passage');
   });
 
   it('works when every optional signal is missing', () => {
-    const text = buildSourceText({
+    const text = buildSignalText({
       song: { id: 's', title: 'X', artist: 'Y' },
       genres: [],
       communityTags: [],
-      lyrics: null,
     });
     expect(text).toBe('X by Y.');
   });
+});
 
+describe('condenseLyrics', () => {
   it('truncates lyrics so no full work is ever carried around', () => {
-    const text = buildSourceText({
-      song,
-      genres: [],
-      communityTags: [],
-      lyrics: 'word '.repeat(400),
-    });
-    expect(text.length).toBeLessThan(750);
+    expect(condenseLyrics('word '.repeat(400)).length).toBeLessThanOrEqual(600);
   });
 
-  it('strips section markers from lyrics', () => {
-    const text = buildSourceText({
-      song,
-      genres: [],
-      communityTags: [],
-      lyrics: '[Chorus] the line itself',
-    });
+  it('strips section markers', () => {
+    const text = condenseLyrics('[Chorus] the line itself');
     expect(text).not.toContain('[Chorus]');
     expect(text).toContain('the line itself');
+  });
+
+  it('gives nothing for missing lyrics', () => {
+    expect(condenseLyrics(null)).toBe('');
+  });
+});
+
+describe('blendRankings', () => {
+  const shares = { mood: 0.25, vibe: 0.2, theme: 0.6, texture: 0, energy: 0 };
+
+  it('returns the signal ranking untouched without lyrics', () => {
+    const signal = scored([['euphoric', 0.5], ['heartbreak', 0.4]]);
+    expect(blendRankings(signal, null, shares)).toBe(signal);
+  });
+
+  it('lets lyrics decide themes but only nudge mood', () => {
+    const signal = scored([
+      ['euphoric', 0.55],
+      ['melancholic', 0.4],
+      ['celebration', 0.5],
+      ['heartbreak', 0.3],
+    ]);
+    const lyrics = scored([
+      ['euphoric', 0.2],
+      ['melancholic', 0.6],
+      ['celebration', 0.1],
+      ['heartbreak', 0.7],
+    ]);
+    const blended = blendRankings(signal, lyrics, shares);
+    const score = (id: string) => blended.find((e) => e.descriptor.id === id)!.score;
+
+    // A sad lyric moves the mood, but a quarter share cannot overturn the signal.
+    expect(score('euphoric')).toBeGreaterThan(score('melancholic'));
+    // Themes are mostly what the words are about.
+    expect(score('heartbreak')).toBeGreaterThan(score('celebration'));
+  });
+
+  it('never lets lyrics touch texture', () => {
+    const signal = scored([['polished', 0.5]]);
+    const lyrics = scored([['polished', 0.0]]);
+    expect(blendRankings(signal, lyrics, shares)[0].score).toBe(0.5);
+  });
+});
+
+describe('nudgeByAudio', () => {
+  it('pushes down a descriptor the measured audio contradicts', () => {
+    // Euphoric expects bright; the song measures dark.
+    const ranked = scored([['euphoric', 0.42], ['melancholic', 0.4]]);
+    const measured = {
+      mood: { value: 0.9, confidence: 0.8 },
+      energy: { value: 0.2, confidence: 0.8 },
+      movement: { value: 0.2, confidence: 0.8 },
+      presence: { value: 0.3, confidence: 0.8 },
+    };
+    const nudged = nudgeByAudio(ranked, measured, 0.06);
+    expect(nudged[0].descriptor.id).toBe('melancholic');
+  });
+
+  it('leaves themes alone', () => {
+    const ranked = scored([['heartbreak', 0.4]]);
+    const nudged = nudgeByAudio(ranked, { mood: { value: 0.0, confidence: 0.8 } }, 0.06);
+    expect(nudged[0].score).toBe(0.4);
+  });
+
+  it('does nothing without measurements', () => {
+    const ranked = scored([['euphoric', 0.4]]);
+    expect(nudgeByAudio(ranked, {}, 0.06)).toBe(ranked);
+  });
+});
+
+describe('audio veto', () => {
+  it('drops a descriptor that contradicts a confident measurement', () => {
+    const ranked = scored([['bright', 0.45], ['dark', 0.3]]);
+    const nudged = nudgeByAudio(ranked, { mood: { value: 0.7, confidence: 0.8 } });
+    expect(nudged[0].descriptor.id).toBe('dark');
+    expect(nudged.find((e) => e.descriptor.id === 'bright')?.vetoed).toBe(true);
+  });
+
+  it('lets a weak measurement only nudge', () => {
+    const ranked = scored([['bright', 0.45], ['dark', 0.3]]);
+    const nudged = nudgeByAudio(ranked, { mood: { value: 0.7, confidence: 0.4 } });
+    expect(nudged.find((e) => e.descriptor.id === 'bright')?.vetoed).toBeUndefined();
   });
 });

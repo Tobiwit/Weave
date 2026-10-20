@@ -1,0 +1,130 @@
+.ssheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+}
+
+.ssheet__head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+}
+
+.ssheet__identity {
+  flex: 1;
+  min-width: 0;
+}
+
+.ssheet__title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.75rem;
+  line-height: 1.05;
+}
+
+.ssheet__artist {
+  font-size: var(--t-meta);
+  color: var(--c-text-3);
+}
+
+.ssheet__band {
+  margin-top: var(--s-1);
+  font-size: var(--t-nano);
+  font-weight: 500;
+  color: var(--c-text-3);
+}
+
+.ssheet__band--strong {
+  color: var(--c-lime);
+}
+
+.ssheet__band--distant {
+  color: var(--c-citron);
+}
+
+.ssheet__loading,
+.ssheet__none {
+  font-size: var(--t-meta);
+  color: var(--c-text-3);
+}
+
+.ssheet__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.ssheet__sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.ssheet__sectionTitle {
+  font-size: var(--t-meta);
+  font-weight: 500;
+  color: var(--c-text-3);
+  letter-spacing: 0;
+}
+
+.ssheet__legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--t-nano);
+  color: var(--c-text-3);
+}
+
+.ssheet__legendBand {
+  width: 16px;
+  height: 5px;
+  border-radius: var(--r-pill);
+  background: var(--c-mint);
+  opacity: 0.75;
+}
+
+/* Two columns: each group's pair of scales side by side. */
+.ssheet__gauges {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-2);
+}
+
+@media (min-width: 520px) {
+  .ssheet__gauges {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.ssheet__set {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+.ssheet__set li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--s-3) var(--s-4);
+  background: var(--c-surface);
+}
+
+.ssheet__setLabel {
+  font-size: var(--t-nano);
+  color: var(--c-text-3);
+}
+
+.ssheet__setValue {
+  font-size: var(--t-meta);
+  color: var(--c-text);
+}
+
+.ssheet__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}

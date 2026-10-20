@@ -1,29 +1,46 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMoodEnvironment } from '../components/background/MoodProvider';
-import { PointCloud } from '../components/cloud/PointCloud';
+import { OrbitWeave } from '../components/brand/OrbitWeave';
+import type { AxisPatch } from '../components/song/AxisPad';
+import { AxisGroupPanel } from '../components/song/AxisGroupPanel';
+import { AxisGroupTile } from '../components/song/AxisGroupTile';
 import { Artwork } from '../components/ui/Artwork';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/Notice';
 import { COPY } from '../config/app';
 import { PROFILE_EMBEDDING_VERSION } from '../config/embedding';
-import { addSongToPlaylist } from '../db/repositories';
-import { ensureLibraryVectors } from '../features/playlists/ensureVectors';
-import { matchSongToPlaylists } from '../features/playlists/playlistEngine';
+import { addSongToPlaylist, setSongAxes } from '../db/repositories';
 import { profileEmbeddingText } from '../features/matching';
 import { moodStateFromProfile, NEUTRAL_MOOD } from '../features/mood/moodVisualState';
-import { embeddingService } from '../services/embedding';
+import { ensureLibraryVectors } from '../features/playlists/ensureVectors';
+import { matchSongToPlaylists } from '../features/playlists/playlistEngine';
+import { AXIS_GROUPS, placedCount, type AxisGroupId, type AxisValues } from '../features/song/axes';
+import { machineSuggestions } from '../features/song/axisReading';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useSongProfile } from '../hooks/useSongProfile';
-import type { Playlist, PlaylistMatch } from '../types';
-import { MachineScan } from '../components/observer/MachineScan';
-import type { Reading } from '../features/observer/scanEnvelope';
-import { MatchList } from './result/MatchList';
+import { embeddingService } from '../services/embedding';
+import type { Playlist, PlaylistMatch, SongProfile } from '../types';
 import { Fingerprint } from './result/Fingerprint';
+import { MatchList } from './result/MatchList';
+import '../components/song/song.css';
 import './result.css';
 
-type Phase = 'review' | 'matching' | 'matches';
+type Phase = 'review' | 'feel' | 'matching' | 'matches';
 
+const STEPS: { id: Phase; label: string }[] = [
+  { id: 'review', label: 'Reading' },
+  { id: 'feel', label: 'Feel' },
+  { id: 'matches', label: 'Place' },
+];
+
+/**
+ * From a reading to a place, in three steps.
+ *
+ * Reading: the words the analysis chose, each editable. Feel: the eight scales,
+ * opened on the machine's reading so you only touch what you disagree with.
+ * Place: the playlists, best first, each with its score as a ring.
+ */
 export default function ResultPage() {
   const { songId } = useParams<{ songId: string }>();
   const decodedId = songId ? decodeURIComponent(songId) : undefined;
@@ -32,57 +49,26 @@ export default function ResultPage() {
   const reducedMotion = useReducedMotion();
 
   const [phase, setPhase] = useState<Phase>('review');
+  const [openGroup, setOpenGroup] = useState<AxisGroupId | null>(null);
   const [matches, setMatches] = useState<PlaylistMatch[]>([]);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [addedTo, setAddedTo] = useState<Set<string>>(new Set());
   const [matchError, setMatchError] = useState<string | null>(null);
 
+  // Each step starts at its top; the app frame is what scrolls.
+  useEffect(() => {
+    document.getElementById('main')?.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' });
+  }, [phase, reducedMotion]);
+
   const mood = useMemo(
     () => (profile ? moodStateFromProfile(profile) : NEUTRAL_MOOD),
     [profile],
   );
-  // The reading is dense text, so the field steps back behind it. It returns
-  // to full strength for the match reveal, where it is the whole event.
   useMoodEnvironment(mood, {
-    resolution: phase === 'review' ? 0.55 : 0.95,
-    quality: phase === 'review' ? 0.5 : 0.9,
-    transitionMs: 1200,
+    resolution: phase === 'matches' || phase === 'matching' ? 1 : 0.7,
+    quality: 1,
+    transitionMs: 1400,
   });
-
-  /*
-   * What the matcher is working with, read off the profile and the library
-   * rather than invented. It says what is being compared, not how exciting the
-   * comparison is.
-   */
-  const matchReadings = useMemo<Reading[]>(() => {
-    if (!profile) return [];
-    const out: Reading[] = [
-      { key: 'CANDIDATES', value: `${playlists.length || '—'}`, tier: 0 },
-      { key: 'COMPONENTS', value: '5 WEIGHTED', tier: 0 },
-    ];
-    if (profile.mood) out.push({ key: 'MOOD', value: profile.mood, tier: 1 });
-    if (profile.genres.length) {
-      out.push({ key: 'STYLE', value: profile.genres.slice(0, 3).join(' / '), tier: 1 });
-    }
-    if (profile.vibes.length) {
-      out.push({
-        key: 'CHARACTER',
-        value: profile.vibes.slice(0, 3).join(' / '),
-        tier: 2,
-      });
-    }
-    out.push({
-      key: 'VECTOR',
-      value: `${profile.semanticEmbedding?.length ?? 0} DIM`,
-      tier: 1,
-    });
-    out.push({
-      key: 'VOCAB',
-      value: `${profile.communityTags.length} TERMS`,
-      tier: 2,
-    });
-    return out;
-  }, [profile, playlists.length]);
 
   const runMatching = useCallback(async () => {
     if (!profile) return;
@@ -92,42 +78,30 @@ export default function ResultPage() {
 
     try {
       // Re-embed from the edited profile so corrections actually change
-      // matching. The same canonical recipe every other path uses, so a song
-      // read here and a song read in the background stay comparable.
-      const semanticEmbedding = await embeddingService.embed(
-        profileEmbeddingText(profile),
-      );
-      await update({
-        semanticEmbedding,
-        embeddingVersion: PROFILE_EMBEDDING_VERSION,
-      });
+      // matching, by the same canonical recipe every other path uses.
+      const semanticEmbedding = await embeddingService.embed(profileEmbeddingText(profile));
+      await update({ semanticEmbedding, embeddingVersion: PROFILE_EMBEDDING_VERSION });
 
       const library = await ensureLibraryVectors();
       setPlaylists(library);
 
-      const outcome = await matchSongToPlaylists(
-        { ...profile, semanticEmbedding },
-        library,
-      );
-
+      const outcome = await matchSongToPlaylists({ ...profile, semanticEmbedding }, library);
       if (outcome.empty) {
         setMatchError(
           library.length === 0
-            ? 'You have no playlists yet. Create one and this song will have somewhere to go.'
-            : 'We could not compare this song right now.',
+            ? 'You have no playlists yet. Make one and this song will have somewhere to go.'
+            : 'This song could not be compared right now.',
         );
       }
       setMatches(outcome.matches);
 
-      // Let the reveal breathe when the maths finishes almost instantly.
+      // Long enough for the mark to come together, never longer.
       const elapsed = Date.now() - startedAt;
-      const minimum = reducedMotion ? 0 : 1500;
-      if (elapsed < minimum) {
-        await new Promise((resolve) => setTimeout(resolve, minimum - elapsed));
-      }
+      const minimum = reducedMotion ? 0 : 1400;
+      if (elapsed < minimum) await new Promise((r) => setTimeout(r, minimum - elapsed));
       setPhase('matches');
     } catch {
-      setMatchError('We could not compare this song right now.');
+      setMatchError('This song could not be compared right now.');
       setPhase('matches');
     }
   }, [profile, update, reducedMotion]);
@@ -142,34 +116,32 @@ export default function ResultPage() {
     [playlists],
   );
 
-  if (loading) {
-    return <div className="page result" aria-busy="true" />;
-  }
+  if (loading) return <div className="page result" aria-busy="true" />;
 
   if (!profile || !song) {
     return (
       <div className="page result">
-        <EmptyState title="That analysis is no longer here.">
-          Analyze the song again to rebuild its fingerprint.
+        <EmptyState title="That reading is no longer here.">
+          Read the song again to rebuild it.
         </EmptyState>
-        <Button variant="primary" onClick={() => navigate('/')}>
-          Back to Analyze
-        </Button>
+        <div className="result__cta">
+          <Button variant="primary" onClick={() => navigate('/')}>
+            Read a song
+          </Button>
+        </div>
       </div>
     );
   }
 
+  const stepIndex = STEPS.findIndex((step) => step.id === (phase === 'matching' ? 'matches' : phase));
+
   return (
     <div className="page result">
-      {phase !== 'review' && (
-        <MatchReveal matches={matches} settled={phase === 'matches'} mood={mood} />
-      )}
-
       <header className="result__head">
-        <Artwork src={song.artworkUrl} seed={song.id} size={64} alt="" />
+        <Artwork src={song.artworkUrl} seed={song.id} size={56} alt="" />
         <div className="result__identity">
-          <h1 className="u-section">{song.title}</h1>
-          <p className="u-meta">
+          <h1 className="result__title">{song.title}</h1>
+          <p className="result__meta">
             {[
               song.artist,
               song.year,
@@ -183,127 +155,174 @@ export default function ResultPage() {
         </div>
       </header>
 
-      {phase === 'review' ? (
-        <div className="result__review">
-          {/* The mood below is the headline; this is only its preface. */}
+      <ol className="stepper" aria-label="Steps">
+        {STEPS.map((step, index) => (
+          <li
+            key={step.id}
+            className={`stepper__step${index === stepIndex ? ' stepper__step--current' : ''}${
+              index < stepIndex ? ' stepper__step--done' : ''
+            }`}
+            aria-current={index === stepIndex ? 'step' : undefined}
+          >
+            <button
+              type="button"
+              className="stepper__button"
+              disabled={index > stepIndex || phase === 'matching'}
+              onClick={() => setPhase(step.id === 'matches' ? 'matches' : step.id)}
+            >
+              <span className="stepper__arc" aria-hidden="true" />
+              {step.label}
+            </button>
+          </li>
+        ))}
+      </ol>
+
+      {phase === 'review' && (
+        <section className="result__panel" key="review">
           <p className="result__preface">{COPY.fingerprintHeading}</p>
-
           <Fingerprint profile={profile} onChange={update} />
-
           <div className="result__cta">
-            <p className="u-dim result__confirm">{COPY.confirmHeading}</p>
-            <Button variant="primary" block onClick={runMatching}>
-              {COPY.matchCta}
+            <Button variant="primary" block onClick={() => setPhase('feel')}>
+              Next: how it feels
             </Button>
-            {/* The other reading of this song: eight scales, placed by hand. */}
+          </div>
+        </section>
+      )}
+
+      {phase === 'feel' && (
+        <FeelStep
+          profile={profile}
+          openGroup={openGroup}
+          onOpen={setOpenGroup}
+          onChange={(patch) => setSongAxes(profile.songId, patch)}
+          onBack={() => setPhase('review')}
+          onDone={runMatching}
+        />
+      )}
+
+      {phase === 'matching' && (
+        <section className="result__matching" aria-live="polite">
+          <OrbitWeave className="result__matchingMark" size="100%" mode="working" progress={0.5} />
+          <p className="result__matchingText">Finding its place</p>
+        </section>
+      )}
+
+      {phase === 'matches' && (
+        <section className="result__panel" key="matches">
+          <h2 className="result__heading">Where it belongs</h2>
+          {matchError ? (
+            <EmptyState title={matchError}>
+              {playlists.length === 0 && (
+                <Button variant="quiet" onClick={() => navigate('/playlists/new')}>
+                  Make a playlist
+                </Button>
+              )}
+            </EmptyState>
+          ) : (
+            <MatchList
+              matches={matches}
+              playlists={playlistMap}
+              onAdd={addTo}
+              addedTo={addedTo}
+            />
+          )}
+          <div className="result__foot">
+            <Button variant="ghost" onClick={() => setPhase('feel')}>
+              Adjust the feel
+            </Button>
             <Button
-              variant="quiet"
-              block
+              variant="ghost"
               onClick={() => navigate(`/song/${encodeURIComponent(song.id)}`)}
             >
               Open the breakdown
             </Button>
           </div>
-        </div>
-      ) : (
-        <div className="result__matches">
-          <h2 className="u-title result__heading">
-            {phase === 'matching' ? 'Finding its place' : 'Best matches'}
-          </h2>
-
-          {/*
-            Classification, shown while it happens. The region is empty until
-            the matches arrive, so the scan has the space to itself and nothing
-            it could cover.
-          */}
-          {phase === 'matching' && (
-            <div className="result__scan">
-              <MachineScan
-                active
-                label={`${song.title} / ${song.artist}`}
-                readings={matchReadings}
-              />
-            </div>
-          )}
-
-          {phase === 'matches' && matchError && (
-            <EmptyState title={matchError}>
-              {playlists.length === 0 && (
-                <Button variant="quiet" onClick={() => navigate('/playlists/new')}>
-                  Create a playlist
-                </Button>
-              )}
-            </EmptyState>
-          )}
-
-          {phase === 'matches' && !matchError && (
-            <>
-              <MatchList
-                matches={matches}
-                playlists={playlistMap}
-                onAdd={addTo}
-                addedTo={addedTo}
-              />
-              <div className="result__foot">
-                <Button variant="quiet" onClick={() => setPhase('review')}>
-                  Adjust the reading
-                </Button>
-              </div>
-            </>
-          )}
-        </div>
+        </section>
       )}
     </div>
   );
 }
 
 /**
- * The attraction moment.
+ * The eight scales in the main flow.
  *
- * The song's own material contracts and then disperses toward the playlists it
- * belongs with. Strength is carried by how much of the field arrives and how
- * tightly it gathers, not by drawing a line to each destination: lines turn an
- * atmosphere into a network diagram.
+ * Each pad opens on where the reading put the song, drawn faint with a ring.
+ * Touching a pad makes that pair yours. Nothing has to be touched: "Looks
+ * right" goes straight on, and the reading stands as the machine's opinion
+ * rather than being copied in as if you had said it.
  */
-function MatchReveal({
-  matches,
-  settled,
-  mood,
+function FeelStep({
+  profile,
+  openGroup,
+  onOpen,
+  onChange,
+  onBack,
+  onDone,
 }: {
-  matches: PlaylistMatch[];
-  settled: boolean;
-  mood: { hueA: number; hueB: number };
+  profile: SongProfile;
+  openGroup: AxisGroupId | null;
+  onOpen: (id: AxisGroupId | null) => void;
+  onChange: (patch: AxisPatch) => void;
+  onBack: () => void;
+  onDone: () => void;
 }) {
-  const [visible, setVisible] = useState(true);
-
-  useEffect(() => {
-    if (!settled) return;
-    const timer = setTimeout(() => setVisible(false), 1200);
-    return () => clearTimeout(timer);
-  }, [settled]);
-
-  // One stream per candidate playlist, arriving in proportion to its score, so
-  // a strong field means a strong set of matches.
-  const streams = useMemo(() => {
-    if (matches.length === 0) return [0.35, 0.2, 0.1];
-    return matches.slice(0, 6).map((match) => 0.25 + (match.score / 100) * 0.75);
-  }, [matches]);
-
-  if (!visible) return null;
+  const values: AxisValues = profile.axes ?? {};
+  const suggestions = useMemo(() => machineSuggestions(profile), [profile]);
+  const placed = placedCount(values);
 
   return (
-    <div
-      className={`result__reveal${settled ? ' result__reveal--settling' : ''}`}
-      aria-hidden="true"
-    >
-      <PointCloud
-        streams={streams}
-        hueA={mood.hueA}
-        hueB={mood.hueB}
-        convergence={settled ? 1 : 0.35}
-        speed={settled ? 0.3 : 0.85}
-        quality={0.75}
-      />
-    </div>
+    <section className="result__panel result__panel--feel" key="feel">
+      <h2 className="result__heading">How it feels</h2>
+      <p className="result__hint">Our reading is in italics. Tap one to change it.</p>
+
+      {/*
+        Four at a glance, in pairs. The open one stays in its place, lit, and
+        its full pad opens across both columns directly beneath its row, so
+        nothing reorders.
+      */}
+      <div className="result__groups">
+        {[AXIS_GROUPS.slice(0, 2), AXIS_GROUPS.slice(2, 4)].map((row) => {
+          const open = row.find((group) => group.id === openGroup);
+          return (
+            <Fragment key={row[0].id}>
+              {row.map((group) => (
+                <AxisGroupTile
+                  key={group.id}
+                  group={group}
+                  values={values}
+                  suggestions={suggestions}
+                  active={openGroup === group.id}
+                  onOpen={() => onOpen(openGroup === group.id ? null : group.id)}
+                />
+              ))}
+              {open && (
+                <div className="result__groupOpen">
+                  <AxisGroupPanel
+                    group={open}
+                    values={values}
+                    suggestions={suggestions}
+                    open
+                    onToggle={() => onOpen(null)}
+                    onChange={onChange}
+                    highlighted={null}
+                    onHighlight={() => undefined}
+                    showValues={false}
+                  />
+                </div>
+              )}
+            </Fragment>
+          );
+        })}
+      </div>
+
+      <div className="result__cta">
+        <Button variant="primary" block onClick={onDone}>
+          {placed > 0 ? 'Find its place' : 'Looks right, find its place'}
+        </Button>
+        <Button variant="ghost" block onClick={onBack}>
+          Back to the reading
+        </Button>
+      </div>
+    </section>
   );
 }

@@ -1,4 +1,7 @@
 import { MATCHING_CONFIG } from '../../config/matching';
+import type { AxisMatchDetail } from '../../types';
+import type { AxisReadings } from '../song/axisReading';
+import { axisSimilarity, type PlaylistAxisProfile } from './axisMatch';
 import { calibrationFor } from './calibration';
 import { normalizeSimilarity } from './score';
 import { tagSimilarity, type TagVector } from './tagRarity';
@@ -23,6 +26,7 @@ import { cosineSimilarity, type Vector } from './vector';
  */
 
 export type ComponentName =
+  | 'axes'
   | 'playlistSongs'
   | 'style'
   | 'moodVibe'
@@ -30,6 +34,7 @@ export type ComponentName =
   | 'themes';
 
 export const COMPONENT_ORDER: ComponentName[] = [
+  'axes',
   'playlistSongs',
   'style',
   'moodVibe',
@@ -45,6 +50,14 @@ export interface ComponentResult {
   score: number | null;
   /** Share of the final score this component actually carried. */
   weight: number;
+  /** Configured weight, before the playlist's factor and the reliability. */
+  baseWeight: number;
+  /** The playlist's learned multiplier, 1 when nothing has been learned. */
+  factor: number;
+  /** How far the song's evidence for this component can be trusted, 0-1. */
+  reliability: number;
+  /** The per-axis working, for the axes component only. */
+  axes?: AxisMatchDetail[];
 }
 
 export interface MatchBreakdown {
@@ -57,6 +70,8 @@ export interface MatchBreakdown {
 
 /** One song's facet vectors, all built from the canonical facet texts. */
 export interface SongFacets {
+  /** The song's position on the eight scales. */
+  axes: AxisReadings;
   whole: Vector;
   style: Vector;
   moodVibe: Vector;
@@ -74,6 +89,12 @@ export interface PlaylistFacets {
   moodVibe: Vector;
   themes: Vector;
   tags: TagVector;
+  /** Bands on the eight scales; null when nothing could be placed. */
+  axes: PlaylistAxisProfile | null;
+  /** Category ceiling per tag for this playlist. Absent means every tag counts fully. */
+  tagWeigher?: (tag: string) => number;
+  /** Learned per-component multipliers. Absent means none have been learned. */
+  factors?: Partial<Record<ComponentName, number>>;
 }
 
 /**
@@ -133,9 +154,12 @@ function facetSimilarity(a: Vector, b: Vector): number | null {
 export function scoreComponents(
   song: SongFacets,
   playlist: PlaylistFacets,
-  weights = MATCHING_CONFIG.components.weights,
+  weights: Record<ComponentName, number> = MATCHING_CONFIG.components.weights,
 ): MatchBreakdown {
+  const axes = axisSimilarity(song.axes, playlist.axes);
+
   const raw: Record<ComponentName, number | null> = {
+    axes: axes.similarity,
     playlistSongs: song.whole.length
       ? playlistSongSimilarity(song.whole, playlist.whole, playlist.songVectors)
       : null,
@@ -143,24 +167,38 @@ export function scoreComponents(
     moodVibe: facetSimilarity(song.moodVibe, playlist.moodVibe),
     tags:
       song.tags.size && playlist.tags.size
-        ? tagSimilarity(song.tags, playlist.tags)
+        ? tagSimilarity(song.tags, playlist.tags, playlist.tagWeigher)
         : null,
     themes: facetSimilarity(song.themes, playlist.themes),
   };
 
+  // Only the axes carry a per-song confidence. The text facets are as good as
+  // the words behind them, and a missing facet is already dropped entirely.
+  const reliability = (name: ComponentName) => (name === 'axes' ? axes.reliability : 1);
+  const factor = (name: ComponentName) => playlist.factors?.[name] ?? 1;
+  const effective = (name: ComponentName) =>
+    weights[name] * factor(name) * reliability(name);
+
   const available = COMPONENT_ORDER.filter((name) => raw[name] !== null);
-  const totalWeight = available.reduce((sum, name) => sum + weights[name], 0);
+  const totalWeight = available.reduce((sum, name) => sum + effective(name), 0);
 
   const components: ComponentResult[] = COMPONENT_ORDER.map((name) => {
     const similarity = raw[name];
+    const base = {
+      name,
+      baseWeight: weights[name],
+      factor: factor(name),
+      reliability: reliability(name),
+      ...(name === 'axes' ? { axes: axes.detail } : {}),
+    };
     if (similarity === null) {
-      return { name, similarity: null, score: null, weight: 0 };
+      return { ...base, similarity: null, score: null, weight: 0 };
     }
     return {
-      name,
+      ...base,
       similarity,
       score: normalizeSimilarity(similarity, calibrationFor(name)),
-      weight: totalWeight > 0 ? weights[name] / totalWeight : 0,
+      weight: totalWeight > 0 ? effective(name) / totalWeight : 0,
     };
   });
 

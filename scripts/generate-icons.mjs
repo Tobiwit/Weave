@@ -12,35 +12,36 @@ import sharp from 'sharp';
 const here = dirname(fileURLToPath(import.meta.url));
 const out = resolve(here, '..', 'public', 'icons');
 
-const GRADIENT = `
-  <linearGradient id="g" x1="4" y1="60" x2="60" y2="4" gradientUnits="userSpaceOnUse">
-    <stop stop-color="#FF8F7A"/>
-    <stop offset="0.36" stop-color="#E26BD0"/>
-    <stop offset="0.7" stop-color="#A97BFF"/>
-    <stop offset="1" stop-color="#9AA6FF"/>
-  </linearGradient>`;
+/*
+ * The mark: five concentric half circles fanned at rest, on a near-black tile
+ * with the app's glow rising from the foot of it. Kept in step with
+ * `OrbitWeave` (radii, rest angles, ramp colours).
+ */
+const RADII = [9, 17, 25, 33, 41];
+const REST = [0, 34, 68, 102, 136];
+const RAMP = ['#7de2fa', '#72ece4', '#89efca', '#cbf871', '#f5f031'];
 
-const BANDS = `
-  <g stroke="#0B0B12" stroke-width="6" stroke-linecap="round" opacity="0.92">
-    <path d="M-6 26 L26 -6"/>
-    <path d="M-6 48 L48 -6"/>
-    <path d="M16 70 L70 16"/>
-    <path d="M38 70 L70 38"/>
-  </g>
-  <g stroke="rgba(255,255,255,0.5)" stroke-width="1.6" stroke-linecap="round">
-    <path d="M-6 34 L34 -6"/>
-    <path d="M30 70 L70 30"/>
-  </g>`;
+function arcs(stroke) {
+  return RADII.map(
+    (r, i) =>
+      `<path d="M ${-r} 0 A ${r} ${r} 0 0 1 ${r} 0" transform="rotate(${REST[i] + 180})" stroke="${RAMP[i]}" stroke-width="${stroke}" stroke-linecap="round" fill="none"/>`,
+  ).join('');
+}
+
+const GLOW = `
+  <radialGradient id="glow" cx="0.5" cy="1.08" r="0.75">
+    <stop offset="0" stop-color="#107460" stop-opacity="0.95"/>
+    <stop offset="0.55" stop-color="#0b3a3a" stop-opacity="0.55"/>
+    <stop offset="1" stop-color="#101315" stop-opacity="0"/>
+  </radialGradient>`;
 
 /** Full-bleed rounded square, for regular icons and the Apple touch icon. */
 function standardSvg() {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-    <defs>${GRADIENT}<clipPath id="c"><rect x="4" y="4" width="56" height="56" rx="15"/></clipPath></defs>
-    <rect width="64" height="64" rx="14" fill="#0B0B12"/>
-    <g clip-path="url(#c)">
-      <rect x="4" y="4" width="56" height="56" rx="15" fill="url(#g)"/>
-      <g transform="translate(4 4) scale(0.875)">${BANDS}</g>
-    </g>
+    <defs>${GLOW}</defs>
+    <rect width="64" height="64" rx="14" fill="#101315"/>
+    <rect width="64" height="64" rx="14" fill="url(#glow)"/>
+    <g transform="translate(32 33) scale(0.56)">${arcs(5.4)}</g>
   </svg>`;
 }
 
@@ -50,14 +51,20 @@ function standardSvg() {
  */
 function maskableSvg() {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-    <defs>${GRADIENT}<clipPath id="m"><rect x="2" y="2" width="60" height="60" rx="17"/></clipPath></defs>
-    <rect width="64" height="64" fill="#0B0B12"/>
-    <g transform="translate(13 13) scale(0.594)" clip-path="url(#m)">
-      <rect x="2" y="2" width="60" height="60" rx="17" fill="url(#g)"/>
-      ${BANDS}
-    </g>
+    <defs>${GLOW}</defs>
+    <rect width="64" height="64" fill="#101315"/>
+    <rect width="64" height="64" fill="url(#glow)"/>
+    <g transform="translate(32 33) scale(0.42)">${arcs(5.4)}</g>
   </svg>`;
 }
+
+/** The plain mark, transparent, for the browser tab. */
+function markSvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-50 -50 100 100" width="64" height="64">${arcs(6)}</svg>`;
+}
+
+await writeFile(resolve(out, 'mark.svg'), `${markSvg()}
+`);
 
 const TARGETS = [
   { name: 'icon-192.png', size: 192, svg: standardSvg() },

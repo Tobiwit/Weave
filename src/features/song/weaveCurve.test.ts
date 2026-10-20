@@ -56,6 +56,25 @@ describe('strandHeight', () => {
     expect(strandHeight(1, 0.35)).toBeCloseTo(0, 10);
   });
 
+  it('leaves the baseline flat and is steepest half way up', () => {
+    const slope = (t: number) =>
+      (strandHeight(t + 0.0005, 0.5) - strandHeight(t - 0.0005, 0.5)) / 0.001;
+
+    // A half sine would be at its steepest here, which is the tent shape this
+    // curve exists to avoid.
+    expect(Math.abs(slope(0.002))).toBeLessThan(0.1);
+    expect(Math.abs(slope(0.5))).toBeLessThan(0.1);
+    expect(slope(0.25)).toBeGreaterThan(slope(0.05));
+    expect(slope(0.25)).toBeGreaterThan(slope(0.45));
+  });
+
+  it('stretches the long side of an off-centre summit into an S', () => {
+    // Half way along the long side sits at half height: the inflection, not a
+    // point already most of the way back down.
+    expect(strandHeight(0.6, 0.2)).toBeCloseTo(0.5, 6);
+    expect(strandHeight(0.4, 0.8)).toBeCloseTo(0.5, 6);
+  });
+
   it('stays inside the plot for peaks pinned to either edge', () => {
     for (const peak of [0, 1]) {
       for (let i = 0; i <= 100; i += 1) {

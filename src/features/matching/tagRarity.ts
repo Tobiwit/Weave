@@ -246,23 +246,32 @@ export function playlistTagVector(
  *
  * Cosine rather than a plain overlap count so a song with forty tags is not
  * automatically a better match than one with six.
+ *
+ * `weigh` scales each tag on both sides, which is how tag categories apply: a
+ * place tag discounted to a quarter counts for a quarter in the overlap and in
+ * the magnitudes alike, so it neither inflates nor dilutes the comparison.
  */
-export function tagSimilarity(a: TagVector, b: TagVector): number {
+export function tagSimilarity(
+  a: TagVector,
+  b: TagVector,
+  weigh?: (tag: string) => number,
+): number {
   if (a.size === 0 || b.size === 0) return 0;
+  const w = weigh ?? (() => 1);
 
   let dot = 0;
   // Iterating the smaller side keeps this linear in the shorter tag list.
   const [small, large] = a.size <= b.size ? [a, b] : [b, a];
   for (const [tag, weight] of small) {
     const other = large.get(tag);
-    if (other) dot += weight * other;
+    if (other) dot += weight * other * w(tag) ** 2;
   }
   if (dot === 0) return 0;
 
   let magA = 0;
-  for (const weight of a.values()) magA += weight * weight;
+  for (const [tag, weight] of a) magA += (weight * w(tag)) ** 2;
   let magB = 0;
-  for (const weight of b.values()) magB += weight * weight;
+  for (const [tag, weight] of b) magB += (weight * w(tag)) ** 2;
 
   const denominator = Math.sqrt(magA) * Math.sqrt(magB);
   return denominator === 0 ? 0 : Math.min(1, dot / denominator);

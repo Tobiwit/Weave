@@ -74,3 +74,20 @@ export {
   type SongFacets,
   type PlaylistFacets,
 } from './components';
+export {
+  axisSimilarity,
+  buildAxisProfile,
+  librarySpread,
+  weightedQuantile,
+  type AxisBand,
+  type LibrarySpread,
+  type PlaylistAxisProfile,
+} from './axisMatch';
+export {
+  categorizeTag,
+  categoryWeightsFor,
+  tagCategoryWeigher,
+  TAG_CATEGORIES,
+  type CategoryWeights,
+  type TagCategory,
+} from './tagCategories';

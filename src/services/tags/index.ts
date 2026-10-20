@@ -35,28 +35,59 @@ function cleanTags(tags: { name: string; count: number }[]): string[] {
     .slice(0, 14);
 }
 
+/** What the tag lookup did, for the development trace. */
+export interface TagDetail {
+  /** Tags Last.fm returned for the track, before cleaning. */
+  trackRaw: number;
+  fromTrack: number;
+  /** Whether the artist's tags had to be borrowed. */
+  usedArtist: boolean;
+  fromArtist: number;
+}
+
+async function lastfmTagsDetailed(
+  song: Song,
+  signal?: AbortSignal,
+): Promise<{ tags: string[]; detail: TagDetail }> {
+  const trackTags = await lastfmRequest<LastfmTagResponse>(
+    'track.getTopTags',
+    { track: song.title, artist: song.artist, autocorrect: '1' },
+    signal,
+  ).catch(() => ({ toptags: { tag: [] } }) as LastfmTagResponse);
+
+  const trackRaw = trackTags.toptags?.tag?.length ?? 0;
+  const fromTrack = cleanTags(trackTags.toptags?.tag ?? []);
+  if (fromTrack.length >= 5) {
+    return {
+      tags: fromTrack,
+      detail: { trackRaw, fromTrack: fromTrack.length, usedArtist: false, fromArtist: 0 },
+    };
+  }
+
+  // Sparse track tags are common for newer or niche songs; the artist's tags
+  // are a weaker but still useful cultural signal.
+  const artistTags = await lastfmRequest<LastfmTagResponse>(
+    'artist.getTopTags',
+    { artist: song.artist, autocorrect: '1' },
+    signal,
+  ).catch(() => ({ toptags: { tag: [] } }) as LastfmTagResponse);
+
+  const fromArtist = cleanTags(artistTags.toptags?.tag ?? []).slice(0, 6);
+  return {
+    tags: [...new Set([...fromTrack, ...fromArtist])],
+    detail: {
+      trackRaw,
+      fromTrack: fromTrack.length,
+      usedArtist: true,
+      fromArtist: fromArtist.length,
+    },
+  };
+}
+
 export const lastfmTagProvider: TagProvider = {
   id: 'lastfm',
   async getTags(song, signal) {
-    const trackTags = await lastfmRequest<LastfmTagResponse>(
-      'track.getTopTags',
-      { track: song.title, artist: song.artist, autocorrect: '1' },
-      signal,
-    ).catch(() => ({ toptags: { tag: [] } }) as LastfmTagResponse);
-
-    const fromTrack = cleanTags(trackTags.toptags?.tag ?? []);
-    if (fromTrack.length >= 5) return fromTrack;
-
-    // Sparse track tags are common for newer or niche songs; the artist's tags
-    // are a weaker but still useful cultural signal.
-    const artistTags = await lastfmRequest<LastfmTagResponse>(
-      'artist.getTopTags',
-      { artist: song.artist, autocorrect: '1' },
-      signal,
-    ).catch(() => ({ toptags: { tag: [] } }) as LastfmTagResponse);
-
-    const fromArtist = cleanTags(artistTags.toptags?.tag ?? []).slice(0, 6);
-    return [...new Set([...fromTrack, ...fromArtist])];
+    return (await lastfmTagsDetailed(song, signal)).tags;
   },
 };
 
@@ -70,12 +101,21 @@ export const mockTagProvider: TagProvider = {
 export async function fetchCommunityTags(
   song: Song,
   signal?: AbortSignal,
-): Promise<{ tags: string[]; providerId: string }> {
+): Promise<{ tags: string[]; providerId: string; detail?: TagDetail; note?: string }> {
   const { providerMode } = getRuntimeSettings();
   const known = CATALOGUE_BY_ID.has(song.id);
 
   if (providerMode === 'mock' || known || !isLastfmConfigured()) {
-    return { tags: await mockTagProvider.getTags(song, signal), providerId: 'mock' };
+    return {
+      tags: await mockTagProvider.getTags(song, signal),
+      providerId: 'mock',
+      note: known
+        ? 'Development catalogue song.'
+        : providerMode === 'mock'
+          ? 'Mock mode.'
+          : 'Last.fm key not configured.',
+    };
   }
-  return { tags: await lastfmTagProvider.getTags(song, signal), providerId: 'lastfm' };
+  const { tags, detail } = await lastfmTagsDetailed(song, signal);
+  return { tags, providerId: 'lastfm', detail };
 }

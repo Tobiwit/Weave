@@ -159,10 +159,8 @@
   gap: var(--s-4);
   min-height: 1.4em;
   margin-top: var(--s-3);
-  font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  font-size: var(--t-nano);
+  font-weight: 500;
   color: var(--c-text-4);
   opacity: 0;
   transform: translateY(4px);
@@ -181,7 +179,7 @@
   align-items: baseline;
   gap: 8px;
   font-size: 13px;
-  font-weight: 300;
+  font-weight: 400;
   letter-spacing: 0;
   text-transform: none;
 }
@@ -195,15 +193,13 @@
 /* ------------------------------- Groups ---------------------------------- */
 
 .agroup {
-  border-radius: 24px;
-  background: color-mix(in oklab, var(--c-text) 3%, transparent);
+  border-radius: var(--r-lg);
+  background: var(--c-surface);
   transition: background-color 520ms var(--e-out);
 }
 
 .agroup--open {
-  background: color-mix(in oklab, var(--c-text) 6%, transparent);
-  -webkit-backdrop-filter: blur(20px) saturate(1.3);
-  backdrop-filter: blur(20px) saturate(1.3);
+  background: var(--c-surface-strong);
 }
 
 .agroup__head {
@@ -222,18 +218,16 @@
 
 .agroup__name {
   flex: none;
-  font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--c-text-4);
+  font-size: var(--t-meta);
+  font-weight: 500;
+  color: var(--c-text-2);
 }
 
 .agroup__summary {
   min-width: 0;
-  font-size: 1.0625rem;
-  font-weight: 250;
-  letter-spacing: -0.015em;
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  line-height: 1.1;
   text-align: right;
 }
 
@@ -244,6 +238,12 @@
 
 .agroup__word--empty {
   color: var(--c-text-4);
+}
+
+/* The reading's word, not yours yet: same colour, set in italic and dimmed. */
+.agroup__word--suggested {
+  font-style: italic;
+  opacity: 0.62;
 }
 
 .agroup__sep {
@@ -269,95 +269,47 @@
   min-height: 0;
 }
 
-.agroup__axis {
-  padding: 0 18px;
+.agroup__inner > * {
+  padding: 0 18px 10px;
 }
 
-.agroup__axis:last-child {
-  padding-bottom: 12px;
+/* ------------------------------- The pad --------------------------------- */
+
+/*
+ * Two scales as one field. The lattice is the stops, so the value always lands
+ * exactly on a dot, and the swell around it is the whole readout.
+ */
+.pad {
+  padding: 4px 4px 16px;
 }
 
-.agroup__axis--lit .raster__word {
-  color: var(--axis);
-}
-
-/* ---------------------------- The dot raster ----------------------------- */
-
-.raster {
-  padding: 10px 4px 18px;
-}
-
-.raster__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--s-3);
-}
-
-.raster__label {
-  font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--c-text-4);
-}
-
-.raster__word {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 10px;
-  font-size: 0.9375rem;
-  font-weight: 300;
-  color: var(--c-text-2);
-  transition: color 420ms var(--e-out);
-}
-
-.raster--unplaced .raster__word {
-  color: var(--c-text-4);
-}
-
-.raster__number {
-  font-variant-numeric: tabular-nums;
-  font-size: 11px;
-  color: var(--c-text-4);
-}
-
-.raster__clear {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  font-size: 10px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--c-text-4);
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity var(--d-ui) var(--e-out);
-}
-
-.raster:hover .raster__clear,
-.raster:focus-within .raster__clear {
-  opacity: 1;
-}
-
-.raster__field {
+.pad__plot {
   position: relative;
-  height: 62px;
-  margin-top: 4px;
+  padding-left: 22px;
 }
 
-.raster__dots {
+.pad__field {
+  position: relative;
+  /* Mirrored by ASPECT in AxisPad.tsx, which shapes the swell to match. */
+  aspect-ratio: 4 / 3;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.pad__dots {
   position: absolute;
-  inset: 0 7px;
+  inset: 9px;
 }
 
-.raster__dot {
+.pad__dot {
   position: absolute;
   width: 4px;
   height: 4px;
-  margin: -2px 0 0 -2px;
+  margin: 0 0 -2px -2px;
   border-radius: 50%;
-  background: var(--axis);
+  /* The pair reads as one colour; the pure scales live on the guides and the
+     pole words, where they say which direction is which. */
+  background: color-mix(in oklab, var(--ax), var(--ay));
   transform: scale(var(--dot-scale));
   opacity: var(--dot-opacity);
   transition:
@@ -365,66 +317,176 @@
     opacity 300ms var(--e-out);
   /* Ordered outward from the middle, so a move ripples rather than snaps and an
      opening group fills from its centre. */
-  transition-delay: calc(var(--dot-order) * 6ms);
+  transition-delay: calc(var(--dot-order) * 4ms);
 }
 
-.raster--unplaced .raster__dot {
+.pad--unplaced .pad__dot {
   background: var(--c-text);
 }
 
-.raster[data-open='false'] .raster__dot {
+/* Unplaced but read: the field rests on the reading, in the pair's colour. */
+.pad--suggested .pad__dot {
+  background: color-mix(in oklab, var(--ax), var(--ay));
+}
+
+/* Where the reading puts this pair: a hollow ring that stays after you place
+   your own, so the two can be compared. */
+.pad__ghost {
+  position: absolute;
+  left: calc(9px + (100% - 18px) * var(--gx));
+  bottom: calc(9px + (100% - 18px) * var(--gy));
+  width: 22px;
+  height: 22px;
+  translate: -50% 50%;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--c-text);
+  opacity: 0.7;
+  pointer-events: none;
+  transition:
+    left 420ms var(--e-out),
+    bottom 420ms var(--e-out);
+}
+
+.pad[data-open='false'] .pad__ghost {
+  opacity: 0;
+}
+
+.pad[data-open='false'] .pad__dot {
   transform: scale(0.1);
   opacity: 0;
-  transition-delay: calc(var(--dot-order) * 3ms);
+  transition-delay: calc(var(--dot-order) * 2ms);
 }
 
-/* The real control, invisible over the field: dragging, arrow keys and screen
-   reader semantics all come from it rather than being reimplemented. */
-.raster__input {
+/* Which way is which: one guide down to the horizontal poles, one across to the
+   vertical ones, each in its own scale's colour. */
+.pad__guides {
   position: absolute;
-  inset: -6px -12px;
-  width: calc(100% + 24px);
-  height: calc(100% + 12px);
-  margin: 0;
-  opacity: 0;
-  cursor: pointer;
-  -webkit-appearance: none;
-  appearance: none;
-  background: transparent;
-}
-
-.raster__input::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 44px;
-  height: 44px;
-}
-
-.raster__input::-moz-range-thumb {
-  width: 44px;
-  height: 44px;
-  border: 0;
-}
-
-/* Focus has to be visible on the field, since the input itself is invisible. */
-.raster__field:has(.raster__input:focus-visible)::after {
-  content: '';
-  position: absolute;
-  inset: -4px -8px;
-  border-radius: 20px;
-  outline: 1px solid var(--axis);
-  opacity: 0.55;
+  inset: 9px;
   pointer-events: none;
 }
 
-.raster__poles {
+.pad__guide {
+  position: absolute;
+  opacity: 0.45;
+  transition: opacity var(--d-ui) var(--e-out);
+}
+
+.pad__guide--x {
+  left: var(--vx);
+  bottom: 0;
+  width: 1px;
+  height: var(--vy);
+  color: var(--ax);
+  background-image: repeating-linear-gradient(
+    to top,
+    currentColor 0 2px,
+    transparent 2px 6px
+  );
+}
+
+.pad__guide--y {
+  bottom: var(--vy);
+  left: 0;
+  height: 1px;
+  width: var(--vx);
+  color: var(--ay);
+  background-image: repeating-linear-gradient(
+    to right,
+    currentColor 0 2px,
+    transparent 2px 6px
+  );
+}
+
+.pad:has(.pad__key--x:focus-visible) .pad__guide--x,
+.pad:has(.pad__key--y:focus-visible) .pad__guide--y {
+  opacity: 1;
+}
+
+/* Focus has to show on the field, since the controls carrying it are off
+   screen. */
+.pad:has(.pad__key:focus-visible) .pad__field::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 18px;
+  outline: 1px solid color-mix(in oklab, var(--ax), var(--ay));
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ---- The only labels: four pole words and, on request, two numbers ---- */
+
+.pad__y,
+.pad__x {
+  font-size: var(--t-nano);
+  font-weight: 500;
+}
+
+.pad__y {
+  position: absolute;
+  left: 0;
+  color: var(--ay);
+  opacity: 0.75;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.pad__y--high {
+  top: 0;
+}
+
+.pad__y--low {
+  bottom: 0;
+}
+
+.pad__x {
   display: flex;
   justify-content: space-between;
   gap: var(--s-4);
-  font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--c-text-4);
+  margin: 6px 0 0 22px;
+  color: var(--ax);
+  opacity: 0.75;
+}
+
+.pad__aside {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.pad__numbers {
+  display: inline-flex;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+}
+
+.pad__number--x {
+  color: var(--ax);
+}
+
+.pad__number--y {
+  color: var(--ay);
+}
+
+.pad__clear {
+  padding: 2px 10px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--c-surface-press);
+  font-size: var(--t-nano);
+  color: var(--c-text-2);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--d-ui) var(--e-out);
+}
+
+.pad:hover .pad__clear,
+.pad:focus-within .pad__clear {
+  opacity: 1;
 }
 
 /* -------------------------------- Folds ---------------------------------- */
@@ -448,7 +510,7 @@
 
 .fold__name {
   font-size: 0.9375rem;
-  font-weight: 300;
+  font-weight: 400;
   letter-spacing: -0.01em;
   color: var(--c-text-2);
   transition: color var(--d-ui) var(--e-out);
@@ -461,10 +523,8 @@
 
 .fold__note {
   flex: none;
-  font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  font-size: var(--t-nano);
+  font-weight: 500;
   color: var(--c-text-4);
 }
 
@@ -511,10 +571,8 @@
   display: flex;
   align-items: baseline;
   gap: 10px;
-  font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  font-size: var(--t-nano);
+  font-weight: 500;
   color: var(--c-text-4);
 }
 
@@ -566,24 +624,22 @@
 
 .facts__label {
   flex: none;
-  font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  font-size: var(--t-nano);
+  font-weight: 500;
   color: var(--c-text-4);
 }
 
 .facts__value {
   margin: 0;
   font-size: 0.875rem;
-  font-weight: 300;
+  font-weight: 400;
   color: var(--c-text-2);
   text-align: right;
 }
 
 .signals__terms {
   font-size: 0.8125rem;
-  font-weight: 300;
+  font-weight: 400;
   line-height: 1.7;
   color: var(--c-text-4);
 }
@@ -603,16 +659,14 @@
 .provenance__kind {
   flex: none;
   min-width: 92px;
-  font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  font-size: var(--t-nano);
+  font-weight: 500;
   color: var(--c-text-4);
 }
 
 .provenance__who {
   font-size: 0.8125rem;
-  font-weight: 300;
+  font-weight: 400;
   color: var(--c-text-3);
 }
 
@@ -634,4 +688,86 @@
 :root[data-reduced-motion='true'] .weave__drop,
 :root[data-reduced-motion='true'] .weave__dot {
   animation: none;
+}
+
+/* ------------------------------ Group tiles -------------------------------
+   The four groups at a glance, two by two. A coarse field and two big words;
+   tapping one opens the full pad across both columns. */
+
+.atile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: var(--s-3) var(--s-4) var(--s-3);
+  border: 0;
+  border-radius: var(--r-lg);
+  background: var(--c-surface);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color var(--d-micro) var(--e-out),
+    transform var(--d-micro) var(--e-out);
+}
+
+.atile:hover {
+  background: var(--c-surface-strong);
+}
+
+/* Its pad is open below: lit at the edge so the two read as one. */
+.atile--active {
+  background: var(--c-surface-strong);
+  box-shadow: inset 0 0 0 1.5px oklch(0.92 0.17 125 / 0.55);
+}
+
+.atile:active {
+  transform: scale(0.98);
+}
+
+.atile__name {
+  font-size: var(--t-nano);
+  font-weight: 500;
+  color: var(--c-text-3);
+}
+
+.atile__field {
+  position: relative;
+  display: block;
+  aspect-ratio: 13 / 4;
+  margin: 4px 3px 2px;
+}
+
+.atile__dot {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  margin: 0 0 -1.5px -1.5px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--ax), var(--ay));
+  transform: scale(var(--dot-scale));
+  opacity: var(--dot-opacity);
+  transition:
+    transform 300ms var(--e-out),
+    opacity 300ms var(--e-out);
+}
+
+.atile__words {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.atile__word {
+  font-family: var(--font-display);
+  font-size: 1.3125rem;
+  line-height: 1.05;
+  color: var(--axis);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.atile__word--suggested {
+  font-style: italic;
+  opacity: 0.62;
 }

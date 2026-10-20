@@ -65,6 +65,9 @@ function scoreCandidate(track: ItunesTrack, song: Song): number {
   }
 
   if (VARIANT.test(title) && !VARIANT.test(wantTitle)) score -= 60;
+  // A remix single carries the original title but not the original record,
+  // and its album name would then be passed on as the song's.
+  if (VARIANT.test(album) && !VARIANT.test(wantAlbum || wantTitle)) score -= 40;
 
   // Between otherwise equal matches, the plainest title is the original.
   score -= Math.min(20, title.length / 8);

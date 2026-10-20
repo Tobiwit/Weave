@@ -45,26 +45,31 @@ export async function saveSongProfile(profile: SongProfile): Promise<void> {
 }
 
 /**
- * Places, or unplaces, one Weave scale.
+ * Places, or unplaces, Weave scales.
  *
  * Read-modify-write inside a transaction rather than patching a profile the
- * caller is holding. Two scales adjusted in quick succession both build their
- * new `axes` from whatever the screen last rendered, and the second write would
- * otherwise carry a copy of the object that predates the first and silently
- * undo it. Undefined deletes the key, because unplaced is not a value.
+ * caller is holding. Two scales adjusted in quick succession would otherwise
+ * both build their new `axes` from whatever the screen last rendered, and the
+ * second write would carry a copy of the object that predates the first and
+ * silently undo it. A key given explicitly as undefined is deleted, because
+ * unplaced is an absence rather than a value.
  */
-export async function setSongAxis(
+export async function setSongAxes(
   songId: string,
-  axis: AxisId,
-  value: number | undefined,
+  patch: Partial<Record<AxisId, number | undefined>>,
 ): Promise<void> {
   await db.transaction('rw', db.songProfiles, async () => {
     const profile = await db.songProfiles.get(songId);
     if (!profile) return;
 
     const axes = { ...(profile.axes ?? {}) };
-    if (value === undefined) delete axes[axis];
-    else axes[axis] = value;
+    for (const [axis, value] of Object.entries(patch) as [
+      AxisId,
+      number | undefined,
+    ][]) {
+      if (value === undefined) delete axes[axis];
+      else axes[axis] = value;
+    }
 
     await db.songProfiles.put({ ...profile, axes, updatedAt: Date.now() });
   });

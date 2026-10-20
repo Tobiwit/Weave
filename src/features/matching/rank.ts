@@ -42,6 +42,7 @@ export function calculateSongPlaylistMatch(
     moodVibe: [],
     themes: [],
     tags: new Map(),
+    axes: null,
   };
 
   const breakdown = scoreComponents(song, facets);

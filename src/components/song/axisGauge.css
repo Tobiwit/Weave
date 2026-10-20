@@ -1,0 +1,80 @@
+.gauge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  padding: var(--s-3) var(--s-2) var(--s-3);
+  border-radius: var(--r-md);
+  background: var(--c-surface);
+}
+
+.gauge__svg {
+  width: 100%;
+  max-width: 132px;
+  overflow: visible;
+}
+
+.gauge__track {
+  fill: none;
+  stroke: var(--c-surface-press);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.gauge__band {
+  fill: none;
+  stroke: var(--c-mint);
+  stroke-width: 6;
+  stroke-linecap: round;
+  opacity: 0.75;
+}
+
+.gauge__median {
+  fill: var(--c-bg);
+}
+
+.gauge__point {
+  fill: var(--c-bg-2);
+  stroke: var(--c-text);
+  stroke-width: 2;
+  transition: cx 600ms var(--e-out), cy 600ms var(--e-out);
+}
+
+.gauge__point--solid {
+  fill: var(--c-lime);
+  stroke: var(--c-bg-2);
+}
+
+.gauge--outside .gauge__point--solid {
+  fill: var(--c-citron);
+}
+
+.gauge--outside .gauge__point:not(.gauge__point--solid) {
+  stroke: var(--c-citron);
+}
+
+.gauge__caption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: -2px;
+  text-align: center;
+}
+
+.gauge__label {
+  font-size: var(--t-nano);
+  font-weight: 500;
+  color: var(--c-text-3);
+}
+
+.gauge__word {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  line-height: 1.15;
+  color: var(--c-text);
+}
+
+.gauge__origin {
+  font-size: 0.6875rem;
+  color: var(--c-text-4);
+}

@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useState, type CSSProperties } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMoodEnvironment } from '../components/background/MoodProvider';
-import { WeaveMark } from '../components/brand/WeaveMark';
+import { OrbitWeave } from '../components/brand/OrbitWeave';
 import { Notice } from '../components/ui/Notice';
 import { SearchField } from '../components/ui/SearchField';
 import { SongRow } from '../components/ui/SongRow';
@@ -22,8 +22,7 @@ export default function AnalyzePage() {
   const recents = useLiveQuery(() => getRecentSongs(5), [], []);
   const online = useOnlineStatus();
 
-  // The opening screen stays deliberately low-information: atmosphere, no mood.
-  useMoodEnvironment(NEUTRAL_MOOD, { resolution: 0.66, quality: 0.85 });
+  useMoodEnvironment(NEUTRAL_MOOD, { resolution: 0.9, quality: 1 });
 
   const startAnalysis = async (song: Song) => {
     await upsertSong(song).catch(() => undefined);
@@ -33,32 +32,30 @@ export default function AnalyzePage() {
   const searching = query.trim().length >= 2;
 
   return (
-    <div className="page analyze">
-      <header className="analyze__brand">
+    <div className={`page analyze${searching ? ' analyze--searching' : ''}`}>
+      <header className="analyze__top">
         <span className="brand">
-          <WeaveMark size={26} idSuffix="head" />
           <span className="brand__name">{APP.name}</span>
         </span>
-        {/* Settings is entered contextually; it is not a permanent tab. */}
         <Link to="/settings" className="analyze__settings" aria-label="Settings">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-            <circle cx="10" cy="10" r="2.6" stroke="currentColor" strokeWidth="1.4" />
-            <path
-              d="M10 2.6v1.8M10 15.6v1.8M17.4 10h-1.8M4.4 10H2.6M15.2 4.8l-1.3 1.3M6.1 13.9l-1.3 1.3M15.2 15.2l-1.3-1.3M6.1 6.1 4.8 4.8"
-              stroke="currentColor"
-              strokeWidth="1.4"
-              strokeLinecap="round"
-            />
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M5 12a7 7 0 0 1 14 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            <path d="M19 12a7 7 0 0 1-14 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" opacity="0.45" />
+            <circle cx="12" cy="12" r="2.4" stroke="currentColor" strokeWidth="1.6" />
           </svg>
         </Link>
       </header>
 
-      <h1 className="u-hero analyze__heading u-rise">{COPY.analyzeHeading}</h1>
+      {/* The mark is the opening: it turns slowly until a song is chosen. */}
+      <div className="analyze__hero">
+        <OrbitWeave className="analyze__mark" size="100%" mode={loading ? 'working' : 'idle'} />
+        <h1 className="analyze__heading">{COPY.analyzeHeading}</h1>
+      </div>
 
       {!online && (
         <div className="analyze__offline">
           <Notice>
-            You are offline. Everything already analyzed stays browsable; a new
+            You are offline. Everything already read stays browsable; a new
             song needs a connection.
           </Notice>
         </div>
@@ -79,39 +76,36 @@ export default function AnalyzePage() {
           {degraded && (
             <div className="analyze__notice">
               <Notice>
-                Search is offline right now. These are songs already known to{' '}
-                {APP.name}.
+                Search is offline right now. These are songs {APP.name} already
+                knows.
               </Notice>
             </div>
           )}
           {!loading && results.length === 0 && (
-            <p className="analyze__empty u-meta">
-              Nothing found for “{query.trim()}”.
-            </p>
+            <p className="analyze__empty">Nothing found for “{query.trim()}”.</p>
           )}
-          <ul>
+          <ul className="analyze__rows">
             {results.map((song, index) => (
               <li
                 key={song.id}
                 className="u-rise"
-                style={{ '--rise-delay': `${index * 35}ms` } as CSSProperties}
+                style={{ '--rise-delay': `${Math.min(index, 8) * 30}ms` } as CSSProperties}
               >
-                <SongRow song={song} onSelect={startAnalysis} />
+                <SongRow song={song} onSelect={startAnalysis} size={48} />
               </li>
             ))}
           </ul>
         </section>
       ) : (
         recents.length > 0 && (
-          <section className="analyze__list u-rise" aria-label="Recent songs">
+          <section className="analyze__list analyze__recents" aria-label="Recent songs">
             <div className="analyze__listHead">
-              <p className="u-eyebrow analyze__eyebrow">Recently</p>
-              {/* Recents re-open the analysis. The breakdowns live elsewhere. */}
-              <Link to="/songs" className="u-eyebrow analyze__all">
-                Breakdowns
+              <h2 className="analyze__listTitle">Recently read</h2>
+              <Link to="/songs" className="analyze__all">
+                All songs
               </Link>
             </div>
-            <ul>
+            <ul className="analyze__rows">
               {recents.map((song) => (
                 <li key={song.id}>
                   <SongRow song={song} onSelect={startAnalysis} size={44} />

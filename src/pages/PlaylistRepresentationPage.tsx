@@ -10,6 +10,7 @@ import {
   buildPlaylistRepresentation,
   type PlaylistRepresentation,
 } from '../features/playlists/representation';
+import { useRuntimeSettings } from '../hooks/useRuntimeSettings';
 import { PlaylistMap } from './representation/PlaylistMap';
 import './representation.css';
 
@@ -27,6 +28,7 @@ export default function PlaylistRepresentationPage() {
   const navigate = useNavigate();
   const [data, setData] = useState<PlaylistRepresentation | null>(null);
   const [missing, setMissing] = useState(false);
+  const { devTrace } = useRuntimeSettings();
 
   useEffect(() => {
     if (!playlistId) return;
@@ -125,6 +127,68 @@ export default function PlaylistRepresentationPage() {
         </section>
       )}
 
+      {data.feel.length > 0 && (
+        <section className="rep__section">
+          <h2 className="u-eyebrow">How it feels</h2>
+          <p className="u-meta rep__note">
+            Where its songs sit on the eight scales: the middle half of them,
+            and the median. The tighter a band is compared with your whole
+            library, the more that scale decides a match here.
+          </p>
+          <ul className="rep__feel">
+            {data.feel.map((row) => (
+              <li key={row.axis} className="rep__feelRow">
+                <span className="rep__feelName">{row.label}</span>
+                <span className="rep__feelPoles u-meta">
+                  {row.low}
+                  <span className="rep__feelTrack" aria-hidden="true">
+                    <span
+                      className="rep__feelBand"
+                      style={{ left: `${row.from * 100}%`, width: `${(row.to - row.from) * 100}%` }}
+                    />
+                    <span className="rep__feelMedian" style={{ left: `${row.median * 100}%` }} />
+                    {typeof row.stated === 'number' && (
+                      <span className="rep__feelStated" style={{ left: `${row.stated * 100}%` }} />
+                    )}
+                  </span>
+                  {row.high}
+                </span>
+                <span className="rep__feelMeta u-meta">{Math.round(row.importance * 100)}%</span>
+                {devTrace && (
+                  <span className="rep__dev rep__feelDev">
+                    median {row.median.toFixed(2)} · band {row.from.toFixed(2)}–{row.to.toFixed(2)} ·{' '}
+                    {row.members} songs (
+                    {Object.entries(row.origins)
+                      .map(([origin, count]) => `${count} ${origin}`)
+                      .join(', ') || 'none'}
+                    )
+                    {typeof row.stated === 'number' ? ` · keywords point at ${row.stated.toFixed(2)}` : ''}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+          {devTrace && data.keywordReading.length > 0 && (
+            <p className="rep__dev">
+              keywords → descriptor → facet ("?" = no clear facet, sent to mood):{' '}
+              {data.keywordReading
+                .map(
+                  (entry) =>
+                    `${entry.keyword} → ${entry.descriptor ?? 'nothing'} (${entry.similarity.toFixed(2)}) → ${entry.facet}${entry.assigned ? '' : '?'}`,
+                )
+                .join(' · ')}
+            </p>
+          )}
+          {devTrace && (
+            <p className="rep__dev">
+              {data.weightingMeasuredAt
+                ? `weights learned ${new Date(data.weightingMeasuredAt).toLocaleString()}`
+                : 'no per-playlist weights learned yet; recalculate the library to learn them'}
+            </p>
+          )}
+        </section>
+      )}
+
       <section className="rep__section">
         <h2 className="u-eyebrow">What this playlist says it is</h2>
         <p className="u-meta rep__note">
@@ -144,6 +208,14 @@ export default function PlaylistRepresentationPage() {
                   : 'Nothing to compare yet, so this is left out of a match and the other parts take its share.'}
               </p>
               <p className="u-meta rep__componentInfluence">{component.influence}</p>
+              {devTrace && (
+                <p className="rep__dev">
+                  base {component.weight.toFixed(2)} × factor {component.factor.toFixed(2)}
+                  {typeof component.lift === 'number'
+                    ? ` · members ${component.lift >= 0 ? '+' : ''}${component.lift} pts vs library`
+                    : ' · not measured'}
+                </p>
+              )}
             </li>
           ))}
         </ul>
@@ -170,6 +242,7 @@ export default function PlaylistRepresentationPage() {
                 </span>
                 <span className="rep__vocabMeta u-meta">
                   {entry.count}× · {entry.rarity.toFixed(1)}
+                  {devTrace && ` · ${entry.category}${entry.categoryWeight < 1 ? ` ×${entry.categoryWeight}` : ''}`}
                 </span>
               </li>
             ))}
@@ -230,10 +303,14 @@ function ScoreTable({
           <col className="rep__colScore" />
           <col className="rep__colScore" />
           <col className="rep__colScore" />
+          <col className="rep__colScore" />
         </colgroup>
         <thead>
           <tr>
             <th scope="col">Song</th>
+            <th scope="col" title="Feel: the eight scales">
+              Feel
+            </th>
             <th scope="col" title="Style: artist, genres, era">
               Sty
             </th>
@@ -259,6 +336,7 @@ function ScoreTable({
                 <span className="rep__songTitle">{row.title}</span>
                 <span className="rep__songArtist u-meta">{row.artist}</span>
               </th>
+              <td>{cell(row.axes)}</td>
               <td>{cell(row.style)}</td>
               <td>{cell(row.moodVibe)}</td>
               <td>{cell(row.themes)}</td>

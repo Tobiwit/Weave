@@ -8,6 +8,8 @@ import { APP } from '../config/app';
 import { EMBEDDING_CONFIG } from '../config/embedding';
 import { clearAllData, clearEmbeddingCache } from '../db/repositories';
 import { DB_VERSION } from '../db/weaveDb';
+import { backfillAudio, type AudioBackfillReport } from '../features/analysis/backfillAudio';
+import { getSourceCalibration } from '../features/song/axisReading';
 import { NEUTRAL_MOOD } from '../features/mood/moodVisualState';
 import { isLastfmConfigured } from '../services/lastfm/client';
 import {
@@ -21,12 +23,26 @@ import './settings.css';
 export default function SettingsPage() {
   const [settings, setSettings] = useState<RuntimeSettings>(getRuntimeSettings());
   const [confirmingReset, setConfirmingReset] = useState(false);
+  const [backfill, setBackfill] = useState<{
+    running: boolean;
+    done: number;
+    total: number;
+    report?: AudioBackfillReport;
+  }>({ running: false, done: 0, total: 0 });
   const navigate = useNavigate();
 
   useMoodEnvironment(NEUTRAL_MOOD, { resolution: 0.4, quality: 0.6 });
 
   const patch = async (next: Partial<RuntimeSettings>) => {
     setSettings(await updateRuntimeSettings(next));
+  };
+
+  const runBackfill = async () => {
+    setBackfill({ running: true, done: 0, total: 0 });
+    const report = await backfillAudio((done, total) =>
+      setBackfill((current) => ({ ...current, done, total })),
+    ).catch(() => undefined);
+    setBackfill({ running: false, done: 0, total: 0, report });
   };
 
   const resetEverything = async () => {
@@ -111,33 +127,44 @@ export default function SettingsPage() {
       </section>
 
       <section className="settings__section">
-        <h2 className="u-eyebrow">Observer</h2>
+        <h2 className="u-eyebrow">Developer</h2>
         <p className="u-meta settings__hint">
-          How much the machine shows of its own working while it reads a song,
-          matches one, or rebuilds a playlist. It only appears where something
-          is actually being computed, and never over anything you are reading.
-          Reduced motion keeps the marks and drops the movement.
+          The trace shows every source a reading asked, what came back, and how
+          each value was worked out from it: on the analysis screen, under a
+          song, in match details and on a playlist's representation.
         </p>
         <ChipRow>
-          <Chip
-            strong={settings.observerIntensity === 'full'}
-            onClick={() => void patch({ observerIntensity: 'full' })}
-          >
-            Full
+          <Chip strong={settings.devTrace} onClick={() => void patch({ devTrace: true })}>
+            Show trace
           </Chip>
-          <Chip
-            strong={settings.observerIntensity === 'subtle'}
-            onClick={() => void patch({ observerIntensity: 'subtle' })}
-          >
-            Subtle
-          </Chip>
-          <Chip
-            strong={settings.observerIntensity === 'off'}
-            onClick={() => void patch({ observerIntensity: 'off' })}
-          >
-            Off
+          <Chip strong={!settings.devTrace} onClick={() => void patch({ devTrace: false })}>
+            Hide trace
           </Chip>
         </ChipRow>
+        <div className="settings__actions">
+          <Button
+            variant="quiet"
+            size="sm"
+            disabled={backfill.running}
+            onClick={() => void runBackfill()}
+          >
+            {backfill.running
+              ? `Asking audio sources · ${backfill.done}/${backfill.total || '…'}`
+              : 'Fetch measured audio for read songs'}
+          </Button>
+        </div>
+        {settings.devTrace && <SourceCalibrationReadout />}
+        {backfill.report && (
+          <p className="u-meta settings__hint" role="status">
+            {backfill.report.checked === 0
+              ? 'Every read song has already been asked.'
+              : `Asked about ${backfill.report.checked} songs; ${backfill.report.measured} measured (${
+                  Object.entries(backfill.report.bySource)
+                    .map(([source, count]) => `${source} ${count}`)
+                    .join(', ') || 'no source answered'
+                }). Recalculate a playlist to bring the scores up to date.`}
+          </p>
+        )}
       </section>
 
       <section className="settings__section">
@@ -183,5 +210,34 @@ export default function SettingsPage() {
         </Button>
       </section>
     </div>
+  );
+}
+
+/**
+ * How each axis source is being mapped onto the measured scale, as fitted at
+ * the last recalculation. Development aid.
+ */
+function SourceCalibrationReadout() {
+  const calibration = getSourceCalibration();
+  const rows = Object.entries(calibration).flatMap(([source, axes]) =>
+    Object.entries(axes ?? {}).map(([axis, map]) => ({ source, axis, map })),
+  );
+  if (rows.length === 0) {
+    return (
+      <p className="u-meta settings__hint">
+        No source calibration yet. Recalculate the library once some songs have
+        measured audio.
+      </p>
+    );
+  }
+  return (
+    <ul className="settings__calibration">
+      {rows.map(({ source, axis, map }) => (
+        <li key={`${source}-${axis}`}>
+          {source} · {axis}: y = {map?.intercept.toFixed(2)} + {map?.slope.toFixed(2)}x · n{' '}
+          {map?.pairs} · r {map?.r}
+        </li>
+      ))}
+    </ul>
   );
 }

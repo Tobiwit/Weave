@@ -9,6 +9,7 @@ import { SongPicker } from '../components/playlist/SongPicker';
 import { Button } from '../components/ui/Button';
 import { Chip, ChipRow } from '../components/ui/Chip';
 import { EmptyState } from '../components/ui/Notice';
+import { Ring } from '../components/ui/Ring';
 import { SongRow } from '../components/ui/SongRow';
 import {
   deletePlaylist,
@@ -36,6 +37,7 @@ import {
 import { moodStateFromPlaylist, NEUTRAL_MOOD } from '../features/mood/moodVisualState';
 import type { RebuildReport } from '../features/playlists/ensureVectors';
 import type { Playlist, Song, SongProfile } from '../types';
+import { SongSheet } from './playlists/SongSheet';
 import './playlistDetail.css';
 
 export default function PlaylistDetailPage() {
@@ -54,6 +56,7 @@ export default function PlaylistDetailPage() {
   const [rebuilt, setRebuilt] = useState<RebuildReport | null>(null);
   const [corpus, setCorpus] = useState<TagCorpus | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [selected, setSelected] = useState<Song | null>(null);
 
   useEffect(() => {
     if (!playlistId) return;
@@ -191,10 +194,10 @@ export default function PlaylistDetailPage() {
       />
 
       <div className="pl-detail__hero">
-        <PlaylistMaterial playlist={playlist} size={84} radius="var(--r-lg)" />
-        <div>
-          <h1 className="u-title">{playlist.name}</h1>
-          <p className="u-meta">
+        <PlaylistMaterial playlist={playlist} size={112} radius="var(--r-lg)" />
+        <div className="pl-detail__heroText">
+          <h1 className="pl-detail__name">{playlist.name}</h1>
+          <p className="pl-detail__meta">
             {playlist.songIds.length}{' '}
             {playlist.songIds.length === 1 ? 'song' : 'songs'}
             {breadth ? ` · ${breadth.label}` : ''}
@@ -280,6 +283,8 @@ export default function PlaylistDetailPage() {
                   <SongRow
                     song={song!}
                     size={44}
+                    actionLabel="Open"
+                    onSelect={editing ? undefined : setSelected}
                     aside={
                       editing ? (
                         <button
@@ -291,7 +296,14 @@ export default function PlaylistDetailPage() {
                           ×
                         </button>
                       ) : score !== undefined ? (
-                        <span className="pl-detail__score">{score}</span>
+                        <Ring
+                          value={score}
+                          size={40}
+                          thickness={2.5}
+                          unit=""
+                          fontScale={0.38}
+                          ariaLabel={`${score} percent representative`}
+                        />
                       ) : undefined
                     }
                   />
@@ -331,6 +343,13 @@ export default function PlaylistDetailPage() {
           </ul>
         </section>
       )}
+
+      <SongSheet
+        playlist={playlist}
+        song={selected}
+        onClose={() => setSelected(null)}
+        onRemove={(songId) => void dropSong(songId)}
+      />
 
       {editing && (
         <div className="pl-detail__danger">

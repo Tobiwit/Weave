@@ -1,105 +1,16 @@
 .playlists__head {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: var(--s-4);
-  margin-bottom: var(--s-7);
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  margin-bottom: var(--s-5);
 }
 
-.playlists__list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-1);
+.playlists__head .u-title {
+  font-size: clamp(2.5rem, 12vw, 3.25rem);
+  line-height: 1;
 }
-
-/*
- * A ruled entry in a catalogue. The rule between rows is the structure; the
- * signal bar on the left is the only thing that moves on hover.
- */
-.pl-row {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: var(--s-4);
-  padding: var(--s-4) var(--s-2) var(--s-4) var(--s-3);
-  border-radius: 0;
-  border-top: var(--hair) solid var(--c-hairline);
-  transition: background-color var(--d-micro) var(--e-out);
-}
-
-.pl-row::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: -1px;
-  bottom: 0;
-  width: 2px;
-  background: var(--c-signal);
-  transform: scaleY(0);
-  transform-origin: top;
-  transition: transform var(--d-ui) var(--e-out);
-}
-
-.pl-row:hover,
-.pl-row:focus-visible {
-  background: var(--c-surface);
-}
-
-.pl-row:hover::before,
-.pl-row:focus-visible::before {
-  transform: scaleY(1);
-}
-
-.pl-row__text {
-  flex: 1;
-  min-width: 0;
-}
-
-.pl-row__name {
-  display: block;
-  font-size: 1.5rem;
-  line-height: 1.04;
-  letter-spacing: -0.042em;
-}
-
-/* Keywords are the machine's index of the playlist, so they are set as one. */
-.pl-row__desc {
-  display: block;
-  margin-top: var(--s-2);
-  font-family: var(--font-mono);
-  font-size: var(--t-nano);
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--c-text-4);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pl-row__count {
-  flex: none;
-  align-self: flex-start;
-  color: var(--c-text-4);
-  font-family: var(--font-mono);
-  font-size: var(--t-micro);
-  font-variant-numeric: tabular-nums;
-}
-
-.playlists__foot {
-  margin-top: var(--s-7);
-  padding-top: var(--s-5);
-  border-top: 1px solid var(--c-hairline);
-}
-
-@media (min-width: 720px) {
-  .playlists__list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: var(--s-2);
-  }
-}
-
-/* ------------------------------- Import --------------------------------- */
 
 .playlists__actions {
   display: flex;
@@ -108,169 +19,74 @@
   flex: none;
 }
 
-.import {
+/* -------------------------------- List ------------------------------------ */
+
+.playlists__list {
   display: flex;
   flex-direction: column;
-  gap: var(--s-3);
-  max-width: 460px;
-  margin-bottom: var(--s-6);
-  padding: var(--s-5);
-  border-radius: var(--r-lg);
-  background: oklch(1 0 0 / 0.05);
-  border: 1px solid var(--c-hairline);
-}
-
-.import__label {
-  display: block;
-}
-
-.import__input {
-  width: 100%;
-  min-height: 44px;
-  padding: 0 var(--s-4);
-  border: 1px solid var(--c-hairline);
-  border-radius: var(--r-md);
-  background: oklch(1 0 0 / 0.04);
-  font-size: var(--t-body);
-  outline: none;
-  transition: border-color var(--d-micro) var(--e-out);
-}
-
-.import__input:focus {
-  border-color: var(--c-blue);
-}
-
-.import__input::placeholder {
-  color: var(--c-text-4);
-}
-
-.import__title {
-  font-size: 1.1875rem;
-  letter-spacing: -0.022em;
-}
-
-.import__meta {
-  margin-top: -6px;
-}
-
-.import__note {
-  max-width: 46ch;
-  line-height: 1.5;
-}
-
-.import__actions {
-  display: flex;
-  flex-wrap: wrap;
   gap: var(--s-2);
 }
 
-.import__error {
-  color: var(--c-amber);
-}
-
-.import__unavailable {
-  max-width: 46ch;
-  line-height: 1.5;
-}
-
-.callback {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: var(--s-4);
-}
-
-.import__connect {
-  max-width: 46ch;
-  line-height: 1.5;
-}
-
-.import__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--s-4);
-}
-
-.import__list {
-  display: flex;
-  flex-direction: column;
-  max-height: 320px;
-  margin: 0 calc(var(--s-2) * -1);
-}
-
-.import__row {
+.pl-row {
   display: flex;
   align-items: center;
-  gap: var(--s-3);
-  width: 100%;
-  padding: var(--s-2);
-  border: 0;
-  border-radius: var(--r-md);
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
-  transition: background-color var(--d-micro) var(--e-out);
+  gap: var(--s-4);
+  padding: var(--s-3);
+  border-radius: var(--r-lg);
+  background: var(--c-surface);
+  transition:
+    background-color var(--d-micro) var(--e-out),
+    transform var(--d-micro) var(--e-out);
 }
 
-.import__row:hover,
-.import__row:focus-visible {
-  background: oklch(1 0 0 / 0.06);
+.pl-row:hover,
+.pl-row:focus-visible {
+  background: var(--c-surface-strong);
 }
 
-.import__rowText {
+.pl-row:active {
+  transform: scale(0.985);
+}
+
+.pl-row__text {
   display: flex;
   flex-direction: column;
   min-width: 0;
   flex: 1;
 }
 
-.import__rowName {
+.pl-row__name {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  line-height: 1.05;
+  color: var(--c-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.import__rowMeta {
-  margin-top: 1px;
+.pl-row__desc {
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/*
- * A library-level action, so it sits above the list rather than inside any
- * playlist. Quiet by default: it is maintenance, not the point of the screen.
- */
-.playlists__recalc {
-  margin-bottom: var(--s-5);
-  padding: var(--s-3) 0;
-  border-top: 1px solid var(--c-hairline);
-  border-bottom: 1px solid var(--c-hairline);
+.pl-row__count {
+  flex: none;
+  display: grid;
+  place-items: center;
+  min-width: 36px;
+  height: 36px;
+  margin-right: var(--s-2);
+  padding: 0 var(--s-2);
+  border-radius: var(--r-pill);
+  background: oklch(1 0 0 / 0.07);
+  font-variant-numeric: tabular-nums;
+  color: var(--c-text-2);
 }
 
-.playlists__recalcRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--s-4);
-}
-
-.playlists__recalcText {
-  max-width: 44ch;
-  line-height: 1.5;
-  color: var(--c-text-4);
-}
-
-.playlists__recalcSummary {
-  margin-top: var(--s-3);
-  max-width: 52ch;
-  line-height: 1.5;
-  color: var(--c-text-3);
-}
-
-/*
- * Manage mode. The row keeps its link and grows an action beside it rather
- * than becoming a different row, so nothing shifts when the mode turns on.
- */
+/* Manage mode: the row keeps its link and grows an action beside it. */
 .pl-row__wrap {
   display: flex;
   align-items: center;
@@ -291,24 +107,177 @@
 .pl-row__delete {
   appearance: none;
   border: 0;
-  background: none;
   cursor: pointer;
-  padding: var(--s-2) var(--s-3);
+  min-height: 36px;
+  padding: 0 var(--s-3);
   border-radius: var(--r-pill);
+  background: oklch(1 0 0 / 0.07);
   font-size: var(--t-meta);
-  color: var(--c-text-3);
-  transition: color var(--d-micro) var(--e-out);
+  color: var(--c-text-2);
+  transition:
+    color var(--d-micro) var(--e-out),
+    background-color var(--d-micro) var(--e-out);
 }
 
 .pl-row__delete:hover {
   color: var(--c-text);
 }
 
-/* Armed, not decorative: this is the tap that actually destroys something. */
 .pl-row__delete--armed {
-  color: var(--c-amber);
+  background: oklch(0.72 0.17 28 / 0.22);
+  color: var(--c-alarm);
 }
 
-.pl-detail__confirm {
-  color: var(--c-amber);
+/* ------------------------------ Recalculate -------------------------------- */
+
+.playlists__recalc {
+  margin-bottom: var(--s-4);
+  padding: var(--s-4) var(--s-5);
+  border-radius: var(--r-lg);
+  box-shadow: inset 0 0 0 var(--hair) var(--c-hairline);
+}
+
+.playlists__recalcRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+}
+
+.playlists__recalcText {
+  max-width: 44ch;
+  line-height: 1.45;
+  color: var(--c-text-3);
+}
+
+.playlists__recalcSummary {
+  margin-top: var(--s-3);
+  max-width: 52ch;
+  line-height: 1.5;
+  color: var(--c-text-2);
+}
+
+/* -------------------------------- Import ----------------------------------- */
+
+.import {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  margin-bottom: var(--s-5);
+  padding: var(--s-5);
+  border-radius: var(--r-lg);
+  background: var(--c-surface);
+}
+
+.import__label {
+  display: block;
+}
+
+.import__input {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 var(--s-5);
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--c-bg-2);
+  box-shadow: inset 0 0 0 var(--hair) var(--c-hairline);
+  font-size: var(--t-body);
+  outline: none;
+  transition: box-shadow var(--d-micro) var(--e-out);
+}
+
+.import__input:focus {
+  box-shadow: inset 0 0 0 1.5px oklch(0.92 0.17 125 / 0.7);
+}
+
+.import__input::placeholder {
+  color: var(--c-text-4);
+}
+
+.import__title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.75rem;
+  line-height: 1.05;
+}
+
+.import__meta {
+  margin-top: -6px;
+}
+
+.import__note,
+.import__unavailable,
+.import__connect {
+  max-width: 46ch;
+  line-height: 1.5;
+}
+
+.import__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.import__error {
+  color: var(--c-alarm);
+}
+
+.callback {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--s-4);
+}
+
+.import__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-4);
+}
+
+.import__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 340px;
+  margin: 0 calc(var(--s-2) * -1);
+}
+
+.import__row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  width: 100%;
+  padding: var(--s-2);
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--d-micro) var(--e-out);
+}
+
+.import__row:hover,
+.import__row:focus-visible {
+  background: var(--c-surface-strong);
+}
+
+.import__rowText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.import__rowName {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.import__rowMeta {
+  margin-top: 1px;
 }

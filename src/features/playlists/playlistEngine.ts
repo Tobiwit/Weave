@@ -8,8 +8,20 @@ import {
 import { embeddingService } from '../../services/embedding';
 import type { Playlist, PlaylistMatch, Song, SongProfile } from '../../types';
 import { MATCHING_CONFIG } from '../../config/matching';
+import { DESCRIPTOR_AXES } from '../../data/descriptorAxes';
+import { DESCRIPTORS } from '../../data/descriptors';
+import { getDescriptorVectors } from '../analysis/interpretSignals';
+import type { AxisId } from '../song/axes';
+import { readAxes, type AxisReadings } from '../song/axisReading';
+import { placeKeyword, splitKeywords, type KeywordFacet } from '../matching/keywordFacets';
 import {
   activeProfileTerms,
+  buildAxisProfile,
+  categoryWeightsFor,
+  cosineSimilarity,
+  librarySpread,
+  tagCategoryWeigher,
+  type LibrarySpread,
   buildLibraryCorpus,
   calculatePlaylistVector,
   centroid,
@@ -158,6 +170,7 @@ async function facetsFor(
   const vectors = await embedTexts(texts);
 
   return entries.map(({ profile }, index) => ({
+    axes: readAxes(profile),
     whole: profile.semanticEmbedding ?? [],
     style: vectors[index * 3] ?? [],
     moodVibe: vectors[index * 3 + 1] ?? [],
@@ -222,6 +235,8 @@ function playlistFacetsFor(
   memberFacets: SongFacets[],
   corpus: TagCorpus,
   keywords: PlaylistKeywordFacets | undefined,
+  stated: StatedAxes | undefined,
+  spread: LibrarySpread,
   excludeSongId?: string,
 ): PlaylistFacets {
   const keep = members
@@ -236,6 +251,12 @@ function playlistFacetsFor(
     songEmbeddings: songVectors,
   });
 
+  const axisProfile = buildAxisProfile(
+    facets.map((facet) => facet.axes),
+    stated?.axes,
+    spread,
+  );
+
   return {
     whole: vector,
     songVectors,
@@ -246,6 +267,9 @@ function playlistFacetsFor(
       keep.map((entry) => entry.member.profile),
       corpus,
     ),
+    axes: Object.keys(axisProfile.bands).length ? axisProfile : null,
+    tagWeigher: tagCategoryWeigher(categoryWeightsFor(playlist.keywords)),
+    factors: playlist.weighting?.factors,
   };
 }
 
@@ -261,8 +285,104 @@ export interface MatchOutcome {
  * Built here rather than per playlist so the whole library is read in a
  * handful of queries and every tag weight is measured against the same corpus.
  */
+/**
+ * Where a playlist's own words point on the eight scales.
+ *
+ * Each keyword is matched to the nearest descriptor, by label first and by
+ * meaning otherwise, and borrows that descriptor's position. Keywords that sit
+ * near nothing ("aux on") point nowhere and are left out rather than guessed.
+ */
+export interface StatedAxes {
+  axes: Partial<Record<AxisId, number>>;
+  matches: {
+    keyword: string;
+    descriptor: string | null;
+    similarity: number;
+    /** Which facet of the playlist this keyword describes. */
+    facet: KeywordFacet;
+    assigned: boolean;
+  }[];
+}
+
+async function statedAxesFor(playlists: Playlist[]): Promise<Map<string, StatedAxes>> {
+  const keywords = [
+    ...new Set(playlists.flatMap((p) => p.keywords.map((k) => k.trim())).filter(Boolean)),
+  ];
+  const nearest = new Map<string, { id: string | null; similarity: number }>();
+
+  if (keywords.length > 0) {
+    const byLabel = new Map(DESCRIPTORS.map((d) => [d.label.toLowerCase(), d.id]));
+    const unlabelled = keywords.filter((k) => !byLabel.has(k.toLowerCase()));
+    for (const keyword of keywords) {
+      const id = byLabel.get(keyword.toLowerCase());
+      if (id) nearest.set(keyword, { id, similarity: 1 });
+    }
+    if (unlabelled.length > 0) {
+      try {
+        const [vectors, descriptorVectors] = await Promise.all([
+          embeddingService.embedMany(unlabelled),
+          getDescriptorVectors(),
+        ]);
+        unlabelled.forEach((keyword, index) => {
+          let best: string | null = null;
+          let bestScore = -1;
+          descriptorVectors.forEach((vector, d) => {
+            if (!DESCRIPTOR_AXES[DESCRIPTORS[d].id]) return;
+            const score = cosineSimilarity(vectors[index], vector);
+            if (score > bestScore) {
+              bestScore = score;
+              best = DESCRIPTORS[d].id;
+            }
+          });
+          nearest.set(keyword, {
+            id: bestScore >= MATCHING_CONFIG.axes.keywordMinSimilarity ? best : null,
+            similarity: bestScore,
+          });
+        });
+      } catch {
+        // Without embeddings only exact labels can point anywhere.
+      }
+    }
+  }
+
+  const out = new Map<string, StatedAxes>();
+  for (const playlist of playlists) {
+    const sums: Partial<Record<AxisId, { sum: number; n: number }>> = {};
+    const matches: StatedAxes['matches'] = [];
+    for (const keyword of playlist.keywords) {
+      const hit = nearest.get(keyword.trim());
+      const label = hit?.id ? DESCRIPTORS.find((d) => d.id === hit.id)?.label ?? hit.id : null;
+      matches.push({
+        keyword,
+        descriptor: label,
+        similarity: hit?.similarity ?? 0,
+        ...placeKeyword(keyword, hit?.id ?? null),
+      });
+      if (!hit?.id) continue;
+      for (const [axis, value] of Object.entries(DESCRIPTOR_AXES[hit.id] ?? {}) as [
+        AxisId,
+        number,
+      ][]) {
+        const entry = (sums[axis] ??= { sum: 0, n: 0 });
+        entry.sum += value;
+        entry.n += 1;
+      }
+    }
+    const axes: Partial<Record<AxisId, number>> = {};
+    for (const [axis, { sum, n }] of Object.entries(sums) as [AxisId, { sum: number; n: number }][]) {
+      axes[axis] = sum / n;
+    }
+    out.set(playlist.id, { axes, matches });
+  }
+  return out;
+}
+
 export interface MatchingContext {
   corpus: TagCorpus;
+  /** Every axis's spread across the library, the yardstick for tightness. */
+  spread: LibrarySpread;
+  axesBySongId: Map<string, AxisReadings>;
+  statedAxesByPlaylistId: Map<string, StatedAxes>;
   profilesById: Map<string, SongProfile>;
   songsById: Map<string, Song>;
   facetsBySongId: Map<string, SongFacets>;
@@ -297,11 +417,24 @@ export async function buildMatchingContext(
     entries.map((entry, index) => [entry.profile.songId, facets[index]]),
   );
 
-  const keywordTexts = playlists.flatMap((playlist) => [
-    playlistStyleText(playlist),
-    playlistMoodText(playlist),
-    playlistThemeText(playlist),
-  ]);
+  const axesBySongId = new Map(
+    allProfiles.map((profile) => [
+      profile.songId,
+      facetsBySongId.get(profile.songId)?.axes ?? readAxes(profile),
+    ]),
+  );
+  const spread = librarySpread([...axesBySongId.values()]);
+  const statedAxesByPlaylistId = await statedAxesFor(playlists);
+
+  // Each facet is phrased from only the keywords that describe it.
+  const keywordTexts = playlists.flatMap((playlist) => {
+    const split = splitKeywords(statedAxesByPlaylistId.get(playlist.id)?.matches ?? []);
+    return [
+      playlistStyleText(split.style),
+      playlistMoodText(split.moodVibe),
+      playlistThemeText(split.themes),
+    ];
+  });
   const keywordVectors = await embedTexts(keywordTexts);
   const keywordFacetsByPlaylistId = new Map(
     playlists.map((playlist, index) => [
@@ -316,6 +449,9 @@ export async function buildMatchingContext(
 
   return {
     corpus,
+    spread,
+    axesBySongId,
+    statedAxesByPlaylistId,
     profilesById,
     songsById,
     facetsBySongId,
@@ -340,6 +476,7 @@ export function candidateForSong(
   const memberFacets = members.map(
     (member) =>
       context.facetsBySongId.get(member.profile.songId) ?? {
+        axes: readAxes(member.profile),
         whole: [],
         style: [],
         moodVibe: [],
@@ -354,6 +491,8 @@ export function candidateForSong(
     memberFacets,
     context.corpus,
     context.keywordFacetsByPlaylistId.get(playlist.id),
+    context.statedAxesByPlaylistId.get(playlist.id),
+    context.spread,
     songId,
   );
 

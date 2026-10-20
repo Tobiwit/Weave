@@ -1,94 +1,146 @@
-.analysis {
-  position: relative;
+/* ------------------------------- Reading ---------------------------------- */
+
+.reading {
   display: flex;
   flex-direction: column;
+  /* The mark stays put; only the steps scroll beneath it. */
+  height: calc(100dvh - var(--sab));
   min-height: 0;
-  overflow: hidden;
+  padding-bottom: var(--s-4);
 }
 
-.analysis__scene {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  padding: calc(var(--sat) + var(--s-3)) calc(var(--gutter) + var(--sar))
-    calc(var(--sab) + var(--s-5)) calc(var(--gutter) + var(--sal));
-}
-
-.analysis__top {
-  display: flex;
+.reading__top {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
   align-items: center;
-  flex: none;
+  gap: var(--s-3);
 }
 
-.analysis__cancel {
-  width: 38px;
-  height: 38px;
-  flex: none;
-  margin-left: -8px;
+.reading__close {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
   border: 0;
-  border-radius: var(--r-pill);
-  background: transparent;
-  color: var(--c-text-3);
-  font-size: 22px;
-  line-height: 1;
+  border-radius: 50%;
+  background: var(--c-surface);
+  color: var(--c-text-2);
   cursor: pointer;
+  transition: background-color var(--d-micro) var(--e-out), color var(--d-micro) var(--e-out);
 }
 
-.analysis__cancel:hover {
+.reading__close:hover {
+  background: var(--c-surface-strong);
   color: var(--c-text);
-  background: rgba(255, 255, 255, 0.07);
 }
 
-/* ------------------------------- Stage ---------------------------------- */
-
-.analysis__stage {
-  position: relative;
-  flex: 1 1 auto;
-  min-height: 230px;
-}
-
-.analysis__art {
-  position: relative;
+.reading__song {
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: u-rise 900ms var(--e-out) both;
-  transition: transform 1100ms var(--e-out);
+  gap: var(--s-3);
+  min-width: 0;
 }
 
-/* The song draws in on itself once the reading has settled. */
-.analysis__art--settled {
-  transform: scale(0.92);
+.reading__songText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
-.analysis__halo {
-  position: absolute;
-  inset: -55%;
-  border-radius: 50%;
-  filter: blur(24px);
-  transition: background 1200ms var(--e-inout);
-  pointer-events: none;
+.reading__songTitle {
+  font-size: var(--t-meta);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.analysis__identity {
+.reading__songArtist {
+  font-size: var(--t-nano);
+  color: var(--c-text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reading__count {
+  justify-self: end;
+  font-size: var(--t-meta);
+  font-variant-numeric: tabular-nums;
+  color: var(--c-text-3);
+}
+
+/* -------------------------------- Stage ----------------------------------- */
+
+.reading__stage {
   flex: none;
-  text-align: center;
-  margin-bottom: var(--s-5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--s-6) 0 var(--s-5);
 }
 
-.analysis__title {
-  margin-bottom: 2px;
+.reading__orbit {
+  position: relative;
+  width: min(56vw, 34dvh, 250px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
 }
 
-/* ------------------------------- Steps ---------------------------------- */
+.reading__mark {
+  width: 70% !important;
+  height: 70% !important;
+}
 
-.analysis__steps {
-  flex: 0 1 auto;
+.reading__dots {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.reading__dot {
+  fill: var(--c-hairline-strong);
+  transition: fill 700ms var(--e-out), r 700ms var(--e-out);
+}
+
+.reading__dot--on {
+  fill: var(--c-mint);
+}
+
+.reading__dot--stage.reading__dot--on {
+  fill: var(--c-lime);
+}
+
+.reading__dots--done .reading__dot {
+  fill: var(--c-lime);
+}
+
+.reading__status {
+  margin-top: var(--s-4);
+  font-family: var(--font-display);
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--c-text);
+}
+
+/* -------------------------------- Steps ----------------------------------- */
+
+.reading__steps {
+  flex: 1;
   min-height: 0;
-  padding-bottom: var(--s-2);
+  overflow-y: auto;
+  scrollbar-width: none;
+  padding: var(--s-2);
+  border-radius: var(--r-lg);
+  background: var(--c-surface);
+}
+
+.reading__steps::-webkit-scrollbar {
+  display: none;
 }
 
 .steps {
@@ -97,190 +149,139 @@
 }
 
 .step {
-  position: relative;
-  display: flex;
-  gap: var(--s-4);
-  min-height: 44px;
-  padding-bottom: var(--s-3);
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-3);
+  transition: opacity var(--d-reveal) var(--e-out);
 }
 
-.step__rail {
-  position: relative;
-  flex: none;
-  width: 10px;
-  display: flex;
-  justify-content: center;
+.step + .step {
+  box-shadow: inset 0 var(--hair) 0 var(--c-hairline);
 }
 
-/* The spine connecting one step to the next. */
-.step:not(.step--last) .step__rail::after {
-  content: '';
-  position: absolute;
-  top: 14px;
-  bottom: -6px;
-  width: 1px;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.16),
-    rgba(255, 255, 255, 0.05)
-  );
+.step--waiting {
+  opacity: 0.4;
 }
 
-.step__dot {
-  position: relative;
-  z-index: 1;
-  width: 7px;
-  height: 7px;
-  margin-top: 6px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.18);
-  transition: background-color var(--d-ui) var(--e-out),
-    box-shadow var(--d-ui) var(--e-out), transform var(--d-ui) var(--e-out);
+.step__marker {
+  width: 24px;
+  height: 24px;
+  margin-top: -1px;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.step__markerTrack {
+  stroke: var(--c-hairline-strong);
+}
+
+.step__markerTop,
+.step__markerBottom {
+  stroke: transparent;
+  transition: stroke var(--d-ui) var(--e-out);
+}
+
+/* Working: the top half turns. */
+.step--active .step__markerTop {
+  stroke: var(--c-lime);
+}
+
+.step--active .step__marker {
+  animation: spin 1100ms linear infinite;
+}
+
+/* Done: both halves close into a full lit circle. */
+.step--done .step__markerTop,
+.step--done .step__markerBottom {
+  stroke: var(--c-lime);
+}
+
+.step__markerCore {
+  fill: var(--c-lime);
+  stroke: none;
+}
+
+/* Missing: one half only, left open. */
+.step--missing .step__markerTop {
+  stroke: var(--c-text-4);
 }
 
 .step__body {
-  min-width: 0;
-  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 6px;
+  min-width: 0;
 }
 
 .step__label {
-  font-size: var(--t-micro);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--c-text-4);
-  transition: color var(--d-ui) var(--e-out);
+  font-size: var(--t-body);
+  font-weight: 500;
+  color: var(--c-text);
 }
 
 .step__detail {
-  font-size: 0.9375rem;
-  letter-spacing: -0.012em;
-  color: var(--c-text-2);
-  line-height: 1.4;
+  font-size: var(--t-meta);
+  color: var(--c-text-3);
+}
+
+.step--missing .step__detail {
+  color: var(--c-text-4);
 }
 
 .step__terms {
   display: flex;
   flex-wrap: wrap;
-  gap: 0 var(--s-3);
-  font-size: 0.9375rem;
-  letter-spacing: -0.012em;
-  color: var(--c-text);
-  line-height: 1.45;
+  gap: 6px;
 }
 
-/* A hairline separator between terms, without putting dots in the markup. */
-.step__term + .step__term::before {
-  content: '·';
-  margin-right: var(--s-3);
-  color: var(--c-text-4);
-}
-
-/* ---- states ---- */
-
-.step--waiting .step__detail,
-.step--waiting .step__label {
-  color: var(--c-text-4);
-}
-
-.step--active .step__label {
+.step__term {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 var(--s-3);
+  border-radius: var(--r-pill);
+  background: var(--c-surface-strong);
+  font-size: var(--t-meta);
   color: var(--c-text-2);
 }
 
-.step--active .step__detail {
+/* ------------------------------- Endings ---------------------------------- */
+
+.reading__trace {
+  flex: none;
+  max-height: 30dvh;
+  overflow-y: auto;
+  margin-top: var(--s-3);
+}
+
+.reading__continue {
+  display: flex;
+  justify-content: center;
+  padding: var(--s-5) 0;
+}
+
+.reading__notice {
+  margin-top: var(--s-4);
+  font-size: var(--t-meta);
   color: var(--c-text-3);
+  text-align: center;
 }
 
-.step--active .step__dot {
-  background: var(--c-periwinkle);
-  animation: step-pulse 1600ms var(--e-inout) infinite;
+.reading--error {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  justify-content: center;
 }
 
-.step--done .step__label {
+.reading__errorBody {
   color: var(--c-text-3);
-}
-
-.step--done .step__dot {
-  background: var(--c-text);
-  box-shadow: 0 0 10px rgba(247, 244, 238, 0.35);
-}
-
-.step--missing .step__dot {
-  background: transparent;
-  box-shadow: inset 0 0 0 1px rgba(255, 194, 122, 0.55);
-}
-
-.step--missing .step__detail {
-  color: var(--c-text-3);
-}
-
-@keyframes step-pulse {
-  0%,
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 4px rgba(154, 166, 255, 0.14);
-  }
-  50% {
-    transform: scale(1.24);
-    box-shadow: 0 0 0 7px rgba(154, 166, 255, 0.05);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .step--active .step__dot {
+  .step--active .step__marker {
     animation: none;
-  }
-}
-
-:root[data-reduced-motion='true'] .step--active .step__dot {
-  animation: none;
-}
-
-/* ------------------------------ Notices --------------------------------- */
-
-.analysis__notice {
-  flex: none;
-  margin-top: var(--s-3);
-  color: var(--c-text-4);
-  max-width: 40ch;
-  line-height: 1.4;
-}
-
-/* ------------------------------- Error ---------------------------------- */
-
-.analysis--error {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: var(--s-4);
-}
-
-.analysis__errorBody {
-  max-width: 28ch;
-}
-
-/* Short viewports give the stage less room so the steps stay readable. */
-@media (max-height: 680px) {
-  .analysis__stage {
-    min-height: 150px;
-  }
-
-  .analysis__identity {
-    margin-bottom: var(--s-4);
-  }
-}
-
-@media (min-width: 900px) {
-  .analysis__scene {
-    max-width: 620px;
-    margin: 0 auto;
-    width: 100%;
-  }
-
-  .analysis__stage {
-    min-height: 280px;
   }
 }

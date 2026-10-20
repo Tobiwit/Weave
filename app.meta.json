@@ -2,7 +2,7 @@
   "name": "Weave",
   "shortName": "Weave",
   "description": "Weave interprets a song's character, lets you refine that interpretation, and matches it against your personal playlist universe.",
-  "themeColor": "#0D1020",
-  "backgroundColor": "#07070A",
+  "themeColor": "#060808",
+  "backgroundColor": "#030404",
   "startUrl": "/"
 }

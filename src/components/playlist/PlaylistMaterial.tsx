@@ -11,30 +11,22 @@ interface PlaylistMaterialProps {
 }
 
 /**
- * A plate for a playlist that has no cover of its own.
+ * A cover for a playlist that has none of its own.
  *
- * Was a coloured gradient built from the playlist's mood hues. Against the
- * rest of the interface a row of those read as five glowing app icons, which
- * is the one thing this page should not look like, and colour was doing work
- * that nothing else on the page was doing.
- *
- * So the same mood values now drive a printed plate instead: a ruled field
- * whose angle, pitch and weight come from the playlist's own character, with a
- * single registration mark. Monochrome, mechanical, and different for every
- * playlist without any of them being colourful. It reads as a specimen rather
- * than as an icon.
+ * Built from the mark's own shape: a few concentric half circles, each set at
+ * its own angle. The playlist's character decides how many arcs there are,
+ * how far they fan, and where on the glow ramp they sit, so every plate is
+ * different and every plate is obviously from the same family.
  */
 export function PlaylistMaterial({
   playlist,
   size = 56,
-  radius = '0',
+  radius = 'var(--r-sm)',
   className,
 }: PlaylistMaterialProps) {
   const mood = useMemo(() => moodStateFromPlaylist(playlist), [playlist]);
   const dimension = typeof size === 'number' ? `${size}px` : size;
 
-  // An imported playlist keeps the cover it came with. The generated plate is
-  // for playlists made here, which have no artwork of their own.
   if (playlist.coverUrl) {
     return (
       <img
@@ -50,15 +42,15 @@ export function PlaylistMaterial({
     );
   }
 
-  // Denser rule pitch for a dense playlist, steeper rake for a turbulent one.
-  const pitch = 3 + (1 - mood.density) * 7;
-  const angle = 8 + mood.curvature * 74;
-  const weight = 0.5 + mood.contrast * 1.3;
-  const ink = 0.24 + mood.contrast * 0.4;
-  // A second field crossing the first, so busier moods moiré against
-  // themselves rather than being drawn louder.
-  const crossPitch = pitch * (1.4 + mood.turbulence * 1.1);
-  const crossAngle = angle - 62 - mood.motion * 30;
+  // Denser playlists carry more arcs; turbulent ones fan them wider.
+  // Mood sets the character; a hash of the id keeps two similar playlists
+  // from wearing the same cover.
+  const seed = hashUnit(playlist.id);
+  const count = 2 + Math.round(mood.density * 2 + seed);
+  const fan = 18 + mood.turbulence * 50 + seed * 40;
+  const base = mood.curvature * 120 + seed * 240;
+  const hue = 214 - mood.warmth * 70 - seed * 40;
+  const radii = Array.from({ length: count }, (_, i) => 12 + i * (26 / count));
 
   return (
     <div
@@ -67,16 +59,33 @@ export function PlaylistMaterial({
         width: dimension,
         height: dimension,
         borderRadius: radius,
-        ['--rule-angle' as string]: `${angle}deg`,
-        ['--rule-pitch' as string]: `${pitch}px`,
-        ['--rule-weight' as string]: `${weight}px`,
-        ['--rule-ink' as string]: `${ink}`,
-        ['--cross-angle' as string]: `${crossAngle}deg`,
-        ['--cross-pitch' as string]: `${crossPitch}px`,
-        ['--cross-ink' as string]: `${(ink * 0.55).toFixed(3)}`,
-        ['--mark' as string]: `${18 + mood.warmth * 44}%`,
+        background: `radial-gradient(120% 100% at 50% 110%, oklch(0.42 0.09 ${hue.toFixed(0)}), oklch(0.2 0.02 ${hue.toFixed(0)}) 70%)`,
       }}
       aria-hidden="true"
-    />
+    >
+      <svg viewBox="-50 -50 100 100" className="pl-material__arcs">
+        {radii.map((r, i) => (
+          <path
+            key={r}
+            d={`M ${-r} 0 A ${r} ${r} 0 0 1 ${r} 0`}
+            transform={`rotate(${(base + i * fan).toFixed(1)})`}
+            fill="none"
+            strokeWidth={5}
+            strokeLinecap="round"
+            style={{ stroke: `oklch(${0.82 + i * 0.03} ${0.1 + i * 0.02} ${(hue - i * 22).toFixed(0)})` }}
+          />
+        ))}
+      </svg>
+    </div>
   );
+}
+
+/** A stable number in [0, 1) from a string. */
+function hashUnit(value: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < value.length; i += 1) {
+    h ^= value.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return ((h >>> 0) % 1000) / 1000;
 }

@@ -18,6 +18,12 @@ interface WeaveChartProps {
   onSelect: (id: AxisId | null) => void;
   /** Numbers are off until somebody asks for them. */
   showValues: boolean;
+  /**
+   * The machine's reading. An unplaced strand rests here instead of at the
+   * centre, still drawn in ink, so the chart shows what was heard before
+   * anyone has said anything.
+   */
+  suggestions?: AxisValues;
 }
 
 /*
@@ -48,14 +54,20 @@ const GEOMETRY: StrandGeometry = { x0: 28, x1: 348, baseline: 196, span: 166 };
  * A strand nobody has placed is drawn in ink rather than in its colour, resting
  * at the centre. Colour arrives when a decision does.
  */
-export function WeaveChart({ values, selected, onSelect, showValues }: WeaveChartProps) {
+export function WeaveChart({
+  values,
+  selected,
+  onSelect,
+  showValues,
+  suggestions,
+}: WeaveChartProps) {
   const id = useId().replace(/:/g, '');
 
   // Glide through changes as one motion, so adjusting a scale feels like
   // pulling a thread rather than redrawing a chart.
   const targets = useMemo(
-    () => AXES.map((axis) => axisValue(values, axis.id)),
-    [values],
+    () => AXES.map((axis) => axisValue({ ...suggestions, ...values }, axis.id)),
+    [values, suggestions],
   );
   const shown = useGlide(targets);
 

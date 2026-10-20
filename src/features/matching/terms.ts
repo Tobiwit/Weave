@@ -195,17 +195,14 @@ export function themeEmbeddingText(profile: SongProfile): string {
  * `profileEmbeddingText`.
  * ---------------------------------------------------------------------- */
 
-export function playlistStyleText(playlist: Playlist): string {
-  const keywords = playlist.keywords.join(', ');
-  return keywords ? `Style: ${keywords}.` : '';
+export function playlistStyleText(keywords: string[]): string {
+  return keywords.length ? `Style: ${keywords.join(', ')}.` : '';
 }
 
-export function playlistMoodText(playlist: Playlist): string {
-  const keywords = playlist.keywords.join(', ');
-  return keywords ? `Character: ${keywords}.` : '';
+export function playlistMoodText(keywords: string[]): string {
+  return keywords.length ? `Character: ${keywords.join(', ')}.` : '';
 }
 
-export function playlistThemeText(playlist: Playlist): string {
-  const keywords = playlist.keywords.join(', ');
-  return keywords ? `Themes: ${keywords}.` : '';
+export function playlistThemeText(keywords: string[]): string {
+  return keywords.length ? `Themes: ${keywords.join(', ')}.` : '';
 }

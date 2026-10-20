@@ -41,7 +41,7 @@ describe('axisWord', () => {
   });
 
   it('refuses to pick a side in the middle', () => {
-    expect(axisWord(energy, 0.5)).toBe('Even');
+    expect(axisWord(energy, 0.5)).toBe('Steady');
   });
 });
 

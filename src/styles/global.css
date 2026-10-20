@@ -1,3 +1,6 @@
+@import '@fontsource-variable/inter/index.css';
+@import '@fontsource/instrument-serif/400.css';
+@import '@fontsource/instrument-serif/400-italic.css';
 @import './tokens.css';
 
 *,
@@ -24,6 +27,7 @@ body {
   line-height: var(--lh-body);
   color: var(--c-text);
   background: var(--c-bg);
+  font-feature-settings: 'cv11', 'ss01';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior-y: none;
@@ -49,8 +53,13 @@ h2,
 h3,
 h4 {
   font-weight: 500;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   line-height: var(--lh-snug);
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
 }
 
 a {
@@ -82,47 +91,59 @@ img {
   max-width: 100%;
 }
 
-/* Square and in the signal colour: focus is the machine pointing at something. */
 :focus-visible {
-  outline: var(--hair) solid var(--c-signal);
+  outline: 2px solid var(--c-lime);
   outline-offset: 3px;
-  border-radius: 0;
+  border-radius: var(--r-nub);
 }
 
 ::selection {
-  background: var(--c-signal);
-  color: var(--c-void);
+  background: var(--c-lime);
+  color: var(--c-on-light);
 }
 
-/* ---------- Human register ---------- */
+/* ---------- Voice: the serif ----------
+   Names, numbers and headlines. Never labels or controls. */
 
 .u-display {
+  font-family: var(--font-display);
   font-size: var(--t-display);
   line-height: var(--lh-tight);
-  letter-spacing: -0.055em;
-  font-weight: 500;
-  text-transform: lowercase;
+  letter-spacing: -0.02em;
+  font-weight: 400;
 }
 
 .u-hero {
+  font-family: var(--font-display);
   font-size: var(--t-hero);
-  line-height: var(--lh-tight);
-  letter-spacing: -0.045em;
-  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.015em;
+  font-weight: 400;
 }
 
 .u-title {
+  font-family: var(--font-display);
   font-size: var(--t-title);
-  letter-spacing: -0.04em;
-  line-height: 1.02;
-  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+  font-weight: 400;
 }
 
 .u-section {
   font-size: var(--t-section);
-  letter-spacing: -0.025em;
+  letter-spacing: -0.02em;
   font-weight: 500;
 }
+
+/* A number set in the serif, the way the reference sets 48%. */
+.u-numeral {
+  font-family: var(--font-display);
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+/* ---------- Tool: the grotesque ---------- */
 
 .u-meta {
   font-size: var(--t-meta);
@@ -130,23 +151,19 @@ img {
   letter-spacing: 0;
 }
 
-/*
- * Every label the machine writes is monospaced. That is the rule that keeps the
- * two registers legible as different voices rather than as inconsistency.
- */
+/* A small grey label above a group. Sentence case, no tracking. */
 .u-eyebrow {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: var(--t-micro);
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  color: var(--c-text-4);
-  font-weight: 400;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--c-text-3);
 }
 
 .u-mono {
   font-family: var(--font-mono);
-  font-size: var(--t-micro);
-  letter-spacing: 0.06em;
+  font-size: var(--t-nano);
   font-variant-numeric: tabular-nums;
 }
 
@@ -155,10 +172,9 @@ img {
 }
 
 .u-signal {
-  color: var(--c-signal);
+  color: var(--c-lime);
 }
 
-/* A rule, drawn across the full measure. The main structural device. */
 .u-rule {
   height: var(--hair);
   background: var(--c-hairline);
@@ -178,32 +194,21 @@ img {
   border: 0;
 }
 
-/*
- * Was a translucent floating plane. Now a bounded region: flat fill, one rule
- * on the left, nothing soft about it.
- */
+/* A raised tile: the reference's rounded dark card. */
 .u-plane {
   background: var(--c-surface);
   border: 0;
-  border-left: 2px solid var(--c-hairline-strong);
-  border-radius: 0;
+  border-radius: var(--r-lg);
 }
 
 .u-scroll {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  scrollbar-color: var(--c-hairline-strong) transparent;
+  scrollbar-width: none;
 }
 
 .u-scroll::-webkit-scrollbar {
-  width: 3px;
-  height: 3px;
-}
-
-.u-scroll::-webkit-scrollbar-thumb {
-  background: var(--c-hairline-strong);
-  border-radius: 0;
+  display: none;
 }
 
 .u-noscrollbar {
@@ -226,23 +231,24 @@ img {
 }
 
 /* ---------- Entrance ----------
-   A clipped wipe rather than a fade and slide: content is revealed as though
-   being rendered line by line, not eased into place. The end state is the
-   visible state, so a stalled frame loop can never strand a route invisible. */
+   Content settles in: a short rise out of a soft focus. The end state is the
+   visible state, so a stalled frame loop can never strand anything hidden. */
 
 @keyframes u-rise {
   from {
     opacity: 0;
-    clip-path: inset(0 0 100% 0);
+    transform: translateY(8px);
+    filter: blur(6px);
   }
   to {
     opacity: 1;
-    clip-path: inset(0 0 0 0);
+    transform: none;
+    filter: none;
   }
 }
 
 .u-rise {
-  animation: u-rise var(--d-reveal) var(--e-inout) both;
+  animation: u-rise var(--d-reveal) var(--e-out) both;
   animation-delay: var(--rise-delay, 0ms);
 }
 
@@ -253,9 +259,7 @@ img {
 }
 
 :root[data-reduced-motion='true'] .u-rise,
-:root[data-reduced-motion='true'] .shell__page,
-:root[data-reduced-motion='true'] .result__review,
-:root[data-reduced-motion='true'] .analysis__art {
+:root[data-reduced-motion='true'] .shell__page {
   animation: none;
 }
 

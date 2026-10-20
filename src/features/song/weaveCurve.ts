@@ -7,9 +7,12 @@
  * where the high point falls along the horizontal — and the amplitude carries
  * nothing but identity.
  *
- * The arch is a half sine in a warped parameter. Warping the input rather than
- * skewing the output keeps both feet on the baseline and keeps the summit flat,
- * so a strand peaking near an edge leans without kinking or clipping.
+ * The arch is one full period of a sine, read trough to crest to trough, in a
+ * warped parameter. Warping the input rather than skewing the output keeps both
+ * feet on the baseline and the summit flat, so a strand peaking near an edge
+ * leans without kinking or clipping — and because the curve leaves the baseline
+ * flat rather than steeply, the long side of an off-centre summit stretches out
+ * into a slow S instead of a ramp.
  */
 
 /** Points a strand is sampled at. Enough that straight segments read as curve. */
@@ -29,9 +32,15 @@ export function warp(t: number, peak: number): number {
   return t <= p ? (0.5 * t) / p : 0.5 + (0.5 * (t - p)) / (1 - p);
 }
 
-/** Height of the strand at position `t`, in 0-1 of its own amplitude. */
+/**
+ * Height of the strand at position `t`, in 0-1 of its own amplitude.
+ *
+ * A raised cosine, so the slope is zero at both feet and at the summit and
+ * steepest half way between. A plain half sine would be at its steepest the
+ * instant it left the baseline, which reads as a tent rather than as a wave.
+ */
 export function strandHeight(t: number, peak: number): number {
-  return Math.sin(Math.PI * warp(t, peak));
+  return (1 - Math.cos(2 * Math.PI * warp(t, peak))) / 2;
 }
 
 export interface StrandGeometry {

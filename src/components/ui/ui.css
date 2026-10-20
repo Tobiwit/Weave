@@ -1,75 +1,74 @@
 /* ------------------------------- Button ---------------------------------
-   Rectangular, ruled, uppercase in the machine face. A button here reads as a
-   switch on an instrument rather than as a call to action. */
+   Pills. One primary per view: lit, in the accent. Everything else is a
+   quiet surface or plain text. */
 
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--s-2);
-  min-height: 40px;
-  padding: 0 var(--s-5);
+  min-height: 48px;
+  padding: 0 var(--s-6);
   border: 0;
-  border-radius: 0;
+  border-radius: var(--r-pill);
   background: transparent;
   color: var(--c-text);
-  font-family: var(--font-mono);
-  font-size: var(--t-micro);
-  font-weight: 400;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
+  font-size: var(--t-body);
+  font-weight: 500;
+  letter-spacing: -0.01em;
   cursor: pointer;
   transition:
     background-color var(--d-micro) var(--e-out),
     color var(--d-micro) var(--e-out),
-    border-color var(--d-micro) var(--e-out);
+    transform var(--d-micro) var(--e-out),
+    box-shadow var(--d-micro) var(--e-out);
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .btn:disabled {
-  opacity: 0.35;
+  opacity: 0.4;
   cursor: default;
 }
 
-/* The one filled element in the interface. Used sparingly, by design. */
 .btn--primary {
-  background: var(--c-text);
-  color: var(--c-void);
+  background: var(--c-lime);
+  color: var(--c-on-light);
 }
 
 .btn--primary:hover:not(:disabled) {
-  background: var(--c-signal);
-  color: var(--c-void);
+  background: var(--c-citron);
 }
 
 .btn--tinted {
-  background: var(--c-signal);
-  color: var(--c-void);
+  background: oklch(0.92 0.17 125 / 0.14);
+  color: var(--c-lime);
+}
+
+.btn--tinted:hover:not(:disabled) {
+  background: oklch(0.92 0.17 125 / 0.22);
 }
 
 .btn--quiet {
-  border: var(--hair) solid var(--c-hairline);
-  color: var(--c-text-2);
+  background: oklch(1 0 0 / 0.08);
+  color: var(--c-text);
 }
 
 .btn--quiet:hover:not(:disabled) {
-  color: var(--c-text);
-  border-color: var(--c-signal);
+  background: oklch(1 0 0 / 0.13);
 }
 
-/*
- * Ghost is a label with a rule under it, not a button shape. It is how a
- * secondary action stays available without adding another box.
- */
 .btn--ghost {
-  padding: 0 var(--s-1);
-  min-height: 32px;
-  color: var(--c-text-4);
-  border-bottom: var(--hair) solid transparent;
+  min-height: 40px;
+  padding: 0 var(--s-3);
+  color: var(--c-text-3);
 }
 
 .btn--ghost:hover:not(:disabled) {
   color: var(--c-text);
-  border-bottom-color: var(--c-signal);
+  background: var(--c-surface);
 }
 
 .btn--block {
@@ -77,50 +76,46 @@
 }
 
 .btn--sm {
-  min-height: 30px;
-  padding: 0 var(--s-3);
-  font-size: var(--t-nano);
-  letter-spacing: 0.16em;
+  min-height: 36px;
+  padding: 0 var(--s-4);
+  font-size: var(--t-meta);
 }
 
 /* -------------------------------- Chip -----------------------------------
-   Not a chip. A keyword set as a bracketed term, the way an index entry is
-   set: no fill, no outline, a leading rule that marks where it starts. */
+   A word the reading chose, in a pill. Yours are lit at the edge. */
 
 .chip {
   display: inline-flex;
-  align-items: baseline;
-  gap: var(--s-2);
-  min-height: 0;
-  padding: 2px 0 2px var(--s-2);
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 var(--s-3);
   border: 0;
-  border-left: var(--hair) solid var(--c-hairline-strong);
-  border-radius: 0;
-  background: none;
+  border-radius: var(--r-pill);
+  /* Translucent, so a chip reads on the page and inside any tile alike. */
+  background: oklch(1 0 0 / 0.075);
   color: var(--c-text-2);
   font-size: var(--t-meta);
-  letter-spacing: -0.01em;
   white-space: nowrap;
   transition:
+    background-color var(--d-micro) var(--e-out),
     color var(--d-micro) var(--e-out),
-    border-color var(--d-micro) var(--e-out),
     opacity var(--d-micro) var(--e-out);
 }
 
 .chip--manual {
-  border-left-color: var(--c-signal);
   color: var(--c-text);
+  box-shadow: inset 0 0 0 var(--hair) oklch(0.92 0.17 125 / 0.5);
 }
 
 .chip--strong {
+  background: oklch(1 0 0 / 0.14);
   color: var(--c-text);
-  border-left-color: var(--c-text-3);
 }
 
 .chip--removed {
-  opacity: 0.4;
+  opacity: 0.45;
   text-decoration: line-through;
-  text-decoration-color: var(--c-signal);
 }
 
 .chip--interactive {
@@ -128,38 +123,37 @@
 }
 
 .chip--interactive:hover {
+  background: oklch(1 0 0 / 0.13);
   color: var(--c-text);
-  border-left-color: var(--c-signal);
 }
 
 .chip__mark {
-  font-family: var(--font-mono);
-  font-size: 0.65em;
-  color: var(--c-signal);
-  line-height: 1;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--c-lime);
+  font-size: 0;
 }
 
 .chip__action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  margin-right: -4px;
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-right: -6px;
   padding: 0;
   border: 0;
-  border-radius: 0;
+  border-radius: 50%;
   background: transparent;
   color: var(--c-text-4);
-  font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1;
   cursor: pointer;
 }
 
 .chip__action:hover {
-  color: var(--c-signal);
-  background: none;
+  background: var(--c-surface-press);
+  color: var(--c-text);
 }
 
 .chip-row {
@@ -169,21 +163,19 @@
 }
 
 /* ------------------------------- Panel -----------------------------------
-   A bounded region of the page, marked by a rule down its left edge. Not a
-   card: nothing floats, nothing is translucent, nothing casts a shadow. */
+   A rounded tile. Never nested inside another. */
 
 .panel {
   position: relative;
-  padding: var(--s-4) var(--s-5);
+  padding: var(--s-5);
   border: 0;
-  border-left: 2px solid var(--c-hairline-strong);
-  border-radius: 0;
+  border-radius: var(--r-lg);
   background: var(--c-surface);
 }
 
 .panel--quiet {
   background: none;
-  border-left-color: var(--c-hairline);
+  box-shadow: inset 0 0 0 var(--hair) var(--c-hairline);
 }
 
 .panel--flush {
@@ -191,24 +183,14 @@
   overflow: hidden;
 }
 
-/* ------------------------------ Artwork ----------------------------------
-   Square, hard-edged, with a registration corner. Album art is treated as a
-   plate in a publication: cropped square and dropped straight onto the page. */
+/* ------------------------------ Artwork ---------------------------------- */
 
 .art {
   position: relative;
   overflow: hidden;
-  border-radius: 0;
+  border-radius: var(--r-sm);
   background: var(--c-bg-2);
   flex: none;
-}
-
-.art::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border: var(--hair) solid var(--c-hairline);
-  pointer-events: none;
 }
 
 .art__img {
@@ -220,67 +202,49 @@
   transition: opacity 620ms var(--e-out);
 }
 
+/* The generated cover: two half circles over the seed colours. */
 .art__fallback {
   position: absolute;
   inset: 0;
-  background: var(--c-bg-2);
 }
 
-/* A halftone rule field. Mechanical, printed, not a gradient. */
-.art__fallback::before {
-  content: '';
-  position: absolute;
-  inset: -25%;
-  background: repeating-linear-gradient(
-    64deg,
-    var(--c-text) 0px,
-    var(--c-text) 1px,
-    transparent 1px,
-    transparent 7px
-  );
-  opacity: 0.16;
-}
-
+.art__fallback::before,
 .art__fallback::after {
   content: '';
   position: absolute;
-  left: 0;
-  top: 0;
-  width: 34%;
-  height: var(--hair);
-  background: var(--c-signal);
+  left: 18%;
+  right: 18%;
+  aspect-ratio: 2 / 1;
+  border: 2px solid oklch(1 0 0 / 0.38);
+  border-bottom: 0;
+  border-radius: 999px 999px 0 0;
 }
 
-/* ------------------------------ SongRow ----------------------------------
-   A ruled line of a catalogue. The signal marks the left edge on hover, the
-   way a cursor marks a line in a terminal, rather than the row lighting up. */
+.art__fallback::before {
+  top: 30%;
+}
+
+.art__fallback::after {
+  top: 50%;
+  transform: scaleY(-1);
+  border-color: oklch(1 0 0 / 0.22);
+}
+
+/* ------------------------------ SongRow ---------------------------------- */
 
 .song-row {
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--s-4);
+  gap: var(--s-3);
   width: 100%;
-  padding: var(--s-3) var(--s-2) var(--s-3) var(--s-3);
+  padding: var(--s-2);
   border: 0;
-  border-radius: 0;
+  border-radius: var(--r-md);
   background: transparent;
   text-align: left;
   cursor: pointer;
   transition: background-color var(--d-micro) var(--e-out);
-}
-
-.song-row::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: var(--c-signal);
-  transform: scaleY(0);
-  transform-origin: top;
-  transition: transform var(--d-micro) var(--e-out);
 }
 
 .song-row:hover,
@@ -288,9 +252,8 @@
   background: var(--c-surface);
 }
 
-.song-row:hover::before,
-.song-row:focus-visible::before {
-  transform: scaleY(1);
+.song-row:active {
+  background: var(--c-surface-strong);
 }
 
 .song-row__text {
@@ -303,8 +266,9 @@
 .song-row__title {
   display: block;
   font-size: var(--t-body);
+  font-weight: 500;
   color: var(--c-text);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -312,12 +276,9 @@
 
 .song-row__meta {
   display: block;
-  margin-top: 2px;
-  font-family: var(--font-mono);
-  font-size: var(--t-nano);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--c-text-4);
+  margin-top: 1px;
+  font-size: var(--t-meta);
+  color: var(--c-text-3);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -326,31 +287,29 @@
 .song-row__aside {
   flex: none;
   color: var(--c-text-3);
-  font-family: var(--font-mono);
   font-size: var(--t-meta);
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------------------------- SearchField --------------------------------
-   An input line, not a pill. The rule under it is the field; the signal takes
-   that rule when it has focus. */
+/* ---------------------------- SearchField -------------------------------- */
 
 .search {
   position: relative;
   display: flex;
   align-items: center;
   gap: var(--s-3);
-  padding: 0 0 var(--s-3) 0;
-  min-height: 48px;
+  min-height: 60px;
+  padding: 0 var(--s-5);
   border: 0;
-  border-bottom: var(--hair) solid var(--c-hairline-strong);
-  border-radius: 0;
-  background: none;
-  transition: border-color var(--d-ui) var(--e-out);
+  border-radius: var(--r-pill);
+  background: var(--c-surface);
+  box-shadow: inset 0 0 0 var(--hair) var(--c-hairline);
+  transition: box-shadow var(--d-ui) var(--e-out), background-color var(--d-ui) var(--e-out);
 }
 
 .search:focus-within {
-  border-bottom-color: var(--c-signal);
+  background: var(--c-surface-strong);
+  box-shadow: inset 0 0 0 1.5px oklch(0.92 0.17 125 / 0.7);
 }
 
 .search__input {
@@ -359,66 +318,52 @@
   border: 0;
   outline: none;
   background: transparent;
-  font-size: 1.375rem;
-  letter-spacing: -0.035em;
+  font-size: 1.0625rem;
   color: var(--c-text);
 }
 
 .search__input::placeholder {
   color: var(--c-text-4);
-  letter-spacing: -0.02em;
+}
+
+.search__input::-webkit-search-cancel-button {
+  display: none;
 }
 
 .search__icon {
   flex: none;
-  color: var(--c-text-4);
+  color: var(--c-text-3);
 }
 
-/* A scanning bar rather than a spinner: it reads as work, not as waiting. */
+/* A small turning half circle: the mark's own gesture, as a spinner. */
 .search__spinner {
-  width: 22px;
-  height: 2px;
+  width: 18px;
+  height: 18px;
   flex: none;
-  border: 0;
-  border-radius: 0;
-  background: var(--c-hairline-strong);
-  position: relative;
-  overflow: hidden;
-}
-
-.search__spinner::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--c-signal);
-  transform-origin: left;
-  animation: scan 900ms var(--e-inout) infinite;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--c-lime);
+  border-left-color: var(--c-lime);
+  animation: spin 800ms linear infinite;
 }
 
 .search__clear {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
   flex: none;
   border: 0;
-  background: transparent;
-  color: var(--c-text-4);
+  border-radius: 50%;
+  background: var(--c-surface-press);
+  color: var(--c-text-2);
   cursor: pointer;
-  padding: var(--s-1);
-  font-family: var(--font-mono);
+  font-size: 16px;
+  line-height: 1;
 }
 
 .search__clear:hover {
-  color: var(--c-signal);
-}
-
-@keyframes scan {
-  0% {
-    transform: scaleX(0) translateX(0);
-  }
-  50% {
-    transform: scaleX(1) translateX(0);
-  }
-  100% {
-    transform: scaleX(0) translateX(100%);
-  }
+  color: var(--c-text);
 }
 
 @keyframes spin {
@@ -438,7 +383,7 @@
   align-items: baseline;
   justify-content: space-between;
   gap: var(--s-4);
-  margin-bottom: var(--s-3);
+  margin-bottom: var(--s-2);
 }
 
 .tick__label {
@@ -446,13 +391,14 @@
   align-items: baseline;
   gap: var(--s-2);
   font-size: var(--t-meta);
-  color: var(--c-text-2);
+  font-weight: 500;
+  color: var(--c-text);
   cursor: pointer;
 }
 
 .tick__hint {
   color: var(--c-text-4);
-  font-size: var(--t-micro);
+  font-weight: 400;
 }
 
 .tick__value {
@@ -460,59 +406,51 @@
   align-items: baseline;
   gap: var(--s-2);
   font-size: var(--t-meta);
-  color: var(--c-text);
+  color: var(--c-text-2);
 }
 
 .tick__measured {
-  font-size: var(--t-micro);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--c-signal);
-  opacity: 0.85;
+  font-size: var(--t-nano);
+  color: var(--c-lime);
 }
 
 .tick__track {
   position: relative;
-  height: 28px;
+  height: 32px;
   display: flex;
   align-items: center;
 }
 
-/*
-  One fill, masked into ticks. The filled and unfilled halves therefore share a
-  single element and can never drift out of alignment with each other.
-*/
 .tick__marks {
   position: absolute;
-  inset: 0;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 6px;
+  translate: 0 -50%;
+  border-radius: var(--r-pill);
   background: linear-gradient(
     90deg,
-    var(--c-signal) 0%,
-    var(--c-signal) var(--tick-fill),
-    var(--c-hairline-strong) var(--tick-fill),
-    var(--c-hairline-strong) 100%
+    var(--c-lime) 0%,
+    var(--c-lime) var(--tick-fill),
+    var(--c-surface-strong) var(--tick-fill),
+    var(--c-surface-strong) 100%
   );
-  -webkit-mask-image: repeating-linear-gradient(
-    90deg,
-    #000 0 1px,
-    transparent 1px 6px
-  );
-  mask-image: repeating-linear-gradient(90deg, #000 0 1px, transparent 1px 6px);
 }
 
 .tick__thumb {
   position: absolute;
-  top: -3px;
-  bottom: -3px;
-  left: clamp(1px, var(--tick-fill), calc(100% - 2px));
-  width: var(--hair);
-  border-radius: 0;
+  top: 50%;
+  left: clamp(11px, var(--tick-fill), calc(100% - 11px));
+  width: 22px;
+  height: 22px;
+  translate: -50% -50%;
+  border-radius: 50%;
   background: var(--c-text);
-  box-shadow: none;
+  box-shadow: 0 2px 8px oklch(0 0 0 / 0.4);
   pointer-events: none;
 }
 
-/* The real control, invisible but fully functional: drag, keyboard, a11y. */
 .tick__input {
   position: absolute;
   inset: 0;
@@ -528,35 +466,34 @@
 
 .tick__input::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
 }
 
 .tick__input::-moz-range-thumb {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border: 0;
 }
 
-.tick__track:has(.tick__input:focus-visible) .tick__marks {
-  outline: var(--hair) solid var(--c-signal);
-  outline-offset: 4px;
+.tick__track:has(.tick__input:focus-visible) .tick__thumb {
+  outline: 2px solid var(--c-lime);
+  outline-offset: 3px;
 }
 
 /* ---------------------------- ScoreNumber ------------------------------- */
 
 .score {
-  display: flex;
+  display: inline-flex;
   align-items: baseline;
-  gap: 2px;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.045em;
+  gap: 1px;
+  font-family: var(--font-display);
+  font-variant-numeric: lining-nums tabular-nums;
   line-height: 1;
 }
 
 .score__value {
   font-size: 2.75rem;
-  font-weight: 300;
 }
 
 .score--sm .score__value {
@@ -564,30 +501,70 @@
 }
 
 .score--lg .score__value {
-  font-size: 4rem;
+  font-size: 4.5rem;
 }
 
 .score__unit {
-  font-size: 0.9rem;
+  font-size: 0.5em;
   color: var(--c-text-3);
-  letter-spacing: 0;
 }
 
-/* ------------------------------- Sheet -----------------------------------
-   Square, flat, ruled at the top edge. The scrim darkens rather than blurs:
-   blur is the house style of the thing this interface is not. */
+/* -------------------------------- Ring ----------------------------------
+   A thin progress ring around a serif numeral: the reference's 64% tile. */
+
+.ring {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+}
+
+.ring__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  rotate: -90deg;
+}
+
+.ring__track {
+  stroke: var(--c-surface-press);
+}
+
+.ring__value {
+  transition: stroke-dashoffset 900ms var(--e-out);
+}
+
+.ring__label {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  font-family: var(--font-display);
+  font-variant-numeric: lining-nums tabular-nums;
+  line-height: 1;
+  color: var(--c-text);
+}
+
+.ring__unit {
+  font-size: 0.55em;
+  margin-left: 1px;
+}
+
+/* ------------------------------- Sheet ----------------------------------- */
 
 .sheet-scrim {
   position: fixed;
   inset: 0;
-  z-index: 60;
-  background: oklch(0.09 0.004 150 / 0.86);
+  z-index: var(--z-scrim);
+  background: oklch(0.08 0.004 220 / 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .sheet-wrap {
   position: fixed;
   inset: 0;
-  z-index: 61;
+  z-index: var(--z-sheet);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -597,21 +574,21 @@
 .sheet {
   pointer-events: auto;
   width: 100%;
-  max-height: min(86vh, 720px);
+  max-width: var(--content-max);
+  max-height: min(88vh, 760px);
   display: flex;
   flex-direction: column;
-  padding: var(--s-4) var(--gutter) calc(var(--s-6) + var(--sab));
-  border-radius: 0;
-  background: var(--c-bg);
-  border-top: 2px solid var(--c-signal);
-  box-shadow: none;
+  padding: var(--s-3) var(--gutter) calc(var(--s-6) + var(--sab));
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  background: var(--c-bg-2);
+  box-shadow: inset 0 var(--hair) 0 var(--c-hairline), var(--elev-float);
 }
 
 .sheet__grip {
-  width: 28px;
-  height: var(--hair);
-  margin: 0 auto var(--s-5);
-  border-radius: 0;
+  width: 36px;
+  height: 5px;
+  margin: 0 auto var(--s-4);
+  border-radius: var(--r-pill);
   background: var(--c-hairline-strong);
   flex: none;
 }
@@ -631,28 +608,27 @@
   }
 
   .sheet {
-    width: min(520px, 92vw);
-    border: var(--hair) solid var(--c-hairline-strong);
-    border-top: 2px solid var(--c-signal);
+    width: min(560px, 92vw);
+    border-radius: var(--r-xl);
     padding-bottom: var(--s-6);
   }
 }
 
-/* ---------------------------- Empty states -------------------------------
-   Left aligned, not centred. A centred empty state reads as an apology; this
-   reads as a section that has nothing in it yet. */
+/* ---------------------------- Empty states ------------------------------- */
 
 .empty {
-  padding: var(--s-6) 0;
-  border-top: var(--hair) solid var(--c-hairline);
+  padding: var(--s-7) var(--s-5);
+  border-radius: var(--r-lg);
+  background: var(--c-surface);
   text-align: left;
   color: var(--c-text-3);
 }
 
 .empty__title {
+  font-family: var(--font-display);
   color: var(--c-text);
-  font-size: var(--t-section);
-  letter-spacing: -0.03em;
+  font-size: 1.75rem;
+  line-height: 1.1;
   margin-bottom: var(--s-2);
 }
 
@@ -662,8 +638,7 @@
   align-items: flex-start;
   padding: var(--s-3) var(--s-4);
   border: 0;
-  border-left: 2px solid var(--c-signal);
-  border-radius: 0;
+  border-radius: var(--r-md);
   background: var(--c-surface);
   color: var(--c-text-2);
   font-size: var(--t-meta);
@@ -672,9 +647,59 @@
 
 .notice__dot {
   flex: none;
-  width: 4px;
-  height: 4px;
-  margin-top: 7px;
-  border-radius: 0;
-  background: var(--c-signal);
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--c-citron);
+}
+
+/* ----------------------------- Disclosure ---------------------------------
+   Detail behind one quiet line. The half circle turns over when it opens. */
+
+.disclosure__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 36px;
+  padding: 0 var(--s-3) 0 var(--s-2);
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--c-text-3);
+  font-size: var(--t-meta);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color var(--d-micro) var(--e-out),
+    color var(--d-micro) var(--e-out);
+}
+
+.disclosure__toggle:hover {
+  background: oklch(1 0 0 / 0.06);
+  color: var(--c-text);
+}
+
+.disclosure__arc {
+  width: 12px;
+  height: 6px;
+  border: 1.75px solid currentColor;
+  border-bottom: 0;
+  border-radius: 12px 12px 0 0;
+  transform: rotate(180deg);
+  transition: transform var(--d-ui) var(--e-out);
+}
+
+.disclosure--open .disclosure__arc {
+  transform: none;
+}
+
+.disclosure__note {
+  color: var(--c-text-4);
+  font-weight: 400;
+}
+
+.disclosure__body {
+  margin-top: var(--s-2);
+  animation: u-rise var(--d-ui) var(--e-out) both;
 }

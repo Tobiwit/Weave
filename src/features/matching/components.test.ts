@@ -6,8 +6,10 @@ import {
   type PlaylistFacets,
   type SongFacets,
 } from './components';
+import { emptyAxisReadings } from '../song/axisReading';
 
 const EMPTY_SONG: SongFacets = {
+  axes: emptyAxisReadings(),
   whole: [],
   style: [],
   moodVibe: [],
@@ -18,6 +20,7 @@ const EMPTY_SONG: SongFacets = {
 const EMPTY_PLAYLIST: PlaylistFacets = {
   whole: [],
   songVectors: [],
+  axes: null,
   style: [],
   moodVibe: [],
   themes: [],
@@ -73,6 +76,7 @@ describe('playlistSongSimilarity', () => {
 
 describe('scoreComponents', () => {
   const song: SongFacets = {
+    axes: emptyAxisReadings(),
     whole: [1, 0, 0],
     style: [1, 0, 0],
     moodVibe: [1, 0, 0],
@@ -85,6 +89,7 @@ describe('scoreComponents', () => {
       ...EMPTY_PLAYLIST,
       whole: [1, 0, 0],
       songVectors: [[1, 0, 0]],
+      axes: null,
     };
     const result = scoreComponents(song, playlist);
 
@@ -100,6 +105,7 @@ describe('scoreComponents', () => {
     const playlist: PlaylistFacets = {
       whole: [1, 0, 0],
       songVectors: [[1, 0, 0]],
+      axes: null,
       style: [1, 0, 0],
       moodVibe: [0, 1, 0],
       themes: [0, 0, 1],
@@ -118,6 +124,7 @@ describe('scoreComponents', () => {
     const playlist: PlaylistFacets = {
       whole: [0, 1, 0],
       songVectors: [[0, 1, 0]],
+      axes: null,
       style: [0, 1, 0],
       moodVibe: [1, 0, 0],
       themes: [0, 1, 0],
@@ -135,6 +142,7 @@ describe('scoreComponents', () => {
     const aligned: PlaylistFacets = {
       whole: [1, 0, 0],
       songVectors: [[1, 0, 0]],
+      axes: null,
       style: [1, 0, 0],
       moodVibe: [1, 0, 0],
       themes: [1, 0, 0],
@@ -143,6 +151,7 @@ describe('scoreComponents', () => {
     const moodOnly: PlaylistFacets = {
       whole: [0, 1, 0],
       songVectors: [[0, 1, 0]],
+      axes: null,
       style: [0, 1, 0],
       moodVibe: [1, 0, 0],
       themes: [0, 1, 0],
@@ -164,6 +173,7 @@ describe('scoreComponents', () => {
       ...EMPTY_PLAYLIST,
       whole: [0.7, 0.7, 0],
       songVectors: [[0.7, 0.7, 0]],
+      axes: null,
     };
     const result = scoreComponents(song, playlist);
     expect(result.score).toBe(Math.round(result.combined * 100));

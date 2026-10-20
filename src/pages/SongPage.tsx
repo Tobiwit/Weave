@@ -2,13 +2,16 @@ import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMoodEnvironment } from '../components/background/MoodProvider';
 import { AxisGroupPanel } from '../components/song/AxisGroupPanel';
+import type { AxisPatch } from '../components/song/AxisPad';
 import { Fold } from '../components/song/Fold';
+import { AxisReadout } from '../components/dev/AxisReadout';
+import { TraceList } from '../components/dev/TraceList';
 import { SongSignals } from '../components/song/SongSignals';
 import { WeaveChart } from '../components/song/WeaveChart';
 import { Artwork } from '../components/ui/Artwork';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/Notice';
-import { setSongAxis } from '../db/repositories';
+import { setSongAxes } from '../db/repositories';
 import {
   AXES_BY_ID,
   AXIS_GROUPS,
@@ -18,6 +21,8 @@ import {
   type AxisValues,
 } from '../features/song/axes';
 import { moodStateFromProfile, NEUTRAL_MOOD } from '../features/mood/moodVisualState';
+import { machineSuggestions, readAxes } from '../features/song/axisReading';
+import { useRuntimeSettings } from '../hooks/useRuntimeSettings';
 import { useSongProfile } from '../hooks/useSongProfile';
 import { Fingerprint } from './result/Fingerprint';
 // The fingerprint editor is the existing, canonical way to change what the
@@ -40,6 +45,9 @@ export default function SongPage() {
   const decodedId = songId ? decodeURIComponent(songId) : undefined;
   const { profile, song, update, loading } = useSongProfile(decodedId);
   const navigate = useNavigate();
+  const { devTrace } = useRuntimeSettings();
+  const machineAxes = useMemo(() => (profile ? readAxes(profile) : null), [profile]);
+  const suggestions = useMemo(() => (profile ? machineSuggestions(profile) : {}), [profile]);
 
   const [reading, setReading] = useState<AxisId | null>(null);
   const [openGroup, setOpenGroup] = useState<AxisGroupId | null>(null);
@@ -57,11 +65,11 @@ export default function SongPage() {
 
   /*
    * Written through the store rather than through the profile held in this
-   * render: two scales moved in quick succession would otherwise both patch the
-   * same stale `axes` and the second would undo the first.
+   * render: a field places both of its scales at once, and two writes built
+   * from the same stale `axes` would have the second undo the first.
    */
-  const setAxis = (id: AxisId, value: number | undefined) => {
-    if (decodedId) setSongAxis(decodedId, id, value);
+  const setAxes = (patch: AxisPatch) => {
+    if (decodedId) setSongAxes(decodedId, patch);
   };
 
   /** Reading a strand also opens the group it lives in, so it can be moved. */
@@ -128,6 +136,7 @@ export default function SongPage() {
 
         <WeaveChart
           values={values}
+          suggestions={suggestions}
           selected={reading}
           onSelect={readStrand}
           showValues={showValues}
@@ -135,7 +144,7 @@ export default function SongPage() {
 
         <p className="song__hint">
           {placed === 0
-            ? 'Nothing placed yet. Open a group below to place a scale.'
+            ? 'Drawn from the reading. Open a group below to place a scale yourself.'
             : reading
               ? 'Tap the strand again to let it go.'
               : `${placed} of 8 placed · tap a strand to read it`}
@@ -150,10 +159,11 @@ export default function SongPage() {
             values={values}
             open={openGroup === group.id}
             onToggle={() => setOpenGroup(openGroup === group.id ? null : group.id)}
-            onChange={setAxis}
+            onChange={setAxes}
             highlighted={reading}
             onHighlight={setReading}
             showValues={showValues}
+            suggestions={suggestions}
           />
         ))}
       </div>
@@ -164,6 +174,17 @@ export default function SongPage() {
         </Fold>
 
         <SongSignals profile={profile} showValues={showValues} />
+
+        {devTrace && machineAxes && (
+          <Fold name="Machine axes" note="dev">
+            <AxisReadout readings={machineAxes} />
+          </Fold>
+        )}
+        {devTrace && (
+          <Fold name="Trace" note={`${profile.trace?.length ?? 0} steps`}>
+            <TraceList entries={profile.trace ?? []} />
+          </Fold>
+        )}
       </div>
 
       <div className="song__foot">

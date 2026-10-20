@@ -313,3 +313,86 @@
 [data-reduced-motion='true'] .pmap__dot {
   transition: none;
 }
+
+/* ---------------------------------- feel ---------------------------------- */
+
+.rep__feel {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.rep__feelRow {
+  display: grid;
+  grid-template-columns: 6.5em minmax(0, 1fr) 3em;
+  align-items: center;
+  gap: 4px var(--s-3);
+  padding: var(--s-2) 0;
+  border-top: 1px solid var(--c-hairline);
+}
+
+.rep__feelName {
+  font-size: 0.875rem;
+}
+
+.rep__feelPoles {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+  font-size: 11px;
+}
+
+.rep__feelTrack {
+  position: relative;
+  flex: 1;
+  min-width: 40px;
+  height: 7px;
+  border-top: 1px solid var(--c-hairline-strong);
+  margin-top: 6px;
+}
+
+.rep__feelBand {
+  position: absolute;
+  top: -4px;
+  height: 7px;
+  background: var(--c-surface-strong);
+}
+
+.rep__feelMedian {
+  position: absolute;
+  top: -6px;
+  width: 2px;
+  height: 11px;
+  margin-left: -1px;
+  background: var(--c-text);
+}
+
+.rep__feelStated {
+  position: absolute;
+  top: -3px;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  border: 1px solid var(--c-signal);
+  border-radius: 50%;
+}
+
+.rep__feelMeta {
+  text-align: right;
+}
+
+.rep__feelDev {
+  grid-column: 1 / -1;
+}
+
+.rep__dev {
+  margin: 4px 0 0;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--c-text-4);
+  overflow-wrap: anywhere;
+}

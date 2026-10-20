@@ -3,94 +3,142 @@
   flex-direction: column;
 }
 
-.analyze__brand {
+.analyze__top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--s-4);
-  margin-bottom: var(--s-9);
+  min-height: 44px;
 }
 
 .analyze__settings {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  margin-right: -8px;
-  border-radius: var(--r-pill);
-  color: var(--c-text-4);
-  transition: color var(--d-micro) var(--e-out),
-    background-color var(--d-micro) var(--e-out);
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-right: -4px;
+  border-radius: 50%;
+  color: var(--c-text-3);
+  transition:
+    background-color var(--d-micro) var(--e-out),
+    color var(--d-micro) var(--e-out);
 }
 
-.analyze__settings:hover,
-.analyze__settings:focus-visible {
-  color: var(--c-text-2);
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.analyze__heading {
-  max-width: 12ch;
-  margin-bottom: var(--s-7);
+.analyze__settings:hover {
+  background: var(--c-surface);
   color: var(--c-text);
 }
 
-.analyze__search {
-  margin-bottom: var(--s-6);
+/* -------------------------------- Hero ----------------------------------- */
+
+.analyze__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--s-7) 0 var(--s-6);
+  transition: padding var(--d-reveal) var(--e-out);
 }
+
+.analyze__mark {
+  width: min(44vw, 176px) !important;
+  height: min(44vw, 176px) !important;
+  margin-bottom: var(--s-6);
+  transition:
+    width var(--d-reveal) var(--e-out),
+    height var(--d-reveal) var(--e-out),
+    margin var(--d-reveal) var(--e-out),
+    opacity var(--d-reveal) var(--e-out);
+}
+
+.analyze__heading {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2.5rem, 11vw, 3.5rem);
+  line-height: 1;
+  letter-spacing: -0.015em;
+  max-width: 11ch;
+  transition: font-size var(--d-reveal) var(--e-out);
+}
+
+/* Once a search is under way the hero steps aside for the results. */
+.analyze--searching .analyze__hero {
+  padding: var(--s-4) 0 var(--s-4);
+}
+
+.analyze--searching .analyze__mark {
+  width: 56px !important;
+  height: 56px !important;
+  margin-bottom: var(--s-3);
+}
+
+.analyze--searching .analyze__heading {
+  font-size: 1.75rem;
+}
+
+/* ------------------------------- Search ---------------------------------- */
+
+.analyze__search {
+  position: sticky;
+  top: calc(var(--sat) + var(--s-2));
+  z-index: 2;
+}
+
+.analyze__offline,
+.analyze__notice {
+  margin-bottom: var(--s-4);
+}
+
+/* -------------------------------- Lists ---------------------------------- */
 
 .analyze__list {
-  display: block;
+  margin-top: var(--s-5);
 }
 
-.analyze__eyebrow {
-  margin: var(--s-4) 0 var(--s-2) var(--s-2);
+/* Recents sit in one tile: a small library on the home screen. */
+.analyze__recents {
+  margin-top: var(--s-7);
+  padding: var(--s-4) var(--s-2) var(--s-2);
+  border-radius: var(--r-lg);
+  background: var(--c-surface);
+}
+
+.analyze__recents .song-row:hover,
+.analyze__recents .song-row:focus-visible {
+  background: var(--c-surface-strong);
 }
 
 .analyze__listHead {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--s-4);
+  padding: 0 var(--s-3) var(--s-2);
+}
+
+.analyze__listTitle {
+  font-size: var(--t-meta);
+  font-weight: 500;
+  color: var(--c-text-3);
+  letter-spacing: 0;
 }
 
 .analyze__all {
-  margin: var(--s-4) var(--s-2) var(--s-2) 0;
-  color: var(--c-text-3);
-  transition: color var(--d-ui) var(--e-out);
+  font-size: var(--t-meta);
+  font-weight: 500;
+  color: var(--c-lime);
 }
 
 .analyze__all:hover {
-  color: var(--c-text);
+  color: var(--c-citron);
 }
 
-.analyze__notice {
-  margin-bottom: var(--s-4);
-}
-
-.analyze__offline {
-  margin-bottom: var(--s-4);
+.analyze__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .analyze__empty {
-  padding: var(--s-5) var(--s-2);
-}
-
-@media (min-width: 768px) {
-  .analyze {
-    max-width: 640px;
-    padding-top: calc(var(--sat) + var(--s-10));
-  }
-
-  .analyze__heading {
-    font-size: 3.25rem;
-    max-width: 14ch;
-  }
-}
-
-@media (min-width: 768px) and (min-height: 720px) {
-  .analyze__brand {
-    margin-bottom: calc(var(--s-10) + var(--s-6));
-  }
+  padding: var(--s-6) var(--s-3);
+  color: var(--c-text-3);
+  font-size: var(--t-meta);
 }

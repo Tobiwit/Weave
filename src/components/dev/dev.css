@@ -1,0 +1,277 @@
+/*
+ * Development trace. Machine register: monospaced, small, dense, tinted only
+ * where something failed or was measured.
+ */
+
+.trace,
+.axr {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--c-text-3);
+}
+
+.trace {
+  display: flex;
+  flex-direction: column;
+}
+
+.trace__row {
+  padding: var(--s-2) 0;
+  border-top: 1px solid var(--c-hairline);
+  min-width: 0;
+}
+
+.trace__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px var(--s-2);
+}
+
+.trace__stage {
+  color: var(--c-text-4);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 10px;
+}
+
+.trace__kind {
+  color: var(--c-text-4);
+}
+
+.trace__provider {
+  color: var(--c-text);
+}
+
+.trace__status {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+}
+
+.trace__row--ok .trace__status,
+.trace__row--cached .trace__status {
+  color: var(--c-acid);
+}
+
+.trace__row--error .trace__status {
+  color: var(--c-alarm);
+}
+
+.trace__row--empty .trace__status,
+.trace__row--skipped .trace__status {
+  color: var(--c-signal-dim);
+}
+
+.trace__ms {
+  margin-left: auto;
+  color: var(--c-text-4);
+}
+
+.trace__request,
+.trace__note,
+.trace__empty {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.trace__request {
+  color: var(--c-text-2);
+}
+
+.trace__note,
+.trace__empty {
+  color: var(--c-text-4);
+}
+
+.trace__inputs {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  color: var(--c-text-4);
+  overflow-wrap: anywhere;
+}
+
+.trace__output {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+  gap: 0 var(--s-3);
+  margin: 4px 0 0;
+}
+
+.trace__pair {
+  display: contents;
+}
+
+.trace__pair dt {
+  color: var(--c-text-4);
+}
+
+.trace__pair dd {
+  margin: 0;
+  color: var(--c-text-2);
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------- axis readout ------------------------------ */
+
+.axr__row {
+  border-top: 1px solid var(--c-hairline);
+}
+
+.axr__head {
+  display: grid;
+  grid-template-columns: 5.5em minmax(0, 1fr) 2.5em;
+  grid-template-areas:
+    'name track value'
+    'meta meta meta';
+  align-items: center;
+  gap: 2px var(--s-3);
+  width: 100%;
+  padding: var(--s-2) 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.axr__name {
+  grid-area: name;
+  color: var(--c-text);
+}
+
+.axr__track {
+  grid-area: track;
+  position: relative;
+  height: 1px;
+  background: var(--c-hairline-strong);
+}
+
+.axr__mark {
+  position: absolute;
+  top: -4px;
+  left: var(--at);
+  width: 2px;
+  height: 9px;
+  margin-left: -1px;
+  background: var(--c-text);
+  opacity: calc(0.3 + var(--conf) * 0.7);
+}
+
+.axr__row--measured .axr__mark {
+  background: var(--c-acid);
+}
+
+.axr__row--user .axr__mark {
+  background: var(--c-signal);
+}
+
+.axr__row--none .axr__mark {
+  display: none;
+}
+
+.axr__value {
+  grid-area: value;
+  text-align: right;
+  color: var(--c-text-2);
+}
+
+.axr__meta {
+  grid-area: meta;
+  color: var(--c-text-4);
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+
+.axr__evidence {
+  list-style: none;
+  margin: 0 0 var(--s-2);
+  padding: 0 0 0 5.5em;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.axr__evidence li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--s-2);
+}
+
+.axr__src {
+  color: var(--c-text-2);
+}
+
+.axr__field {
+  color: var(--c-text-4);
+  overflow-wrap: anywhere;
+}
+
+.axr__num {
+  margin-left: auto;
+  color: var(--c-text-3);
+}
+
+@media (max-width: 420px) {
+  .axr__evidence {
+    padding-left: 0;
+  }
+}
+
+/* ------------------------------ match working ------------------------------ */
+
+.match__working {
+  margin: var(--s-3) 0;
+  overflow-x: auto;
+}
+
+.working {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--c-text-2);
+  margin-bottom: var(--s-2);
+}
+
+.working th,
+.working td {
+  padding: 3px 6px 3px 0;
+  text-align: right;
+  white-space: nowrap;
+  font-weight: 400;
+  border-top: 1px solid var(--c-hairline);
+}
+
+.working thead th {
+  color: var(--c-text-4);
+  border-top: 0;
+}
+
+.working th[scope='row'],
+.working thead th:first-child {
+  text-align: left;
+  color: var(--c-text);
+}
+
+.working__off td,
+.working__off th {
+  color: var(--c-text-4) !important;
+}
+
+.working__dim {
+  color: var(--c-text-4);
+}
+
+.working__note {
+  margin: 0 0 var(--s-3);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--c-text-4);
+}

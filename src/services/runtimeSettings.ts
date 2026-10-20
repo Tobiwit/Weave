@@ -3,30 +3,30 @@ import type { EmbeddingMode } from './embedding';
 
 export type ProviderMode = 'auto' | 'mock';
 
-/** How much of its own working the machine shows while it computes. */
-export type ObserverIntensity = 'off' | 'subtle' | 'full';
-
 export interface RuntimeSettings {
   /** `auto` uses live providers where configured; `mock` never leaves the device. */
   providerMode: ProviderMode;
   embeddingMode: EmbeddingMode;
   reducedMotionOverride: boolean;
-  /** How much of the observer layer is allowed on screen. */
-  observerIntensity: ObserverIntensity;
+  /**
+   * Shows the development trace: every source asked, what it answered, and
+   * how each value was worked out. On by default in development builds.
+   */
+  devTrace: boolean;
 }
 
 const DEFAULTS: RuntimeSettings = {
   providerMode: 'auto',
   embeddingMode: 'auto',
   reducedMotionOverride: false,
-  observerIntensity: 'full',
+  devTrace: import.meta.env.DEV,
 };
 
 const KEYS = {
   providerMode: 'providers.mode',
   embeddingMode: 'embedding.mode',
   reducedMotionOverride: 'a11y.reduceMotion',
-  observerIntensity: 'observer.intensity',
+  devTrace: 'dev.trace',
 } as const;
 
 let current: RuntimeSettings = { ...DEFAULTS };
@@ -44,7 +44,7 @@ export function subscribeToSettings(
 }
 
 export async function loadRuntimeSettings(): Promise<RuntimeSettings> {
-  const [providerMode, embeddingMode, reducedMotionOverride, observerIntensity] =
+  const [providerMode, embeddingMode, reducedMotionOverride, devTrace] =
     await Promise.all([
       readSetting<ProviderMode>(KEYS.providerMode, DEFAULTS.providerMode),
       readSetting<EmbeddingMode>(KEYS.embeddingMode, DEFAULTS.embeddingMode),
@@ -52,16 +52,13 @@ export async function loadRuntimeSettings(): Promise<RuntimeSettings> {
         KEYS.reducedMotionOverride,
         DEFAULTS.reducedMotionOverride,
       ),
-      readSetting<ObserverIntensity>(
-        KEYS.observerIntensity,
-        DEFAULTS.observerIntensity,
-      ),
+      readSetting<boolean>(KEYS.devTrace, DEFAULTS.devTrace),
     ]);
   current = {
     providerMode,
     embeddingMode,
     reducedMotionOverride,
-    observerIntensity,
+    devTrace,
   };
   for (const listener of listeners) listener(current);
   return current;

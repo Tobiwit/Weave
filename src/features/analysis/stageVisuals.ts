@@ -3,28 +3,8 @@ import type { MoodVisualState } from '../../types';
 import type { AnalysisStage, AnalysisState } from './types';
 
 /**
- * How the analysis scene reacts to real pipeline progress.
- *
- * Each signal source owns a stream of points. A stream arrives as its stage
- * completes, so the cloud visibly gains material as data actually lands rather
- * than animating on a timer.
+ * How the reading's surroundings follow real pipeline progress.
  */
-const STREAM_STAGES: AnalysisStage[] = [
-  'identify',
-  'metadata',
-  'community',
-  'lyrics',
-  'interpret',
-];
-
-export function cloudStreams(state: AnalysisState | null): number[] {
-  return STREAM_STAGES.map((stage) => {
-    if (!state) return stage === 'identify' ? 0.35 : 0;
-    if (state.completedStages.includes(stage)) return 1;
-    if (state.stage === stage) return 0.42;
-    return 0;
-  });
-}
 
 /** How far the run has progressed, used to resolve the background. */
 export function stageResolution(state: AnalysisState | null): number {
@@ -33,29 +13,13 @@ export function stageResolution(state: AnalysisState | null): number {
     identify: 0.3,
     metadata: 0.42,
     community: 0.56,
-    lyrics: 0.68,
+    lyrics: 0.64,
+    audio: 0.74,
     interpret: 0.84,
     fingerprint: 0.96,
     complete: 1,
   };
   return weights[state.stage] ?? 0.3;
-}
-
-/** The cloud tightens as the reading resolves into one interpretation. */
-export function cloudConvergence(state: AnalysisState | null): number {
-  if (!state) return 0;
-  if (state.stage === 'complete') return 1;
-  if (state.stage === 'fingerprint') return 0.86;
-  if (state.stage === 'interpret') return 0.5;
-  return Math.max(0, stageResolution(state) - 0.28);
-}
-
-/** Rotation speed: unhurried while gathering, a touch quicker as it resolves. */
-export function cloudSpeed(state: AnalysisState | null): number {
-  if (!state) return 0.28;
-  if (state.stage === 'interpret') return 0.72;
-  if (state.stage === 'fingerprint' || state.stage === 'complete') return 0.4;
-  return 0.34 + stageResolution(state) * 0.3;
 }
 
 /**

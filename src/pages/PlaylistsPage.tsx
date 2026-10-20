@@ -171,9 +171,8 @@ function Recalculate({ count, onDone }: { count: number; onDone: () => void }) {
     <div className="playlists__recalc">
       <div className="playlists__recalcRow">
         <p className="u-meta playlists__recalcText">
-          How distinctive a word is depends on how many of your playlists use
-          it, so the weights are shared across all of them. Recalculate after
-          importing or reading a lot.
+          Word weights and score ranges are shared across your playlists.
+          Recalculate after importing or reading a lot.
         </p>
         <Button variant="quiet" size="sm" disabled={progress !== null} onClick={run}>
           {progress ? `${progress.done}/${progress.total}` : 'Recalculate'}

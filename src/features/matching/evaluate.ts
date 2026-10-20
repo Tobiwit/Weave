@@ -26,6 +26,7 @@ export interface EvaluationRow {
   artist: string;
   /** Whether the song is already in the playlist being evaluated. */
   member: boolean;
+  axes: number | null;
   style: number | null;
   moodVibe: number | null;
   themes: number | null;
@@ -89,6 +90,7 @@ export async function evaluatePlaylist(
       title: song?.title ?? songId,
       artist: song?.artist ?? '',
       member: members.has(songId),
+      axes: scoreOf(match.components, 'axes'),
       style: scoreOf(match.components, 'style'),
       moodVibe: scoreOf(match.components, 'moodVibe'),
       themes: scoreOf(match.components, 'themes'),
@@ -113,6 +115,7 @@ export async function evaluatePlaylist(
 export function formatEvaluation(evaluation: Evaluation): string {
   const header = [
     'song'.padEnd(34),
+    'axes'.padStart(6),
     'style'.padStart(6),
     'mood'.padStart(6),
     'theme'.padStart(6),
@@ -127,6 +130,7 @@ export function formatEvaluation(evaluation: Evaluation): string {
     const name = `${row.member ? '* ' : '  '}${row.title} - ${row.artist}`;
     return [
       name.slice(0, 34).padEnd(34),
+      cell(row.axes).padStart(6),
       cell(row.style).padStart(6),
       cell(row.moodVibe).padStart(6),
       cell(row.themes).padStart(6),

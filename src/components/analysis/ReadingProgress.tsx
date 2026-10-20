@@ -5,9 +5,8 @@ import {
   stopReading,
 } from '../../features/analysis/readingQueue';
 import { useReadingQueue } from '../../hooks/useReadingQueue';
-import type { Reading } from '../../features/observer/scanEnvelope';
+import { OrbitWeave } from '../brand/OrbitWeave';
 import { Button } from '../ui/Button';
-import { MachineScan } from '../observer/MachineScan';
 import './reading.css';
 
 /**
@@ -68,8 +67,8 @@ export function ReadingProgress({ unreadIds, onFinished }: Props) {
 
   if (!reading) {
     return (
-      <div className="reading reading--offer">
-        <p className="u-meta reading__text">
+      <div className="rq rq--offer">
+        <p className="u-meta rq__text">
           {total} {total === 1 ? 'song has' : 'songs have'} not been read yet, so{' '}
           {total === 1 ? 'it does' : 'they do'} not shape this playlist&rsquo;s
           centre. Reading {total === 1 ? 'it' : 'them all'} takes{' '}
@@ -98,29 +97,26 @@ export function ReadingProgress({ unreadIds, onFinished }: Props) {
         ? `${queue.current.title} — ${queue.current.artist}`
         : 'Reading…';
 
-  const readings: Reading[] = [
-    {
-      key: 'QUEUE',
-      value: `${read} / ${total}`,
-      tier: 0,
-    },
-  ];
-
   return (
-    <div className="reading reading--active">
-      {/*
-        There is content in this panel, so the scan only marks its edge. The
-        readout would have to sit on top of the progress to be seen, which is
-        exactly what this layer is not allowed to do.
-      */}
-      <MachineScan
-        active={!queue.paused && !queue.waitingForNetwork}
-        label={label}
-        readings={readings}
-        mode="mark"
-      />
+    <div className="rq rq--active">
+      <div className="rq__head">
+        <OrbitWeave
+          size={36}
+          mode={queue.paused || queue.waitingForNetwork ? 'still' : 'working'}
+          progress={total > 0 ? read / total : 0}
+          weight={1.4}
+        />
+        <div className="rq__headText">
+          <p className="rq__now" title={label}>
+            {label}
+          </p>
+          <p className="rq__count u-meta">
+            {read} of {total} read
+          </p>
+        </div>
+      </div>
       <div
-        className="reading__bar"
+        className="rq__bar"
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={total}
@@ -128,19 +124,11 @@ export function ReadingProgress({ unreadIds, onFinished }: Props) {
         aria-label="Reading songs"
       >
         <span
-          className="reading__fill"
+          className="rq__fill"
           style={{ transform: `scaleX(${total > 0 ? read / total : 0})` }}
         />
       </div>
-      <div className="reading__row">
-        <p className="reading__now" title={label}>
-          {label}
-        </p>
-        <p className="reading__count u-meta">
-          {read} / {total}
-        </p>
-      </div>
-      <div className="reading__actions">
+      <div className="rq__actions">
         {queue.paused && (
           <Button variant="quiet" size="sm" onClick={resumeReading}>
             Try again

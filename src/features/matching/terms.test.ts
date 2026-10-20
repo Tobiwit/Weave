@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Playlist, SongProfile } from '../../types';
+import type { SongProfile } from '../../types';
 import {
   eraOf,
   moodEmbeddingText,
@@ -126,8 +126,8 @@ describe('facet texts', () => {
   });
 
   it('phrases a playlist facet the way the song side is phrased', () => {
-    const playlist = { keywords: ['weird', 'camp'] } as Playlist;
-    expect(playlistStyleText(playlist).startsWith('Style:')).toBe(true);
+    expect(playlistStyleText(['hyperpop']).startsWith('Style:')).toBe(true);
+    expect(playlistStyleText([])).toBe('');
   });
 });
 

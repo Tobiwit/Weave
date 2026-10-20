@@ -9,12 +9,12 @@
 .shell__bg {
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: var(--z-field);
 }
 
 .shell__main {
   position: relative;
-  z-index: 1;
+  z-index: var(--z-content);
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -22,6 +22,8 @@
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
   scrollbar-width: none;
+  /* Room for the floating bar, so the last row never hides under it. */
+  padding-bottom: calc(var(--nav-h) + var(--s-6) + var(--sab));
 }
 
 .shell__main::-webkit-scrollbar {
@@ -35,24 +37,21 @@
 .shell__page {
   display: flex;
   flex-direction: column;
+  align-items: center;
   min-height: 100%;
   min-width: 0;
-  animation: page-enter 520ms var(--e-inout) both;
+  animation: page-enter 320ms var(--e-out) both;
 }
 
-/*
- * A route arrives by being uncovered, not by sliding in. The wipe is the same
- * gesture the observer layer uses when it draws a region, so navigation reads
- * as part of the same machine.
- */
+/* A route arrives by settling into focus: short, quiet, never a wipe. */
 @keyframes page-enter {
   from {
     opacity: 0;
-    clip-path: inset(0 0 100% 0);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
-    clip-path: inset(0 0 0 0);
+    transform: none;
   }
 }
 
@@ -62,43 +61,22 @@
   }
 }
 
-/*
- * The page is a two-column measure on wide screens: a narrow left margin that
- * carries machine labels and rules, and the text column offset from it. On a
- * phone the margin collapses and only the offset survives.
- */
+/* One centred measure. Phones use the whole width; wider screens get a
+   column, the way the app would sit on a phone held in front of you. */
 .page {
   position: relative;
   min-height: 100%;
   width: 100%;
-  padding: calc(var(--sat) + var(--s-7)) calc(var(--gutter) + var(--sar))
-    calc(var(--sab) + var(--s-8)) calc(var(--gutter) + var(--sal));
-  margin: 0;
   max-width: var(--content-max);
+  padding: calc(var(--sat) + var(--s-6)) calc(var(--gutter) + var(--sar))
+    var(--s-8) calc(var(--gutter) + var(--sal));
+  margin: 0 auto;
   flex: 1;
-}
-
-/* A hairline down the left edge: the page has a spine, not a frame. */
-.page::before {
-  content: '';
-  position: absolute;
-  left: calc(var(--gutter) + var(--sal) - var(--s-3));
-  top: 0;
-  bottom: 0;
-  width: var(--hair);
-  background: var(--c-hairline);
-  opacity: 0.55;
-  pointer-events: none;
 }
 
 .page--flush {
   padding-left: 0;
   padding-right: 0;
-}
-
-.page--flush::before,
-.page--full::before {
-  display: none;
 }
 
 .page--full {
@@ -108,123 +86,123 @@
   min-height: 0;
 }
 
-@media (min-width: 900px) {
-  .page {
-    /* Deliberately off-centre. A centred column reads as a document template;
-       an offset one reads as a composition. */
-    margin-left: clamp(0px, 8vw, 140px);
-  }
-}
-
-/* ------------------------------- Nav ------------------------------------ */
+/* -------------------------------- Nav -----------------------------------
+   A floating bar: two pills either side of the mark, like the reference. */
 
 .nav {
-  position: relative;
-  z-index: 2;
-  flex: none;
-  padding: 0;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-nav);
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--gutter) calc(var(--s-3) + var(--sab));
   pointer-events: none;
-  border-top: var(--hair) solid var(--c-hairline);
-  background: var(--c-void);
 }
 
-.nav__inner {
+.nav__bar {
   pointer-events: auto;
-  display: flex;
-  align-items: stretch;
-  gap: 0;
-  max-width: none;
-  margin: 0;
-  padding: 0 0 var(--sab);
-  border: 0;
-  border-radius: 0;
-  background: none;
-  box-shadow: none;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--s-2);
+  width: min(100%, 420px);
+  height: var(--nav-h);
+  padding: var(--s-2);
+  border-radius: var(--r-pill);
+  background: oklch(0.155 0.006 220 / 0.92);
+  box-shadow:
+    inset 0 0 0 var(--hair) var(--c-hairline),
+    var(--elev-float);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
 }
 
-/*
- * Tabs divided by rules, like channels on a mixing desk. The active one is
- * marked by a bar at the top edge rather than by a filled shape.
- */
 .nav__item {
-  position: relative;
-  flex: 1;
   display: flex;
-  flex-direction: row;
   align-items: center;
   justify-content: center;
   gap: var(--s-2);
-  min-height: var(--nav-h);
-  border-radius: 0;
-  color: var(--c-text-4);
-  transition: color var(--d-micro) var(--e-out);
+  height: 100%;
+  border-radius: var(--r-pill);
+  color: var(--c-text-3);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  transition:
+    background-color var(--d-ui) var(--e-out),
+    color var(--d-ui) var(--e-out);
 }
 
-.nav__item + .nav__item {
-  border-left: var(--hair) solid var(--c-hairline);
-}
-
-.nav__item::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--c-signal);
-  transform: scaleX(0);
-  transition: transform var(--d-ui) var(--e-out);
+.nav__item:hover {
+  color: var(--c-text);
 }
 
 .nav__item--active {
+  background: var(--c-surface-strong);
   color: var(--c-text);
-  background: none;
-}
-
-.nav__item--active::before {
-  transform: scaleX(1);
 }
 
 .nav__icon {
   display: flex;
-  opacity: 0.85;
 }
 
-.nav__label {
-  font-family: var(--font-mono);
-  font-size: var(--t-nano);
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
+.nav__home {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  color: var(--c-text);
+  transition:
+    background-color var(--d-ui) var(--e-out),
+    transform var(--d-ui) var(--e-out);
+}
+
+.nav__home:hover {
+  background: var(--c-surface);
+}
+
+.nav__home:active {
+  transform: scale(0.94);
+}
+
+@media (max-width: 360px) {
+  .nav__label {
+    display: none;
+  }
 }
 
 /* ---------------------------- Page header ------------------------------- */
 
 .page-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--s-3);
-  margin-bottom: var(--s-7);
+  min-height: 44px;
+  margin-bottom: var(--s-6);
 }
 
 .page-head__back {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
   flex: none;
-  margin-left: -6px;
+  margin-left: -4px;
   border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--c-text-4);
+  border-radius: 50%;
+  background: var(--c-surface);
+  color: var(--c-text-2);
   cursor: pointer;
-  transition: color var(--d-micro) var(--e-out);
+  transition:
+    background-color var(--d-micro) var(--e-out),
+    color var(--d-micro) var(--e-out);
 }
 
 .page-head__back:hover {
-  background: none;
-  color: var(--c-signal);
+  background: var(--c-surface-strong);
+  color: var(--c-text);
 }
 
 .page-head__title {
@@ -232,24 +210,22 @@
   min-width: 0;
 }
 
+.page-head__title .u-eyebrow {
+  margin-bottom: 2px;
+}
+
 /* --------------------------- Brand header ------------------------------- */
 
 .brand {
   display: flex;
   align-items: center;
-  gap: var(--s-3);
+  gap: var(--s-2);
 }
 
 .brand__name {
-  font-family: var(--font-mono);
-  font-size: var(--t-micro);
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  color: var(--c-text-4);
-}
-
-@media (min-width: 900px) {
-  .nav__item {
-    min-height: 58px;
-  }
+  font-family: var(--font-display);
+  font-size: 1.625rem;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: var(--c-text);
 }

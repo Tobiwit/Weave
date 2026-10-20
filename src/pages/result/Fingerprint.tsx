@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Slider } from '../../components/ui/Slider';
 import { DESCRIPTORS_BY_GROUP } from '../../data/descriptors';
 import type { SongProfile } from '../../types';
 import { Facet } from './Facet';
@@ -10,28 +9,12 @@ interface FingerprintProps {
 }
 
 /**
- * Plain words for the two continuous readings.
- *
- * "Energy" and "intensity" mean nothing on their own, so each carries a short
- * definition and a named scale rather than a percentage. A number here would
- * imply a precision the reading does not have.
- */
-const ENERGY_SCALE = ['Still', 'Gentle', 'Steady', 'Driving', 'Relentless'] as const;
-const INTENSITY_SCALE = [
-  'Understated',
-  'Restrained',
-  'Balanced',
-  'Heightened',
-  'Overwhelming',
-] as const;
-
-/**
  * The reading, presented before it can be argued with.
  *
  * It reads as a short piece of writing about the song. Every line is editable,
- * but nothing looks like a form until you touch it: the mood is the headline,
- * the facets are sentences, and the two continuous qualities are the only
- * controls visible at rest.
+ * but nothing looks like a form until you touch it: the mood is the headline
+ * and the facets are sentences. How it feels on the eight scales is the next
+ * step, so there are no sliders here.
  */
 export function Fingerprint({ profile, onChange }: FingerprintProps) {
   const [pickingMood, setPickingMood] = useState(false);
@@ -89,8 +72,6 @@ export function Fingerprint({ profile, onChange }: FingerprintProps) {
     };
   };
 
-  const measured = (field: string) => profile.measuredFields.includes(field);
-
   return (
     <div className="fp">
       <button
@@ -127,29 +108,6 @@ export function Fingerprint({ profile, onChange }: FingerprintProps) {
       <Facet label="Character" {...facet('vibe', profile.vibes)} addPlaceholder="glossy, witchy…" />
       <Facet label="Themes" {...facet('theme', profile.themes)} addPlaceholder="longing, freedom…" />
       <Facet label="Style" muted {...facet('genre', profile.genres)} addPlaceholder="dream pop…" />
-
-      <div className="fp__feel">
-        <Slider
-          label="Energy"
-          hint="pace and drive"
-          value={profile.energy ?? 0.5}
-          scale={ENERGY_SCALE}
-          measured={measured('energy')}
-          onChange={(value) =>
-            onChange({
-              energy: value,
-              measuredFields: profile.measuredFields.filter((f) => f !== 'energy'),
-            })
-          }
-        />
-        <Slider
-          label="Intensity"
-          hint="emotional weight"
-          value={profile.intensity ?? 0.5}
-          scale={INTENSITY_SCALE}
-          onChange={(value) => onChange({ intensity: value })}
-        />
-      </div>
 
       {profile.communityTags.length > 0 && (
         <div className="fp__signals">

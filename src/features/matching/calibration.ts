@@ -92,6 +92,7 @@ export function bandsFromSamples(
 ): CalibrationSet {
   const defaults = MATCHING_CONFIG.components.calibration;
   return {
+    axes: bandFromSamples(samples.axes, defaults.axes),
     playlistSongs: bandFromSamples(samples.playlistSongs, defaults.playlistSongs),
     style: bandFromSamples(samples.style, defaults.style),
     moodVibe: bandFromSamples(samples.moodVibe, defaults.moodVibe),

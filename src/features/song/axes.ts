@@ -1,12 +1,13 @@
 /**
  * The Weave: eight bipolar scales a song is placed on by hand.
  *
- * Nothing here is inferred. The analysis pipeline never writes these values and
- * the matcher never reads them — they exist so a person can say what a song is
- * in their own terms, and so the breakdown screen has something to draw. An
- * axis that has never been touched stays absent rather than defaulting to a
- * number, because "we have not decided" and "dead centre" are different facts
- * and only one of them should be coloured in.
+ * The values stored on a profile are only ever hand-placed: the analysis
+ * pipeline never writes them. The machine keeps its own reading of the same
+ * scales, recomputed from measured audio and descriptors in `axisReading.ts`,
+ * and the matcher uses a hand placement where there is one and that reading
+ * where there is not. An axis that has never been touched stays absent here
+ * rather than defaulting to a number, because "we have not decided" and "dead
+ * centre" are different facts and only one of them should be coloured in.
  */
 
 export type AxisId =
@@ -30,6 +31,12 @@ export interface Axis {
   low: string;
   /** The word at 1. */
   high: string;
+  /**
+   * The word for the middle of this scale. "Even" said nothing: what sits
+   * between calm and energetic is steady, between organic and electric it is
+   * hybrid, and the word should say which.
+   */
+  mid: string;
   /** The strand's colour, shared by the chart, the list and the raster. */
   color: string;
   /**
@@ -62,6 +69,7 @@ export const AXES: Axis[] = [
     group: 'energy',
     low: 'Calm',
     high: 'Energetic',
+    mid: 'Steady',
     color: 'oklch(0.79 0.155 68)',
     lift: 1,
   },
@@ -71,6 +79,7 @@ export const AXES: Axis[] = [
     group: 'presence',
     low: 'Light',
     high: 'Heavy',
+    mid: 'Grounded',
     color: 'oklch(0.77 0.115 215)',
     lift: 0.915,
   },
@@ -80,6 +89,7 @@ export const AXES: Axis[] = [
     group: 'emotion',
     low: 'Bright',
     high: 'Dark',
+    mid: 'Dusky',
     color: 'oklch(0.73 0.16 350)',
     lift: 0.83,
   },
@@ -89,6 +99,7 @@ export const AXES: Axis[] = [
     group: 'emotion',
     low: 'Controlled',
     high: 'Vulnerable',
+    mid: 'Open',
     color: 'oklch(0.7 0.155 305)',
     lift: 0.745,
   },
@@ -98,6 +109,7 @@ export const AXES: Axis[] = [
     group: 'presence',
     low: 'Quiet',
     high: 'Loud',
+    mid: 'Full',
     color: 'oklch(0.72 0.14 252)',
     lift: 0.66,
   },
@@ -107,6 +119,7 @@ export const AXES: Axis[] = [
     group: 'character',
     low: 'Raw',
     high: 'Elegant',
+    mid: 'Natural',
     color: 'oklch(0.82 0.13 165)',
     lift: 0.575,
   },
@@ -116,6 +129,7 @@ export const AXES: Axis[] = [
     group: 'energy',
     low: 'Still',
     high: 'Danceable',
+    mid: 'Swaying',
     color: 'oklch(0.75 0.17 38)',
     lift: 0.49,
   },
@@ -125,6 +139,7 @@ export const AXES: Axis[] = [
     group: 'character',
     low: 'Organic',
     high: 'Electric',
+    mid: 'Hybrid',
     color: 'oklch(0.85 0.16 128)',
     lift: 0.405,
   },
@@ -165,7 +180,7 @@ const EVEN_BAND = 0.06;
  */
 export function axisWord(axis: Axis, value: number | undefined): string | undefined {
   if (value === undefined) return undefined;
-  if (Math.abs(value - AXIS_CENTRE) <= EVEN_BAND) return 'Even';
+  if (Math.abs(value - AXIS_CENTRE) <= EVEN_BAND) return axis.mid;
   return value < AXIS_CENTRE ? axis.low : axis.high;
 }
 

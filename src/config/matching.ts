@@ -52,10 +52,17 @@ export const MATCHING_CONFIG = {
      * dropped and the rest are renormalised.
      */
     weights: {
-      playlistSongs: 0.4,
-      style: 0.25,
-      moodVibe: 0.2,
-      tags: 0.1,
+      /**
+       * Where the song sits on the eight scales against where this
+       * playlist's songs sit. The closest thing to "how it sounds and feels"
+       * the app has, so it leads, but its share is scaled down by how much of
+       * the song's position was measured rather than read from words.
+       */
+      axes: 0.3,
+      playlistSongs: 0.3,
+      style: 0.15,
+      moodVibe: 0.12,
+      tags: 0.08,
       themes: 0.05,
     },
 
@@ -95,6 +102,8 @@ export const MATCHING_CONFIG = {
      * any change to a text recipe, with `weaveEvaluate` in the console.
      */
     calibration: {
+      /** A guess until a library is measured: axes are not a cosine. */
+      axes: { floor: 0.45, ceiling: 0.95, curve: 1 },
       playlistSongs: { floor: 0.7, ceiling: 0.82, curve: 1 },
       style: { floor: 0.56, ceiling: 0.72, curve: 1 },
       moodVibe: { floor: 0.71, ceiling: 0.84, curve: 1 },
@@ -126,6 +135,92 @@ export const MATCHING_CONFIG = {
     minPlaylists: 4,
   },
 
+  /**
+   * The eight scales, read by the machine.
+   *
+   * Every source gives an opinion with a confidence and they are averaged by
+   * it. A hand-placed value is not averaged with anything: it replaces the
+   * machine's reading outright.
+   */
+  axes: {
+    sourceConfidence: {
+      user: 1,
+      reccobeats: 0.8,
+      mock: 0.8,
+      /** Old classifiers, often contradictory between submissions. */
+      acousticbrainz: 0.5,
+      /** A mood the user picked by hand says a lot about two or three scales. */
+      chosenMood: 0.45,
+      descriptors: 0.35,
+      lyrics: 0.2,
+    },
+    /**
+     * Softmax temperature when turning descriptor similarities into an axis
+     * position. Similarities sit within a few hundredths of each other, so a
+     * plain weighted mean would put every song in the middle.
+     */
+    temperature: 0.03,
+    /** Songs needed before a playlist's spread on an axis means anything. */
+    minMembers: 3,
+    /** No playlist is so tight that a song a hair outside it scores zero. */
+    minHalfWidth: 0.08,
+    /** Distance beyond the playlist's band over which an axis score falls to 0. */
+    falloff: 0.3,
+    /**
+     * The playlist's own words count as this many songs placed where those
+     * words point. Enough to give a new playlist a shape, few enough that
+     * twenty real songs outvote them.
+     */
+    keywordPseudoCount: 2,
+    /** How close a keyword must sit to a descriptor to borrow its position. */
+    keywordMinSimilarity: 0.5,
+    /** Same split as the playlist-songs component: band, then nearest songs. */
+    profileWeight: 0.6,
+    nearestWeight: 0.4,
+    topK: 3,
+    /** Fitting word-based and secondary sources onto the measured scale. */
+    calibration: {
+      /** Songs with both readings needed before a source is remapped at all. */
+      minPairs: 6,
+      /** A fit from this many songs is trusted halfway. */
+      shrinkage: 8,
+      minSlope: 0,
+      maxSlope: 2.5,
+    },
+  },
+
+  /**
+   * Per-playlist emphasis, learned from membership.
+   *
+   * For each component, how much better a playlist's own songs score than the
+   * rest of the library. That difference is turned into a multiplier on the
+   * configured weight, shrunk towards 1 for small playlists.
+   */
+  weighting: {
+    minMembers: 3,
+    minOthers: 3,
+    /** A playlist this many songs strong gets half of its measured factor. */
+    shrinkage: 6,
+    minFactor: 0.4,
+    maxFactor: 2.5,
+  },
+
+  /**
+   * What a community tag describes changes how much it can say about a
+   * playlist. A place or an era is context; a genre or a texture is the
+   * music. A category a playlist's own keywords mention is restored to full
+   * weight for that playlist, so a Cuban playlist still cares about "cuban".
+   */
+  tagCategories: {
+    genre: 1,
+    character: 1,
+    instrument: 0.8,
+    other: 0.7,
+    vocals: 0.5,
+    era: 0.5,
+    place: 0.25,
+  },
+
   /** How many descriptors an explanation may list per column. */
   maxOverlapReasons: 5,
   maxDifferenceReasons: 3,
@@ -140,5 +235,23 @@ export const MATCHING_CONFIG = {
      */
     relativeFloor: 0.82,
     maxPerGroup: { mood: 1, energy: 1, theme: 3, texture: 2, vibe: 3 },
+    /**
+     * How much of each group's ranking comes from the lyrics rather than from
+     * what the song is called and how listeners tag it. Lyrics say most about
+     * what a song is about, a little about how it feels, and nothing about how
+     * it is produced.
+     */
+    lyricShare: { mood: 0.25, vibe: 0.2, theme: 0.6, texture: 0, energy: 0 },
+    /**
+     * How far measured audio may move a descriptor's score towards or away
+     * from it, scaled by how confident the measurement is.
+     */
+    audioNudge: 0.12,
+    /**
+     * A descriptor this far from a measurement this confident is dropped.
+     * Confidence 0.6 means ReccoBeats or the catalogue alone can veto, while
+     * AcousticBrainz, whose classifiers are noisier, can only nudge.
+     */
+    audioVeto: { confidence: 0.6, distance: 0.45 },
   },
 } as const;

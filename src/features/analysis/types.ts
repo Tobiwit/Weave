@@ -1,10 +1,11 @@
-import type { Song, SongProfile } from '../../types';
+import type { Song, SongProfile, TraceEntry } from '../../types';
 
 export type AnalysisStage =
   | 'identify'
   | 'metadata'
   | 'community'
   | 'lyrics'
+  | 'audio'
   | 'interpret'
   | 'fingerprint'
   | 'complete';
@@ -24,7 +25,11 @@ export interface AnalysisState {
   communityTags: string[];
   lyricsAvailable: boolean;
   lyricThemes: string[];
+  /** Which audio sources answered, e.g. `reccobeats`. Empty when none did. */
+  audioSources: string[];
   descriptors: string[];
+  /** Every source asked and every value worked out so far, in order. */
+  trace: TraceEntry[];
   notices: AnalysisNotice[];
   profile?: SongProfile;
   /** Set only when the song itself could not be established. */

@@ -1,57 +1,48 @@
 import { useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMoodEnvironment } from '../components/background/MoodProvider';
-import { PointCloud } from '../components/cloud/PointCloud';
-import { MachineScan } from '../components/observer/MachineScan';
+import { OrbitWeave } from '../components/brand/OrbitWeave';
+import { TraceList } from '../components/dev/TraceList';
 import { Artwork } from '../components/ui/Artwork';
 import { Button } from '../components/ui/Button';
+import { Disclosure } from '../components/ui/Disclosure';
 import {
   readingTimeFor,
-  STEP_LABELS,
+  STEP_ORDER,
   STEP_PACING,
 } from '../features/analysis/analysisSteps';
-import {
-  cloudConvergence,
-  cloudSpeed,
-  cloudStreams,
-  sceneMood,
-  stageResolution,
-} from '../features/analysis/stageVisuals';
+import { sceneMood, stageResolution } from '../features/analysis/stageVisuals';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { useReducedMotion } from '../hooks/useReducedMotion';
+import { useRuntimeSettings } from '../hooks/useRuntimeSettings';
 import { useSongAnalysis } from '../hooks/useSongAnalysis';
 import { useStagedReveal } from '../hooks/useStagedReveal';
-import type { Reading } from '../features/observer/scanEnvelope';
 import { AnalysisSteps } from './analysis/AnalysisSteps';
 import './analysis.css';
 
-/** Every stage except the terminal one, which is not work but an outcome. */
-const TOTAL_STAGES = Object.keys(STEP_LABELS).length - 1;
-
+/**
+ * The reading, shown as it happens.
+ *
+ * The mark is the subject: its arcs drift independently while nothing is
+ * known and are drawn into one figure as each stage is revealed. Around it, a
+ * ring of points lights one per stage. Below, every step says what it found.
+ * The pacing comes from `useStagedReveal`, which only ever slows the display
+ * of results that already exist, never the work.
+ */
 export default function AnalysisPage() {
   const { songId } = useParams<{ songId: string }>();
   const decodedId = songId ? decodeURIComponent(songId) : undefined;
   const { state, song, error } = useSongAnalysis(decodedId);
+  const { devTrace } = useRuntimeSettings();
   const navigate = useNavigate();
   const reducedMotion = useReducedMotion();
   const online = useOnlineStatus();
 
   const mood = useMemo(() => sceneMood(state), [state]);
   const resolution = stageResolution(state);
-  const streams = useMemo(() => cloudStreams(state), [state]);
-  const convergence = cloudConvergence(state);
-  const speed = cloudSpeed(state);
 
-  // The point cloud is the subject here and the field is also made of dots, so
-  // the field runs coarse and dim to stay clearly behind it.
-  useMoodEnvironment(mood, {
-    resolution: resolution * 0.62,
-    quality: 0.45,
-    transitionMs: 1400,
-  });
+  useMoodEnvironment(mood, { resolution, quality: 1, transitionMs: 1600 });
 
-  // Completed stages are held back only long enough to be read. Each step holds
-  // for as long as its own content takes; the work itself is never delayed.
   const completed = state?.completedStages ?? [];
   const revealedCount = useStagedReveal(completed, {
     holdFor: (stage) => readingTimeFor(state, stage),
@@ -59,101 +50,28 @@ export default function AnalysisPage() {
     immediate: reducedMotion,
   });
 
+  const total = STEP_ORDER.length;
+  const revealed = Math.min(revealedCount, total);
   const finished =
-    state?.stage === 'complete' &&
-    Boolean(state.profile) &&
-    revealedCount >= completed.length;
+    state?.stage === 'complete' && Boolean(state.profile) && revealedCount >= completed.length;
 
-  /*
-   * The machine's own working, taken straight from the run in progress. Every
-   * line is a fact the pipeline has actually established by this point, which
-   * is why the readout changes as the stages complete rather than cycling.
-   */
-  const readings = useMemo<Reading[]>(() => {
-    if (!state) return [];
-    const out: Reading[] = [
-      { key: 'STAGE', value: state.stage.toUpperCase(), tier: 0 },
-      {
-        key: 'SOURCES',
-        value: `${state.completedStages.length} / ${TOTAL_STAGES}`,
-        tier: 0,
-      },
-    ];
-
-    if (state.genres.length) {
-      out.push({ key: 'GENRE', value: state.genres.slice(0, 3).join(' / '), tier: 1 });
-    }
-    if (state.communityTags.length) {
-      out.push({
-        key: 'TAGS',
-        value: `${state.communityTags.length} RETRIEVED`,
-        tier: 1,
-      });
-      out.push({
-        key: 'VOCAB',
-        value: state.communityTags.slice(0, 3).join(' / '),
-        tier: 2,
-      });
-    }
-    out.push({
-      key: 'LYRICS',
-      value: state.lyricsAvailable ? 'READ' : 'NOT FOUND',
-      tier: 1,
-    });
-    if (state.lyricThemes.length) {
-      out.push({ key: 'THEMES', value: state.lyricThemes.join(' / '), tier: 2 });
-    }
-    if (state.descriptors.length) {
-      out.push({
-        key: 'DESCRIPTORS',
-        value: `${state.descriptors.length} MATCHED`,
-        tier: 1,
-      });
-      out.push({
-        key: 'CLASSIFY',
-        value: state.descriptors.slice(0, 3).join(' / '),
-        tier: 2,
-      });
-    }
-    if (state.preparing) {
-      out.push({
-        key: 'MODEL',
-        value: state.preparing.progress
-          ? `LOADING ${Math.round(state.preparing.progress * 100)}%`
-          : 'LOADING',
-        tier: 0,
-      });
-    }
-    if (state.notices.length) {
-      out.push({ key: 'DEGRADED', value: `${state.notices.length}`, tier: 2 });
-    }
-    return out;
-  }, [state]);
-
-  // Only while the pipeline is genuinely running. It stops the moment the
-  // reading is complete, rather than lingering over the result.
-  const working = Boolean(state) && state?.stage !== 'complete' && !error;
-
-  // The move to the fingerprint waits for the reading to become readable,
-  // rather than for an arbitrary timer.
+  // With the trace showing, the run holds here so it can be read.
   useEffect(() => {
-    if (!finished || !state?.profile) return;
+    if (!finished || !state?.profile || devTrace) return;
     const timer = setTimeout(
       () =>
-        navigate(`/result/${encodeURIComponent(state.profile!.songId)}`, {
-          replace: true,
-        }),
-      reducedMotion ? 200 : 900,
+        navigate(`/result/${encodeURIComponent(state.profile!.songId)}`, { replace: true }),
+      reducedMotion ? 200 : 1100,
     );
     return () => clearTimeout(timer);
-  }, [finished, state?.profile, navigate, reducedMotion]);
+  }, [finished, state?.profile, navigate, reducedMotion, devTrace]);
 
   if (error) {
     return (
-      <div className="page analysis analysis--error">
+      <div className="page reading reading--error">
         <h1 className="u-title">{error}</h1>
-        <p className="u-dim analysis__errorBody">
-          Analysis needs to know which song it is looking at before it can start.
+        <p className="reading__errorBody">
+          A reading needs to know which song it is looking at before it can start.
         </p>
         <Button variant="primary" onClick={() => navigate('/')}>
           Try another song
@@ -163,78 +81,108 @@ export default function AnalysisPage() {
   }
 
   return (
-    <div className="page page--full analysis">
-      <div className="analysis__scene">
-        <div className="analysis__top">
-          <button
-            type="button"
-            className="analysis__cancel"
-            onClick={() => navigate('/')}
-            aria-label="Cancel analysis"
-          >
-            ×
-          </button>
-        </div>
-
-        <div className="analysis__stage">
-          {/* The scan belongs to the stage area, which is empty but for the
-              artwork: there is nothing here to obscure while it runs. */}
-          <MachineScan
-            active={working}
-            label={song ? `${song.title} / ${song.artist}` : 'UNIDENTIFIED'}
-            readings={readings}
-          />
-          <PointCloud
-            streams={streams}
-            hueA={mood.hueA}
-            hueB={mood.hueB}
-            convergence={convergence}
-            speed={speed}
-            quality={0.9}
-          >
-            <div className={`analysis__art${finished ? ' analysis__art--settled' : ''}`}>
-              <div
-                className="analysis__halo"
-                style={{
-                  background: `radial-gradient(circle, hsla(${mood.hueB}, 82%, 68%, ${
-                    0.14 + resolution * 0.26
-                  }), transparent 68%)`,
-                }}
-                aria-hidden="true"
-              />
-              {song && (
-                <Artwork
-                  src={song.artworkUrl}
-                  seed={song.id}
-                  size="min(32vw, 124px)"
-                  radius="var(--r-lg)"
-                  alt=""
-                />
-              )}
-            </div>
-          </PointCloud>
-        </div>
-
+    <div className="page reading">
+      <div className="reading__top">
+        <button
+          type="button"
+          className="reading__close"
+          onClick={() => navigate('/')}
+          aria-label="Cancel reading"
+        >
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="M5 5l10 10M15 5 5 15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+          </svg>
+        </button>
         {song && (
-          <div className="analysis__identity">
-            <h1 className="u-section analysis__title">{song.title}</h1>
-            <p className="u-meta">
-              {[song.artist, song.year].filter(Boolean).join(' · ')}
-            </p>
-          </div>
+          <span className="reading__song">
+            <Artwork src={song.artworkUrl} seed={song.id} size={36} alt="" />
+            <span className="reading__songText">
+              <span className="reading__songTitle">{song.title}</span>
+              <span className="reading__songArtist">{song.artist}</span>
+            </span>
+          </span>
         )}
-
-        <div className="analysis__steps u-scroll">
-          <AnalysisSteps state={state} song={song} revealedCount={revealedCount} />
-        </div>
-
-        {!online && state?.stage !== 'complete' && (
-          <p className="analysis__notice u-meta" role="status">
-            You are offline, so we are working from what this device already knows
-            about this song.
-          </p>
-        )}
+        <span className="reading__count" aria-live="polite">
+          {revealed}/{total}
+        </span>
       </div>
+
+      <div className="reading__stage">
+        <div className="reading__orbit">
+          <StageDots total={total} lit={revealed} done={finished} />
+          <OrbitWeave
+            className="reading__mark"
+            size="100%"
+            mode={finished ? 'settled' : 'working'}
+            progress={revealed / total}
+            weight={0.9}
+          />
+        </div>
+        <p className="reading__status" aria-live="polite">
+          {finished
+            ? 'Read'
+            : state?.preparing
+              ? 'Preparing the reader'
+              : 'Reading'}
+        </p>
+      </div>
+
+      <div className="reading__steps" data-step-scroller>
+        <AnalysisSteps state={state} song={song} revealedCount={revealedCount} />
+      </div>
+
+      {devTrace && state && state.trace.length > 0 && (
+        <div className="reading__trace">
+          <Disclosure label="Show the working" note={`${state.trace.length} steps traced`}>
+            <TraceList entries={state.trace} newestFirst />
+          </Disclosure>
+        </div>
+      )}
+
+      {devTrace && finished && state?.profile && (
+        <div className="reading__continue">
+          <Button
+            variant="primary"
+            onClick={() =>
+              navigate(`/result/${encodeURIComponent(state.profile!.songId)}`, { replace: true })
+            }
+          >
+            See where it belongs
+          </Button>
+        </div>
+      )}
+
+      {!online && state?.stage !== 'complete' && (
+        <p className="reading__notice" role="status">
+          You are offline, so this works from what the device already knows
+          about the song.
+        </p>
+      )}
     </div>
+  );
+}
+
+/** One point per stage on a circle around the mark; lit as each is revealed. */
+function StageDots({ total, lit, done }: { total: number; lit: number; done: boolean }) {
+  const dots = Array.from({ length: total * 8 }, (_, i) => i);
+  return (
+    <svg className={`reading__dots${done ? ' reading__dots--done' : ''}`} viewBox="-50 -50 100 100" aria-hidden="true">
+      {dots.map((i) => {
+        // Small points all the way round, like the reference's dotted gauge;
+        // every eighth is a stage marker.
+        const angle = (i / dots.length) * Math.PI * 2 - Math.PI / 2;
+        const stage = i % 8 === 0 ? i / 8 : -1;
+        const on = stage >= 0 ? stage < lit : i / 8 < lit;
+        return (
+          <circle
+            key={i}
+            cx={Math.cos(angle) * 48}
+            cy={Math.sin(angle) * 48}
+            r={stage >= 0 ? 1.5 : 0.55}
+            className={`reading__dot${on ? ' reading__dot--on' : ''}${stage >= 0 ? ' reading__dot--stage' : ''}`}
+          />
+        );
+      })}
+    </svg>
   );
 }

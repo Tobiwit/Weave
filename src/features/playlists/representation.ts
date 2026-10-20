@@ -4,14 +4,18 @@ import { getSongs } from '../../db/repositories';
 import { projectVectors } from '../../services/projection';
 import type { Playlist, Song, SongProfile } from '../../types';
 import {
+  categorizeTag,
+  categoryWeightsFor,
   COMPONENT_ORDER,
   cosineSimilarity,
   discriminationWeight,
   type ComponentName,
+  type TagCategory,
   type TagCorpus,
 } from '../matching';
+import { AXES, AXES_BY_ID, type AxisId } from '../song/axes';
 import { evaluatePlaylist, type EvaluationRow } from '../matching/evaluate';
-import { buildMatchingContext, candidateForSong } from './playlistEngine';
+import { buildMatchingContext, candidateForSong, type StatedAxes } from './playlistEngine';
 import { coreQualities, describeBreadth } from './playlistInsights';
 
 /**
@@ -36,7 +40,30 @@ export interface ComponentReadout {
   influence: string;
   /** Configured share of a match score, before renormalisation. */
   weight: number;
+  /** This playlist's learned multiplier, 1 until the library is measured. */
+  factor: number;
+  /** Members' mean score minus everyone else's, in points, when measured. */
+  lift?: number;
   available: boolean;
+}
+
+/** One of the eight scales as this playlist holds it. */
+export interface FeelRow {
+  axis: AxisId;
+  label: string;
+  low: string;
+  high: string;
+  median: number;
+  /** The band a song may sit in without losing score. */
+  from: number;
+  to: number;
+  /** Real songs that placed on this axis. */
+  members: number;
+  /** Where the keywords point, when they do. */
+  stated?: number;
+  importance: number;
+  /** How the members' positions were obtained, e.g. `{ measured: 4, inferred: 2 }`. */
+  origins: Record<string, number>;
 }
 
 /**
@@ -58,6 +85,9 @@ export interface Saturation {
 
 export interface VocabularyEntry {
   tag: string;
+  category: TagCategory;
+  /** Ceiling the category puts on this tag for this playlist. */
+  categoryWeight: number;
   /** Songs in the playlist carrying it. */
   count: number;
   /** Rarity weight across every read song in the library. */
@@ -90,6 +120,12 @@ export interface PlaylistRepresentation {
   breadth: ReturnType<typeof describeBreadth>;
   coreQualities: string[];
   components: ComponentReadout[];
+  /** The eight scales as this playlist holds them; empty when nothing is placed. */
+  feel: FeelRow[];
+  /** How each keyword was read onto the scales. */
+  keywordReading: StatedAxes['matches'];
+  /** When the per-playlist weights were last learned. */
+  weightingMeasuredAt?: number;
   vocabulary: VocabularyEntry[];
   members: EvaluationRow[];
   saturation: Saturation | null;
@@ -105,6 +141,7 @@ export interface PlaylistRepresentation {
 }
 
 const COMPONENT_LABELS: Record<ComponentName, string> = {
+  axes: 'Feel (the eight scales)',
   playlistSongs: 'Its songs',
   style: 'Style',
   moodVibe: 'Mood and character',
@@ -165,6 +202,7 @@ function sentence(terms: string[], empty: string): string {
  */
 export function measureSaturation(rows: EvaluationRow[]): Saturation | null {
   const values: (number | null)[] = rows.flatMap((row) => [
+    row.axes,
     row.style,
     row.moodVibe,
     row.themes,
@@ -251,8 +289,10 @@ export function measureCohesion(
 function vocabularyOf(
   profiles: SongProfile[],
   corpus: TagCorpus,
+  keywords: string[],
   limit = 14,
 ): VocabularyEntry[] {
+  const categoryWeights = categoryWeightsFor(keywords);
   const counts = new Map<string, { label: string; count: number }>();
   let songs = 0;
 
@@ -274,7 +314,16 @@ function vocabularyOf(
   return [...counts.entries()]
     .map(([key, { label, count }]) => {
       const rarity = discriminationWeight(key, corpus);
-      return { tag: label, count, rarity, weight: rarity * (count / songs) };
+      const category = categorizeTag(key);
+      const categoryWeight = categoryWeights[category];
+      return {
+        tag: label,
+        category,
+        categoryWeight,
+        count,
+        rarity,
+        weight: rarity * (count / songs) * categoryWeight,
+      };
     })
     .sort((a, b) => b.weight - a.weight || a.tag.localeCompare(b.tag))
     .slice(0, limit);
@@ -299,7 +348,7 @@ export async function buildPlaylistRepresentation(
   // The facets any song would be scored against, with nothing excluded.
   const facets = candidateForSong(playlist, '', context).facets;
 
-  const vocabulary = vocabularyOf(profiles, context.corpus);
+  const vocabulary = vocabularyOf(profiles, context.corpus, playlist.keywords);
 
   const years = profiles
     .map((profile) => context.songsById.get(profile.songId)?.year)
@@ -313,7 +362,44 @@ export async function buildPlaylistRepresentation(
 
   const read = profiles.filter((profile) => profile.semanticEmbedding?.length);
 
+  const bands = facets?.axes?.bands ?? {};
+  const feel: FeelRow[] = AXES.flatMap(({ id }) => {
+    const band = bands[id];
+    if (!band) return [];
+    const axis = AXES_BY_ID[id];
+    const origins: Record<string, number> = {};
+    for (const profile of profiles) {
+      const reading = context.axesBySongId.get(profile.songId)?.[id];
+      if (!reading || reading.confidence <= 0) continue;
+      origins[reading.origin] = (origins[reading.origin] ?? 0) + 1;
+    }
+    return [
+      {
+        axis: id,
+        label: axis.label,
+        low: axis.low,
+        high: axis.high,
+        median: band.median,
+        from: Math.max(0, band.median - band.halfWidth),
+        to: Math.min(1, band.median + band.halfWidth),
+        members: band.members,
+        stated: band.stated,
+        importance: band.importance,
+        origins,
+      },
+    ];
+  }).sort((a, b) => b.importance - a.importance);
+
+  // A scale sitting in the middle says nothing worth putting in a sentence.
+  const leaning = feel.filter((row) => Math.abs(row.median - 0.5) > 0.06);
+  const poleOf = (row: FeelRow) => (row.median < 0.5 ? row.low : row.high);
+
   const reads: Record<ComponentName, string> = {
+    axes: feel.length
+      ? leaning.length
+        ? `${sentence(leaning.slice(0, 3).map(poleOf), '')}, most of all. ${feel.length} of 8 scales have a shape.`
+        : `Balanced on every scale it has a shape on (${feel.length} of 8).`
+      : 'No song has a position on the scales yet.',
     playlistSongs:
       read.length > 0
         ? `${read.length} read ${read.length === 1 ? 'song' : 'songs'}, judged both as a whole and by whichever few sit closest to what is being matched.`
@@ -336,18 +422,29 @@ export async function buildPlaylistRepresentation(
 
   const components: ComponentReadout[] = COMPONENT_ORDER.map((name) => {
     const available =
-      name === 'playlistSongs'
-        ? (facets?.whole.length ?? 0) > 0
-        : name === 'tags'
-          ? (facets?.tags.size ?? 0) > 0
-          : (facets?.[name].length ?? 0) > 0;
+      name === 'axes'
+        ? feel.length > 0
+        : name === 'playlistSongs'
+          ? (facets?.whole.length ?? 0) > 0
+          : name === 'tags'
+            ? (facets?.tags.size ?? 0) > 0
+            : (facets?.[name].length ?? 0) > 0;
+
+    const factor = playlist.weighting?.factors[name] ?? 1;
+    const weights = MATCHING_CONFIG.components.weights;
+    const total = COMPONENT_ORDER.reduce(
+      (sum, other) => sum + weights[other] * (playlist.weighting?.factors[other] ?? 1),
+      0,
+    );
 
     return {
       name,
       label: COMPONENT_LABELS[name],
       reads: reads[name],
-      influence: describeInfluence(MATCHING_CONFIG.components.weights[name]),
-      weight: MATCHING_CONFIG.components.weights[name],
+      influence: describeInfluence(total > 0 ? (weights[name] * factor) / total : 0),
+      weight: weights[name],
+      factor,
+      lift: playlist.weighting?.lifts[name],
       available,
     };
   });
@@ -384,6 +481,9 @@ export async function buildPlaylistRepresentation(
     breadth: describeBreadth(profiles, playlist.centroidEmbedding),
     coreQualities: coreQualities(profiles, context.corpus),
     components,
+    feel,
+    keywordReading: context.statedAxesByPlaylistId.get(playlist.id)?.matches ?? [],
+    weightingMeasuredAt: playlist.weighting?.measuredAt,
     vocabulary,
     members,
     saturation: measureSaturation(evaluation.rows),

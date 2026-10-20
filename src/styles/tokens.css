@@ -1,94 +1,95 @@
 /*
  * The material of the interface.
  *
- * Two registers, deliberately at odds with each other.
+ * Scene: someone on their phone in the evening, headphones in, deciding where
+ * a song belongs. Low light, unhurried, curious. So the ground is near-black,
+ * and colour arrives as light rather than as paint: a soft glow that runs from
+ * cyan through mint to lime, the way a screen looks when something is playing.
  *
- * The human register is editorial print: paper-white ink on a near-black
- * ground, hairline rules, wide margins, type doing the work. It is calm and it
- * is meant to stay calm even while the other register is shouting.
+ * Shape language is the half circle. Arcs make the mark, the rings that hold a
+ * score, the gauges on the eight scales, and the radius of every surface. Type
+ * is a contrast pair: a high-contrast serif for the things you read as a
+ * feeling (names, numbers, headlines) and a plain grotesque for everything you
+ * operate.
  *
- * The machine register is instrumentation: monospaced, small, dense, tinted
- * with a single sodium signal. It belongs to the observer layer and it is the
- * only thing allowed to be loud.
- *
- * What is absent is as deliberate as what is here. No indigo-to-violet ramp, no
- * translucent floating planes, no pill geometry, no glow. Those read as a
- * product demo of an AI company. This should read as an instrument.
+ * Token names are kept stable across the redesign so every screen picks the
+ * new material up at once; the comments say what each one now means.
  */
 
 :root {
+  color-scheme: dark;
+
   /* ---------- Ground ----------
-     Near-neutral with the faintest green cast, the way a monitor looks when it
-     is on but showing nothing. Not blue: blue is the thing everything else in
-     this category does. */
-  --c-void: oklch(0.09 0.004 150);
-  --c-bg: oklch(0.125 0.005 150);
-  --c-bg-2: oklch(0.175 0.006 150);
+     Neutral with the faintest cyan cast, so the glow reads as belonging to
+     the surface rather than sitting on top of it. */
+  --c-void: oklch(0.105 0.004 220);
+  --c-bg: oklch(0.13 0.005 220);
+  --c-bg-2: oklch(0.175 0.006 220);
 
-  /* Fills are flat, not translucent. No backdrop blur anywhere. */
-  --c-surface: oklch(0.165 0.006 150);
-  --c-surface-strong: oklch(0.225 0.007 150);
+  /* Raised surfaces: the rounded dark tiles of the reference. Flat fills. */
+  --c-surface: oklch(0.185 0.006 220);
+  --c-surface-strong: oklch(0.235 0.007 220);
+  --c-surface-press: oklch(0.27 0.008 220);
 
-  /* Rules, not borders. These draw lines; they do not enclose things. */
-  --c-hairline: oklch(0.29 0.006 150);
-  --c-hairline-strong: oklch(0.42 0.007 150);
+  /* Hairlines. Used sparingly: separation is mostly by surface and space. */
+  --c-hairline: oklch(0.27 0.006 220);
+  --c-hairline-strong: oklch(0.37 0.008 220);
 
   /* ---------- Ink ----------
-     Warm off-white, like uncoated stock. Contrast measured against --c-bg.
-     Every step carries real text, so all four clear 4.5:1. */
-  --c-text: oklch(0.96 0.012 92); /* 16.8:1 */
-  --c-text-2: oklch(0.82 0.014 92); /* 11.2:1 */
-  --c-text-3: oklch(0.7 0.014 92); /*  7.7:1 */
-  --c-text-4: oklch(0.58 0.012 92); /*  4.9:1 */
+     Contrast against --c-bg: text 17:1, text-2 11:1, text-3 7.4:1,
+     text-4 4.8:1. Every step carries real text. */
+  --c-text: oklch(0.97 0.004 200);
+  --c-text-2: oklch(0.84 0.006 200);
+  --c-text-3: oklch(0.72 0.008 200);
+  --c-text-4: oklch(0.61 0.008 200);
 
-  /* ---------- Signal ----------
-     One colour, used only where the machine is asserting something. Sodium
-     orange: the colour of industrial marking and of a detection box, and
-     nothing like a brand gradient. The acid is its high note, rationed. */
-  --c-signal: oklch(0.7 0.19 47);
-  --c-signal-dim: oklch(0.52 0.13 47);
-  --c-acid: oklch(0.88 0.17 112);
-  --c-alarm: oklch(0.63 0.22 27);
+  /* ---------- Light ----------
+     The glow ramp. Four stops, used in order, never all at full strength in
+     one place. Lime is the accent: current selection, the active state, the
+     one thing on a screen that is "on". */
+  --c-cyan: oklch(0.86 0.1 215);
+  --c-mint: oklch(0.88 0.11 168);
+  --c-lime: oklch(0.92 0.17 125);
+  --c-citron: oklch(0.93 0.19 108);
 
-  /* Kept so mood-driven surfaces still have somewhere to go, but desaturated
-     to the point where they read as tinted graphite rather than as colour. */
-  --c-cool: oklch(0.62 0.03 220);
-  --c-amber: var(--c-signal);
+  --c-signal: var(--c-lime);
+  --c-signal-dim: oklch(0.68 0.12 128);
+  --c-acid: var(--c-citron);
+  --c-alarm: oklch(0.72 0.17 28);
 
-  /*
-   * Compatibility aliases. The old palette was a blue-to-violet ramp used all
-   * over the page styles; rather than leave dead references, the whole ramp
-   * collapses onto the two things that survived it — ink and signal. Anything
-   * still asking for periwinkle gets ink, anything asking for an accent gets
-   * the signal. New work should name the real tokens.
-   */
-  --c-blue: var(--c-signal);
-  --c-violet: var(--c-signal-dim);
+  /* Text set on the light itself (a lime button, a lit pill). */
+  --c-on-light: oklch(0.17 0.03 140);
+
+  /* Compatibility aliases for older page styles. */
+  --c-blue: var(--c-cyan);
+  --c-violet: var(--c-mint);
   --c-periwinkle: var(--c-text-2);
   --c-ice: var(--c-text);
-  --c-cyan: var(--c-acid);
-  --grad-brand: var(--c-signal);
+  --c-amber: var(--c-citron);
+  --c-cool: var(--c-cyan);
+  --grad-brand: var(--c-lime);
 
-  /* ---------- Type ----------
-     A grotesque for the human register, a true monospace for the machine one.
-     The pairing is the whole typographic idea: anything set in mono is the
-     system talking about you rather than to you. */
-  --font-sans: 'Inter Tight', 'Archivo', 'Helvetica Neue', Helvetica, Arial,
-    system-ui, sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', 'IBM Plex Mono',
-    Menlo, Consolas, monospace;
+  /* ---------- Type ---------- */
+  --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI',
+    Roboto, sans-serif;
+  --font-display: 'Instrument Serif', 'Iowan Old Style', 'Palatino Linotype',
+    Georgia, serif;
+  /* Only the development trace speaks in monospace. */
+  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas,
+    monospace;
 
-  --t-display: clamp(2.75rem, 13vw, 5.25rem);
-  --t-hero: clamp(2rem, 8vw, 3.25rem);
-  --t-title: 1.8125rem;
-  --t-section: 1.25rem;
+  /* Fixed rem scale for the tool; the serif sizes are where the voice lives. */
+  --t-display: 4rem;
+  --t-hero: 2.75rem;
+  --t-title: 2.125rem;
+  --t-section: 1.375rem;
   --t-body: 1rem;
-  --t-meta: 0.8125rem;
-  --t-micro: 0.6875rem;
-  --t-nano: 0.5625rem;
+  --t-meta: 0.875rem;
+  --t-micro: 0.8125rem;
+  --t-nano: 0.75rem;
 
-  --lh-tight: 0.92;
-  --lh-snug: 1.18;
+  --lh-tight: 0.95;
+  --lh-snug: 1.15;
   --lh-body: 1.5;
 
   /* ---------- Space ---------- */
@@ -103,39 +104,39 @@
   --s-9: 56px;
   --s-10: 80px;
 
-  --gutter: 18px;
-  --content-max: 1080px;
-  --nav-h: 54px;
+  --gutter: 20px;
+  --content-max: 720px;
+  --nav-h: 64px;
 
   /* ---------- Geometry ----------
-     Square. The two small values exist for hit targets that would otherwise
-     look like a mistake, not to soften anything. */
-  --r-sm: 0px;
-  --r-md: 0px;
-  --r-lg: 0px;
-  --r-xl: 0px;
-  --r-pill: 0px;
-  --r-nub: 1px;
+     Every radius is part of a circle that could be completed. Surfaces are
+     generous; controls are pills; nothing is square. */
+  --r-sm: 12px;
+  --r-md: 20px;
+  --r-lg: 28px;
+  --r-xl: 36px;
+  --r-pill: 999px;
+  --r-nub: 6px;
 
   --hair: 1px;
 
   /* ---------- Depth ----------
-     There is none. Separation is by rule and by space. */
+     Surfaces separate by tone, not by shadow. The one exception is anything
+     floating over content (the tab bar, a sheet), which gets a soft lift. */
   --elev-1: none;
   --elev-2: none;
-  --elev-float: none;
+  --elev-float: 0 18px 40px -12px oklch(0 0 0 / 0.6);
   --blur-surface: none;
 
   /* ---------- Motion ----------
-     Machine easing: fast to start, long to settle, as though something is
-     being computed rather than animated. */
-  --e-out: cubic-bezier(0.1, 0.9, 0.2, 1);
-  --e-inout: cubic-bezier(0.7, 0, 0.2, 1);
-  --e-snap: cubic-bezier(0.2, 1.6, 0.35, 1);
-  --d-micro: 120ms;
-  --d-ui: 200ms;
-  --d-bg: 1100ms;
-  --d-reveal: 720ms;
+     Fluid, never springy: everything decelerates exponentially into place. */
+  --e-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --e-inout: cubic-bezier(0.65, 0, 0.35, 1);
+  --e-snap: cubic-bezier(0.22, 1, 0.36, 1);
+  --d-micro: 140ms;
+  --d-ui: 220ms;
+  --d-bg: 1400ms;
+  --d-reveal: 560ms;
 
   /* ---------- Layers ---------- */
   --z-field: 0;
@@ -155,8 +156,9 @@
 
 @media (min-width: 768px) {
   :root {
-    --gutter: 40px;
-    --t-title: 2.125rem;
-    --t-section: 1.375rem;
+    --gutter: 32px;
+    --t-display: 5rem;
+    --t-hero: 3.25rem;
+    --t-title: 2.5rem;
   }
 }

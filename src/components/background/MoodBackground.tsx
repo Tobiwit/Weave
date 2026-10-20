@@ -1,7 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { useReducedMotion } from '../../hooks/useReducedMotion';
+import type { CSSProperties } from 'react';
 import type { MoodVisualState } from '../../types';
-import { BloomFieldRenderer } from './bloomField';
 import './MoodBackground.css';
 
 interface MoodBackgroundProps {
@@ -15,91 +13,46 @@ interface MoodBackgroundProps {
 }
 
 /**
- * The mood field. Sits behind everything and owns no layout.
+ * The glow. Light rising from the foot of the screen, the way a phone looks
+ * when something is playing on it.
+ *
+ * Two soft radial fields, coloured from the glow ramp. A song's warmth slides
+ * them from cyan toward lime; how far a reading has resolved decides how much
+ * light there is. Pure CSS: the colours are registered custom properties, so
+ * a change of mood is a transition the browser runs, not a render loop.
  */
 export function MoodBackground({
   state,
   resolution = 1,
   quality = 1,
-  transitionMs = 1100,
+  transitionMs = 1400,
   className,
 }: MoodBackgroundProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rendererRef = useRef<BloomFieldRenderer | null>(null);
-  const reducedMotion = useReducedMotion();
+  const warmth = clamp(state.warmth);
+  const strength = clamp(resolution) * (0.62 + clamp(state.contrast) * 0.38) * clamp(quality, 0.35);
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  // Hue runs along the ramp: cool songs sit in cyan, warm ones in lime.
+  const hueA = 214 - warmth * 60;
+  const hueB = 168 - warmth * 50;
+  const spread = 0.8 + clamp(state.softness) * 0.5;
 
-    let renderer: BloomFieldRenderer;
-    try {
-      renderer = new BloomFieldRenderer(canvas, state, {
-        resolution,
-        reducedMotion,
-        quality,
-      });
-    } catch {
-      return; // No 2D context: the CSS base layer still paints an atmosphere.
-    }
-    rendererRef.current = renderer;
-
-    const parent = canvas.parentElement;
-    const applySize = () => {
-      const rect = parent?.getBoundingClientRect();
-      renderer.resize(
-        rect?.width || window.innerWidth,
-        rect?.height || window.innerHeight,
-      );
-    };
-
-    applySize();
-    renderer.start();
-
-    const observer = new ResizeObserver(applySize);
-    if (parent) observer.observe(parent);
-    window.addEventListener('orientationchange', applySize);
-
-    const onVisibility = () => {
-      if (document.hidden) renderer.stop();
-      else renderer.start();
-    };
-    document.addEventListener('visibilitychange', onVisibility);
-
-    return () => {
-      observer.disconnect();
-      window.removeEventListener('orientationchange', applySize);
-      document.removeEventListener('visibilitychange', onVisibility);
-      renderer.stop();
-      rendererRef.current = null;
-    };
-    // The renderer is imperative; state changes are pushed in by the effects
-    // below rather than by tearing it down and rebuilding it.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reducedMotion]);
-
-  useEffect(() => {
-    rendererRef.current?.setState(state, transitionMs);
-  }, [state, transitionMs]);
-
-  useEffect(() => {
-    rendererRef.current?.setOptions({ resolution, quality, reducedMotion });
-  }, [resolution, quality, reducedMotion]);
+  const style = {
+    '--glow-a': `oklch(0.82 0.12 ${hueA.toFixed(1)} / ${(0.55 * strength).toFixed(3)})`,
+    '--glow-b': `oklch(0.88 0.16 ${hueB.toFixed(1)} / ${(0.6 * strength).toFixed(3)})`,
+    '--glow-spread': spread.toFixed(3),
+    '--glow-drift': `${(26 - clamp(state.motion) * 14).toFixed(1)}s`,
+    '--glow-ms': `${transitionMs}ms`,
+  } as CSSProperties;
 
   return (
-    <div
-      className={`mood-bg${className ? ` ${className}` : ''}`}
-      aria-hidden="true"
-      style={
-        {
-          '--mood-hue-a': `${state.hueA}`,
-          '--mood-hue-b': `${state.hueB}`,
-        } as React.CSSProperties
-      }
-    >
-      <canvas ref={canvasRef} className="mood-bg__canvas" />
-      <div className="mood-bg__grain" />
-      <div className="mood-bg__vignette" />
+    <div className={`glow${className ? ` ${className}` : ''}`} style={style} aria-hidden="true">
+      <div className="glow__field glow__field--a" />
+      <div className="glow__field glow__field--b" />
     </div>
   );
+}
+
+function clamp(value: number, min = 0): number {
+  if (!Number.isFinite(value)) return min;
+  return Math.min(1, Math.max(min, value));
 }

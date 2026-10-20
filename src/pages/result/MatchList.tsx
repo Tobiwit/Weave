@@ -1,10 +1,14 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { useState, type CSSProperties } from 'react';
+import { PlaylistMaterial } from '../../components/playlist/PlaylistMaterial';
 import { Button } from '../../components/ui/Button';
-import { ScoreNumber } from '../../components/ui/ScoreNumber';
-import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { Disclosure } from '../../components/ui/Disclosure';
+import { Ring } from '../../components/ui/Ring';
 import { matchBand } from '../../features/matching';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useRuntimeSettings } from '../../hooks/useRuntimeSettings';
 import type { Playlist, PlaylistMatch } from '../../types';
+import { MatchWorking } from './MatchWorking';
 
 interface MatchListProps {
   matches: PlaylistMatch[];
@@ -13,9 +17,16 @@ interface MatchListProps {
   addedTo: Set<string>;
 }
 
+const BAND_WORD = { strong: 'Belongs here', partial: 'Could fit', distant: 'A stretch' } as const;
+
+/**
+ * The playlists, best first. Each is a tile with its score as a ring; the
+ * first is set larger, because it is the answer and the rest are alternatives.
+ */
 export function MatchList({ matches, playlists, onAdd, addedTo }: MatchListProps) {
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(matches[0]?.playlistId ?? null);
   const reducedMotion = useReducedMotion();
+  const { devTrace } = useRuntimeSettings();
 
   return (
     <ul className="matches">
@@ -24,12 +35,14 @@ export function MatchList({ matches, playlists, onAdd, addedTo }: MatchListProps
         if (!playlist) return null;
         const open = expanded === match.playlistId;
         const band = matchBand(match.score);
+        const added = addedTo.has(match.playlistId);
+        const lead = index === 0;
 
         return (
           <li
             key={match.playlistId}
-            className={`match match--${band} u-rise`}
-            style={{ '--rise-delay': `${index * 90}ms` } as CSSProperties}
+            className={`match match--${band}${lead ? ' match--lead' : ''}${open ? ' match--open' : ''} u-rise`}
+            style={{ '--rise-delay': `${Math.min(index, 6) * 70}ms` } as CSSProperties}
           >
             <button
               type="button"
@@ -37,18 +50,17 @@ export function MatchList({ matches, playlists, onAdd, addedTo }: MatchListProps
               onClick={() => setExpanded(open ? null : match.playlistId)}
               aria-expanded={open}
             >
-              <span className="match__score">
-                <ScoreNumber value={match.score} size={index === 0 ? 'md' : 'sm'} />
-              </span>
               <span className="match__body">
+                <span className="match__band">{BAND_WORD[band]}</span>
                 <span className="match__name">{playlist.name}</span>
-                <span className="match__desc u-meta">
-                  {playlist.keywords.slice(0, 4).join(' · ')}
-                </span>
+                <span className="match__desc">{playlist.keywords.slice(0, 3).join(' · ')}</span>
               </span>
-              <span className="match__chevron" aria-hidden="true">
-                {open ? '−' : '+'}
-              </span>
+              <Ring
+                value={match.score}
+                size={lead ? 84 : 60}
+                thickness={lead ? 4 : 3}
+                ariaLabel={`${match.score} percent match`}
+              />
             </button>
 
             <AnimatePresence initial={false}>
@@ -58,45 +70,58 @@ export function MatchList({ matches, playlists, onAdd, addedTo }: MatchListProps
                   initial={reducedMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
                   animate={reducedMotion ? { opacity: 1 } : { height: 'auto', opacity: 1 }}
                   exit={reducedMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
-                  transition={{ duration: 0.36, ease: [0.16, 0.84, 0.28, 1] }}
+                  transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
                 >
                   <div className="match__detailInner">
-                    <p className="u-meta match__scoreNote">
-                      {match.score}% match · a Match Score, not a probability
-                    </p>
-
                     {match.reasons.length > 0 && (
                       <div className="match__group">
-                        <h4 className="u-eyebrow">Strong overlap</h4>
-                        <p className="match__terms">{match.reasons.join(' · ')}</p>
+                        <h4 className="match__groupLabel">In common</h4>
+                        <p className="match__terms">
+                          {match.reasons.map((term) => (
+                            <span key={term} className="match__term">
+                              {term}
+                            </span>
+                          ))}
+                        </p>
                       </div>
                     )}
 
                     {match.differences.length > 0 && (
                       <div className="match__group">
-                        <h4 className="u-eyebrow">Less aligned</h4>
-                        <p className="match__terms match__terms--muted">
-                          {match.differences.join(' · ')}
+                        <h4 className="match__groupLabel">Pulling apart</h4>
+                        <p className="match__terms">
+                          {match.differences.map((term) => (
+                            <span key={term} className="match__term match__term--muted">
+                              {term}
+                            </span>
+                          ))}
                         </p>
                       </div>
                     )}
 
                     {match.reasons.length === 0 && match.differences.length === 0 && (
-                      <p className="u-meta">
-                        These two share a general feeling more than any single word.
+                      <p className="match__none">
+                        These share a general feeling more than any single word.
                       </p>
                     )}
 
-                    <Button
-                      variant={addedTo.has(match.playlistId) ? 'ghost' : 'quiet'}
-                      size="sm"
-                      disabled={addedTo.has(match.playlistId)}
-                      onClick={() => onAdd(match.playlistId)}
-                    >
-                      {addedTo.has(match.playlistId)
-                        ? `In ${playlist.name}`
-                        : `Add to ${playlist.name}`}
-                    </Button>
+                    {devTrace && (
+                      <Disclosure label="Show the working" note="weights per part">
+                        <MatchWorking match={match} playlist={playlist} />
+                      </Disclosure>
+                    )}
+
+                    <div className="match__actions">
+                      <PlaylistMaterial playlist={playlist} size={36} />
+                      <Button
+                        variant={added ? 'quiet' : lead ? 'primary' : 'tinted'}
+                        size="sm"
+                        disabled={added}
+                        onClick={() => onAdd(match.playlistId)}
+                      >
+                        {added ? `In ${playlist.name}` : `Add to ${playlist.name}`}
+                      </Button>
+                    </div>
                   </div>
                 </motion.div>
               )}
